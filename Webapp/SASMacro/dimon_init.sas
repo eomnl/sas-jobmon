@@ -65,7 +65,7 @@
   %let _odsstyle            = dimon;
   %let viewlog_maxfilesize  = 2097152; /* logs beyond this filesize (2MB) are opened in external viewer  */
                                        /* this is an IE setting, for chrome and ff this value is doubled */
-  %let gantt_width          = 200;     /* width in pixels of Gantt column                                */
+  %let gantt_width          = 150;     /* width in pixels of Gantt column                                */
   %let trend_days           = 90;      /* default numer of days to show elapsed time trend for           */
 
   %put NOTE: ENGINE    = &engine.;
