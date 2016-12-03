@@ -1,0 +1,38 @@
+EOM DI Monitor version 3 - Web Application Installation instructions
+====================================================================
+
+Below you find the instructions for installing the DI Monitor web application.
+Instructions for installing the batch part of the DI Monitor are located in the SASBatch directory.
+
+Note: The instructions below assume you have a separate SAS Application Server for your web tasks.
+      If you don't have this separation or have a different setup, please interpret the
+      instructions accordingly.
+
+Instructions
+------------
+1. Using SAS Management Console, create a SAS library named DIMon (libref DIMON), preferably
+   under a SAS/SHARE Server or an RDBMS, and assign it to your SAS Web Application Server.
+   If you want to use a different library you can assign it in the dimon_init.sas file that is
+   installed below.
+
+2. Using SAS Management Console, import SAS metadata package
+   "SASPackages/dimon-webapp.spk" into a location of choice.
+   Assign the Stored Process to execute on your SAS Web Stored Process Server.
+
+3. Copy the content of the delivered folder "Webapps" to directory <SASConfigDir>/Web/WebServer/htdocs/
+
+4. Copy the content of the delivered folder "SASMacro" to the SASEnvironment/SASMacro
+   directory on your SAS Web Application Server.
+
+5. Edit dimon_init.sas macro copied in the step above and update the settings/paths to
+   reflect the choices you made above:
+
+   Setting   Description                                                        Default value
+   -------   -----------------------------------------------------------------  -----------------
+   sproot    Folder where the Stored Processes were imported to                 /eom/dimon/stored processes
+   webroot   Relative URL path to where the webapps images were copied to       /eom/dimon
+
+7. Start the DI Monitor web application by executing the "dimon" Stored Process from the
+   SAS Stored Process Web Application.
+
+-- end of instructions

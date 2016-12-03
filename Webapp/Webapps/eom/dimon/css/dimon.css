@@ -1,0 +1,393 @@
+@import 'https://fonts.googleapis.com/css?family=Open+Sans|Roboto';
+
+.batch {indent:-10px !important;}
+
+
+.ui-widget {
+	font-size:1.1em;
+}
+
+.ui-datepicker {
+	margin-top: 36px;
+}
+
+#dimon-menubar {
+	border-bottom: 1px solid #c0c0c0;
+	overflow:auto;
+	padding-bottom:10px;
+}
+
+#dimon-logo {
+	margin-top: 5px;
+	margin-left: 11px;
+}
+
+#dimon-navbar {
+	border-bottom: 1px solid #c0c0c0;
+	overflow:auto;
+	background-color:#fcfcfc;
+}
+
+#navpath {
+	float:left;
+	margin-top:6px;
+	margin-bottom:5px;
+	margin-left:5px;
+}
+
+#dimon-navbar .ui-state-hover {
+	border: 1px solid #c5c5c5;
+	background: #f6f6f6;	
+}
+
+#menubuttonNavbar {
+	float:right;
+	margin-top:6px;
+	color: inherit !important;	
+	border: 1px solid #fcfcfc;
+	background: #fcfcfc;
+}
+
+.navpath-item {
+	color: inherit !important;	
+	border: 1px solid #fcfcfc;
+	background: #fcfcfc;
+}
+
+#navpath .ui-button-text-only .ui-button-text {
+	padding: .4em .4em;
+}
+
+.navpath-separator {
+	font-style:bold;
+	color:#a0a0a0;
+	font-size: .8em;
+	margin-right:2px;
+}
+
+.systitleandfootercontainer  , .systemtitle {
+	background-color: inherit !important;
+}
+
+.systemtitle {
+	font-size: 1.5em !important;
+}
+
+
+#results1 {
+	margin:10px;
+	overflow:auto;
+	height:80%;
+	width:98%;
+}
+
+#dimon-footer {
+	left:8px;
+	right:8px;
+	bottom:10px;
+	padding-top:5px;
+	border-top: 1px solid #c0c0c0;
+}
+
+#linkHome {
+	float:left;
+}
+
+#search {
+	color: #454545;
+	background-color: white;
+	text-align : left;
+	outline : none;
+	cursor : text;
+	margin-left: 40px;
+	width: 100px;
+}
+
+#dimon-radiomenu {
+	float:right;
+	padding-top:3px;
+}
+
+#dimon-flowstartdate {
+	padding:2px 0px 0px 20px;
+	float:left;
+}
+
+#dimonHistoryFlows {
+	margin-top:10px;
+}
+.mean-bar {
+	float: left;
+	display: block;
+	height: 12px;
+	background-color: #c0d0f0;
+	color: white;
+	text-align:center;
+}
+
+.mean-bar-value {
+	margin-left: 5px;
+}
+
+.dimonFlowScheduled, .dimonFlowScheduled a {
+	color: #a0a0a0;
+	background-color: #ffffff;
+	font-style:italic;
+}
+
+.dimonFlowDidNotStart, .dimonFlowDidNotStart a {
+	color: #ff0000;
+	background-color: #ffffff;
+}
+
+.dimonFlowStatusError, .dimonFlowStatusError a {
+	color: white !important;
+	background-color:#eb5900 !important;
+}
+
+.dimonFlowStatusWarning, .dimonFlowStatusWarning a {
+  background-color: #faae43 !important;
+}
+
+.dimonFlowStatusRunning, .dimonFlowStatusRunning a {
+  font-weight: bold;
+}
+
+.dimonJobStatusSuccessful, .dimonJobStatusSuccessful a {
+  color: black;
+  background-color: #2fb67a;
+}
+
+.dimonJobStatusError, .dimonJobStatusError a {
+  color: white;
+  background-color: red;
+}
+
+.dimonJobStatusWarning, .dimonJobStatusWarning a {
+  color: black;
+  background-color: #ffeba7;  
+}
+
+.dimonJobStatusRunning, .dimonJobStatusRunning a {
+  font-weight: bold;
+}
+
+.dimonReportFootnote {
+  color: blue;
+  background-color: white;
+  font-size: 9px;
+  text-align: left;
+}
+
+.ajaxLoadingMessage {
+  color: white;
+  background-color: blue;
+}
+
+#plot {
+  float:left;
+  width:620px;
+  margin:10px 0px 0px 100px;
+}
+
+/* % of Total bars */
+.dimon-bar {
+  float: left;
+  background-color: #0288d1;
+  display: block;
+  height: 14px;
+  color: white;
+  text-align:center;
+  margin-top:1px;
+}
+.dimon-bar-value {
+  margin-left:5px;
+  float:right;
+  width:25px;
+  text-align: right;
+}
+.gantt-bar.idle {
+	background-color: #d0d0d0;
+}
+
+.dimon-status-progressbar {
+  position: relative;
+  float: right;
+  height: 14px;
+  width: 120px;
+}
+.dimon-status-progressbar-label {
+  position: absolute;
+  top: 1px;
+  font-size: 0.9em;
+  width: 120px;
+  text-align: center;
+  color: #d0d0d0;
+}
+  
+.dimon-status-icon                             { float: left; margin-top: -2px; margin-right: 5px;}
+.dimon-status-icon.ok                       { background-image: url("images/ui-icons_008000_256x240.png"); }
+.dimon-status-icon.running             { background-image: url("images/ui-icons_0288d1_256x240.png"); }
+.dimon-status-icon.warning             { background-image: url("images/ui-icons_222222_256x240.png"); }
+.dimon-status-icon.error                 { background-image: url("images/ui-icons_ffffff_256x240.png"); }
+.dimon-status-icon.did-not-start { background-image: url("images/ui-icons_ff0000_256x240.png"); }
+.dimon-status-icon.scheduled         { background-image: url("images/ui-icons_a0a0a0_256x240.png"); }
+
+.dimon-elapsed-time-icon-warning , .dimon-status-icon-completed-with-warnings {
+  float: left;
+  background-image: url("images/ui-icons_222222_256x240.png") !important;
+}
+
+.realtime-flows-view-job-status-link  .flow-status-link {
+  float:left;
+}
+
+div #viewlogHeader {
+  overflow: auto;
+  border-bottom: 1px solid #ccc;
+}
+
+div #viewlogTitle {
+  padding:10px;
+  font-size:1em;
+  float:left;
+}
+
+#viewlogCheckbox {
+  float:right;
+}
+
+div #viewlogContent {
+  left:5px;
+  right:5px;
+  height: 400px;
+  margin-top:10px;
+  overflow:auto;
+}
+
+div #dimon-menu-left{
+  float: left;
+  width: 600px;
+}
+
+.dimon-menuitem {
+	margin-top:4px;
+}
+
+.dimon-menuitem.left {
+	float:left;
+}	
+
+.dimon-menuitem.right {
+	float:right;
+}	
+
+div.dropdown-menu {
+		  display: none;
+			color: #444;
+ background-color: white;
+		   border: 1px solid #DEDEDE;
+	  white-space: nowrap;
+		  padding: 0;
+	  line-height: 2.5;
+	   /* font-size: 1.1em;*/
+}
+
+ul.dropdown-menu { margin:10px; padding:0px; }
+.li-dropdown-item       { list-style:none; background-color: #ffffff; cursor: pointer; }
+.li-dropdown-item:hover { list-style:none; background-color: #ededed; cursor: pointer; }
+span.ui-icon-dropdown-item { float:left; margin-top: 8px; margin-right: 4px;}
+span.text-dropdown-item { float:left; margin-right:20px; }
+.sortmenu-sort-direction-item { margin-left: 20px; }
+
+
+div #dimon-schedules {
+  float:right;
+  margin-top:3px;
+  margin-right:5px;
+}
+
+.ui-icon-blank {
+  background-position: 20px 20px;
+}
+
+.job-run-id-flow-cell {
+	color:white/*#a0a0a0*/;
+	font-style: italic;
+}
+
+a:link {
+	text-decoration: none;
+	color: inherit;
+}
+
+a:visited {
+	text-decoration: none;
+	color: inherit;
+}
+
+a:hover {
+	text-decoration: underline;
+	color: inherit;
+}
+
+a:active {
+	text-decoration: underline;
+	color: inherit;
+}
+
+.flow-job-drilldown-link-text   {
+	font-weight: bold !important;
+}
+
+.dimon-message {
+	color: #606060;
+	margin-left: 40px !important;
+	font-weight: bold !important;
+}
+
+.ui-tooltip {
+	white-space: pre-line;
+}
+
+#plotControls {
+  float:left;
+  margin-left:10px;
+  margin-top:10px;
+}
+
+#plotControls fieldset {
+	  border: 0;
+	  margin-left: 10px;
+	}
+#plotControls label {
+	  display: block;
+	  margin: 20px 0 0 0;
+}
+#plotControls select {
+	  width: 100px;
+	}
+
+#menubarNotesWarningsErrors {
+  border-bottom: 1px solid #c0c0c0;
+  overflow:auto;
+  padding-bottom:10px;
+}
+#titleNotesWarningsErrors {
+	float:left;
+}
+#buttonbarNotesWarningsErrors {
+	float:right;
+}
+#sasresultNotesWarningsErrors {
+	margin-top:10px;
+}	
+
+.table-total-row {
+	background-color: #f6f6f6 !important;
+	font-weight: bold !important;
+}
+
+#plotControls label {
+	text-align: left;
+}
