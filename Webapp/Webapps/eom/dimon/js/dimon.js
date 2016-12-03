@@ -10,8 +10,6 @@
 /* 20nov16 eombah updatd for dimon3                                          */
 /* ========================================================================= */
 
-//$('#navpath .navpath-item:last').attr('id')
-
 var settings =	{                  urlSPA : ''
 				,                  sproot : ''
 				,                 imgroot : ''
