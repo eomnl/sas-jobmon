@@ -36,7 +36,7 @@ SASLSTFILE=$SASLOGDIR/${FILENAME_PREFIX}_${DATETIME}.lst
 dir=$(pwd)
 cd $CONFIGDIR
 
-if [ "$DIMONDEBUG" -eq "YES"] ; then
+if [ "$DIMONDEBUG" -eq "YES" ] ; then
   set > /tmp/dimon-debug.txt
 fi
 
