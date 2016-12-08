@@ -67,6 +67,8 @@
                                        /* this is an IE setting, for chrome and ff this value is doubled */
   %let gantt_width          = 150;     /* width in pixels of Gantt column                                */
   %let trend_days           = 90;      /* default numer of days to show elapsed time trend for           */
+  %let flow_completion_mode = 1;       /* 1 = #jobs_completed < #jobs_in_flow then flow is RUNNING       */
+                                       /* 2 = #jobs_completed < #jobs_in_flow then flow is COMPLETED     */
 
   %put NOTE: ENGINE    = &engine.;
   %put NOTE: URLSPA    = &urlspa.;
