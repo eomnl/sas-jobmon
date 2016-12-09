@@ -69,6 +69,7 @@
   %let trend_days           = 90;      /* default numer of days to show elapsed time trend for           */
   %let flow_completion_mode = 1;       /* 1 = #jobs_completed < #jobs_in_flow then flow is RUNNING       */
                                        /* 2 = #jobs_completed < #jobs_in_flow then flow is COMPLETED     */
+  %let flow_completion_mode_2_idle_time = 60; /* idle seconds before marking flow COMPLETED in mode 2    */
 
   %put NOTE: ENGINE    = &engine.;
   %put NOTE: URLSPA    = &urlspa.;
