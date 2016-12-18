@@ -45,7 +45,7 @@
   %mend create_table_or_view;
 
   /* Get Dimon engine. When it is  something other than SAS, dimon creates SQL */
-  /* Views instead of tables, where applicable, to let SQL  pass through.      */
+  /* views instead of tables, where applicable, to let SQL  pass through.      */
   %global engine;
   proc sql noprint;
     select case
@@ -58,27 +58,35 @@
   quit;
 
   %global urlspa sproot webroot _odsstyle viewlog_maxfilesize gantt_width trend_days
+          flow_completion_mode flow_completion_mode_2_idle_time lsf_flow_finished_dir
           ;
   %let urlspa               = /SASStoredProcess/do;
   %let sproot               = /My Company/Application Support/EOM DI Job Monitor/Stored Processes;
   %let webroot              = /eom/dimon;
   %let _odsstyle            = dimon;
-  %let viewlog_maxfilesize  = 2097152; /* logs beyond this filesize (2MB) are opened in external viewer  */
+  %let viewlog_maxfilesize  = 2097152; /* logs beyond this filesize (2MiB) are opened in external viewer */
                                        /* this is an IE setting, for chrome and ff this value is doubled */
   %let gantt_width          = 150;     /* width in pixels of Gantt column                                */
   %let trend_days           = 90;      /* default numer of days to show elapsed time trend for           */
-  %let flow_completion_mode = 1;       /* 1 = #jobs_completed < #jobs_in_flow then flow is RUNNING       */
-                                       /* 2 = #jobs_completed < #jobs_in_flow then flow is COMPLETED     */
-  %let flow_completion_mode_2_idle_time = 60; /* idle seconds before marking flow COMPLETED in mode 2    */
 
-  %put NOTE: ENGINE    = &engine.;
-  %put NOTE: URLSPA    = &urlspa.;
-  %put NOTE: SPROOT    = &sproot.;
-  %put NOTE: WEBROOT   = &webroot.;
-  %put NOTE: _ODSSTYLE = &_odsstyle.;
-  %put NOTE: VIEWLOG_MAXFILESIZE  = &viewlog_maxfilesize.;
-  %put NOTE: GANTT_WIDTH          = &gantt_width.;
-  %put NOTE: TREND_DAYS           = &trend_days.;
+  %let flow_completion_mode = 1;       /* 1 = #jobs_completed < #jobs_in_flow then flow is RUNNING        */
+                                       /* 2 = #jobs_completed < #jobs_in_flow then flow is COMPLETED      */
+                                       /* 3 = base flows on lsf_flow_finished_dir, subflows use 1         */
+                                       /* 4 = base flows on lsf_flow_finished_dir, subflows use 2         */
+  %let flow_completion_mode_2_idle_time = 60; /* idle seconds before marking flow COMPLETED in mode 2     */
+  %let lsf_flow_finished_dir =                                                                  /* mode 3 */
+
+  %put NOTE: ENGINE                           = &engine.;
+  %put NOTE: URLSPA                           = &urlspa.;
+  %put NOTE: SPROOT                           = &sproot.;
+  %put NOTE: WEBROOT                          = &webroot.;
+  %put NOTE: _ODSSTYLE                        = &_odsstyle.;
+  %put NOTE: VIEWLOG_MAXFILESIZE              = &viewlog_maxfilesize.;
+  %put NOTE: GANTT_WIDTH                      = &gantt_width.;
+  %put NOTE: TREND_DAYS                       = &trend_days.;
+  %put NOTE: FLOW_COMPLETION_MODE             = &flow_completion_mode.;
+  %put NOTE: FLOW_COMPLETION_MODE_2_IDLE_TIME = &flow_completion_mode_2_idle_time.;
+  %put NOTE: LSF_FLOW_FINISHED_DIR            = &lsf_flow_finished_dir.;
 
   ods path WORK.TAGSETS(UPDATE) SASHELP.TMPLMST(READ);
   proc template;
