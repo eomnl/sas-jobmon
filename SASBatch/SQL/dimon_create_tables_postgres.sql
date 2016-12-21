@@ -40,7 +40,7 @@ CREATE TABLE public.dimon_flow_schedules
   current_ind character varying(1),
   update_user character varying(32),
   update_dts timestamp without time zone,
-  CONSTRAINT pk_dimon_flow_schedules PRIMARY KEY (flow_id, valid_from_dts)
+  CONSTRAINT pk_dimon_flow_schedules PRIMARY KEY (flow_id, triggering_event_condition, valid_from_dts)
 )
 WITH (
   OIDS=FALSE

@@ -34,7 +34,7 @@ CREATE TABLE dbo.dimon_flow_job
   current_ind varchar(1),
   update_user varchar(32),
   update_dts datetime,
-  CONSTRAINT pk_dimon_flow_schedules PRIMARY KEY (flow_id, valid_from_dts)
+  CONSTRAINT pk_dimon_flow_schedules PRIMARY KEY (flow_id, triggering_event_condition, valid_from_dts)
 );
 
 CREATE TABLE dbo.dimon_flows
