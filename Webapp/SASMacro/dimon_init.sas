@@ -2,6 +2,9 @@
 /* Program : dimon_init.sas                                                  */
 /* Purpose : initialization for DI Monitor Stored Processes                  */
 /*                                                                           */
+/* Do NOT modify this file.  Any additions or changes should be made in      */
+/* dimon_usermods.sas.                                                       */
+/*                                                                           */
 /* Change History                                                            */
 /* Date    By     Changes                                                    */
 /* 01jun10 eombah initial version                                            */
@@ -14,6 +17,7 @@
 
   %let dts1 = %sysfunc(datetime());
 
+  /* _debug parameter is passed on the url as &_debug= */
   %global _debug;
   %if (&_debug. ne 0) %then
   %do;
@@ -26,13 +30,6 @@
   %put NOTE: ====================================================================;
   %put NOTE: dimon_init macro started execution.;
 
-  %if (%sysfunc(libref(dimon)) ne 0) %then
-  %do; /* assign dimon library */
-       %put NOTE: Assigning library DIMON;
-       libname dimon (dimonsql);
-  %end;/* assign dimon library */
-  libname dimon list;
-
   %macro _webout;
     %if (%sysfunc(fileref(_webout)) = 0) %then
         _webout;
@@ -44,22 +41,15 @@
     CREATE %if (&engine = SAS) %then TABLE; %else VIEW;
   %mend create_table_or_view;
 
-  /* Get Dimon engine. When it is  something other than SAS, dimon creates SQL */
-  /* views instead of tables, where applicable, to let SQL  pass through.      */
-  %global engine;
-  proc sql noprint;
-    select case
-             when engine in ('BASE','V9','REMOTE') then 'SAS'
-             else engine
-           end into :engine
-    from   sashelp.vlibnam
-    where  libname = 'DIMON'
-    ;
-  quit;
-
   %global urlspa sproot webroot _odsstyle viewlog_maxfilesize gantt_width trend_days
           flow_completion_mode flow_completion_mode_2_idle_time lsf_flow_finished_dir
           ;
+
+  /* ------------------------------------------------------------------------- */
+  /* Default settings, to be overriden by %dimon_usermods                      */
+  /* Do NOT modify this file.  Any additions or changes should be made in      */
+  /* dimon_usermods.sas.                                                       */
+  /* ------------------------------------------------------------------------- */
   %let urlspa               = /SASStoredProcess/do;
   %let sproot               = /My Company/Application Support/EOM DI Job Monitor/Stored Processes;
   %let webroot              = /eom/dimon;
@@ -71,10 +61,61 @@
 
   %let flow_completion_mode = 1;       /* 1 = #jobs_completed < #jobs_in_flow then flow is RUNNING        */
                                        /* 2 = #jobs_completed < #jobs_in_flow then flow is COMPLETED      */
-                                       /* 3 = base flow status on lsf_flow_finished_dir, subflows use 1   */
-                                       /* 4 = base flow status on lsf_flow_finished_dir, subflows use 2   */
+                                       /* 3 = base flows on lsf_flow_finished_dir, subflows use 1         */
+                                       /* 4 = base flows on lsf_flow_finished_dir, subflows use 2         */
   %let flow_completion_mode_2_idle_time = 60; /* idle seconds before marking flow COMPLETED in mode 2     */
-  %let lsf_flow_finished_dir =                                                                  /* mode 3 */
+  %let lsf_flow_finished_dir = ;                                                                /* mode 3 */
+
+
+  /* Get usermods if exists */
+  data _null_;
+
+    text = getoption('sasautos');
+
+    /* blank out the parentheses */
+    if (substr(text,1,1) = '(') then substr(text,1,1) = ' ';
+    len = length(text);
+    if (substr(text,len,1) = ')') then substr(text,len,1) = ' ';
+
+    i = 0;
+    usermods_exists = 0;
+    do while (1);
+        i + 1;
+
+        /* read a quoted token (pathname) or non-quoted token (fileref) */
+        x = scan(text,i,' "''','q');
+        if (x = ' ') then leave;
+
+        /* check if dimon_usermods.sas exists */
+        fname = strip(dequote(x))!!'/dimon_usermods.sas';
+        usermods_exists = fileexist(fname);
+        if (usermods_exists) then leave;
+
+    end;/* do while */
+
+    if (usermods_exists) then
+    do;
+        put 'NOTE: A usermods file was found at "' fname +(-1) "'.";
+        call execute('%dimon_usermods;');
+    end;
+    else
+        put 'NOTE: A usermods file was not found.';
+
+  run;
+
+
+  /* Get dimon engine. When it is  something other than SAS, dimon creates SQL */
+  /* views instead of tables, where applicable, to let SQL  pass through.      */
+  %global engine;
+  proc sql noprint;
+    select case
+             when engine in ('BASE','V9','REMOTE') then 'SAS'
+             else engine
+           end into :engine
+    from   sashelp.vlibnam
+    where  libname = 'DIMON'
+    ;
+  quit;
 
   %put NOTE: ENGINE                           = &engine.;
   %put NOTE: URLSPA                           = &urlspa.;
