@@ -29,6 +29,28 @@ options nosource;
 
 %macro x;
 
+  %let sysin = %sysfunc(getoption(sysin));
+  %if ("&sysin." ne "") %then
+  %do; /* check for dimon_usermods file and include it if exists */
+
+       %let sysin_filename = %scan(&sysin,-1,/\);
+       %let sysin_dirname  = %substr(&sysin,1,%length(&sysin)-1-%length(&sysin_filename));
+       %let usermods       = &sysin_dirname/dimon_usermods.sas;
+       %if (%sysfunc(fileexist(&usermods))) %then
+       %do;
+            %put NOTE: A usermods file was found at "&usermods.".;
+            %let optSource2 = %sysfunc(getoption(source2));
+            options source2;
+            %include "&usermods.";
+            options &optSource2;
+       %end;
+       %else
+           %put NOTE: A usermods file was not found at "&usermods.".;
+
+  %end;/* check for dimon_usermods file and include it if exists */
+
+  libname DIMON list;
+
   %let engine = ;
   proc sql noprint;
     select ENGINE into :engine
@@ -190,3 +212,4 @@ options nosource;
 %mend x;
 options mprint;
 %x;
+
