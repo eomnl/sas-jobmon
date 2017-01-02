@@ -20,7 +20,6 @@ var settings =	{                  urlSPA : ''
 				,        currentViewParms : ''
 				,             currentPath : ''
 				,    autorefresh_interval : 5
-				//,     viewlog_maxfilesize : 
 				,             filterFlows : 'all_flows_excl_hidden'
 				,              filterJobs : 'all_jobs'
 				,               sortFlows : ''
@@ -39,6 +38,8 @@ var svgMenuNavbar = '<svg style="width:20px;height:20px" viewBox="0 0 24 24">'
 var filterFlowsMenuItems =	[ {'value':'running'        , 'text':'Running'       }
 							, {'value':'completed'      , 'text':'Completed'     }
 							, {'value':'failed'         , 'text':'Failed'        }
+							, {'value':'scheduled'      , 'text':'Scheduled'     }
+							, {'value':'did_not_start'  , 'text':'Did not start' }
 							, {'value':'all_excl_hidden', 'text':'All but hidden'}
 							, {'value':'all'            , 'text':'All'           }
 							];
