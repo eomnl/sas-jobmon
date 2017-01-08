@@ -2,7 +2,7 @@
 *
 * The %LOGPARSE() macro extracts performance statistics from a
 * SAS log file.
-* 
+*
 * See the README file for instructions and syntax.
 *
 *******************************************************************/
@@ -57,37 +57,35 @@
    %end;
 
 /* EOM edit: start */
-keep 
+keep
 LOGFILE
 STEPNAME
 DIMON_STEP_COUNT
 DIMON_JOBSTEP_NAME
 DIMON_JOBSTEP_NR
-REALTIME		
-USERTIME		
-SYSTIME	
-CPUTIME	
-OBSIN	
-OBSOUT	
-VARSOUT	
-OSMEM	
-STEPCNT	
-UPDATE_DTS
+DIMON_LOG_LINE_NR
+DIMON_LINE_NR
+REALTIME
+USERTIME
+SYSTIME
+CPUTIME
+OBSIN
+OBSOUT
+VARSOUT
+OSMEM
+STEPCNT
 ;
-attrib UPDATE_DTS length=8 format=datetime18. informat=datetime18.;
-UPDATE_DTS = "&sysdate &systime"dt;
-
+attrib DIMON_LOG_LINE_NR   length=8
+       DIMON_LINE_NR       length=8
+       DIMON_STEP_COUNT    length=8
+       DIMON_JOBSTEP_NAME  length=$200
+       DIMON_JOBSTEP_NR    length=8
+       DIMON_LOOPSTEP_PARM length=$200
+       ;
 /* EOM edit: end */
 
 
       length logfile $ 200 stepname $ 20
-
-/* EOM edit: start */
-DIMON_STEP_COUNT 8
-DIMON_JOBSTEP_NAME $ 50
-DIMON_JOBSTEP_NR 8
-/* EOM edit: end */
-
              line $200 upcase_Line $ 200 prevline $ 200
              portdate $ 25 keyword $ 20
              platform scp $ 50 /* UNIX needs this length */
@@ -153,15 +151,7 @@ DIMON_JOBSTEP_NR 8
              ;
 
       retain line upcase_Line prevline blanks prevblanks logfile
-             obsin obsout varsout 
-
-/* EOM edit: start */
-DIMON_REGEX_JOBSTEP
-DIMON_REGEX_EGSTEP
-DIMON_JOBSTEP_NAME
-DIMON_JOBSTEP_NR
-/* EOM edit: end */
-
+             obsin obsout varsout
              ;
       retain stepcnt 0
              hdrfnd 0         /* 0=no hdr yet, 1=hdr fnd, 2=hdr finish*/
@@ -230,6 +220,7 @@ DIMON_JOBSTEP_NR
                         (index(upcase_Line, 'THE SAS SYSTEM') le 0)) );
                input line $char200.;
                upcase_Line = upcase(line);
+DIMON_LOG_LINE_NR + 1;
             end;
 
             line = compress(line, '0d'x);
@@ -255,8 +246,17 @@ DIMON_JOBSTEP_NR
          %getline;
 
 /* EOM edit: start */
-DIMON_REGEX_JOBSTEP = prxparse("/^\d+.*\*\sStep:\s*(.*).{8}\..{8}\s\*/");
-DIMON_REGEX_EGSTEP  = prxparse("/\/\*\s*START\sOF\sNODE:\s(.*)\*\//");
+retain DIMON_REGEX_JOBSTEP
+       DIMON_REGEX_EGSTEP
+       DIMON_REGEX_LOOPSTEP
+       DIMON_REGEX_LOOPSTEP_PARM
+       DIMON_REGEX_STEPCOUNT
+       ;
+DIMON_REGEX_JOBSTEP        = prxparse('/^\d+.*\*\sStep:\s*(.*).{8}\..{8}\s\*/');
+DIMON_REGEX_EGSTEP         = prxparse('/\/\*\s*START\sOF\sNODE:\s(.*)\*\//');
+DIMON_REGEX_LOOPSTEP       = prxparse('/^NOTE:\sRemote\ssignon\sto\s(.*)\scommencing/');
+DIMON_REGEX_LOOPSTEP_PARM  = prxparse('/^NOTE:\sSetting\smacro\svariable\s(.*)\swith\sstatement:%syslput\s(.*)=(.*)\s\/\sremote\s=\s(.*);/');
+DIMON_REGEX_STEPCOUNT      = prxparse('/\s{6}Step\sCount\s+\d+\s+Switch\sCount\s+\d+/');
 /* EOM edit: end */
 
       end;
@@ -496,17 +496,46 @@ DIMON_REGEX_EGSTEP  = prxparse("/\/\*\s*START\sOF\sNODE:\s(.*)\*\//");
          end;
 
 /* EOM Edit: start */
+retain DIMON_JOBSTEP_NAME
+       DIMON_JOBSTEP_NR
+       DIMON_PARAMETER_NAME
+       DIMON_PARAMETER_VALUE
+	   DIMON_LINE_NR
+	   ;
 if (prxmatch(DIMON_REGEX_JOBSTEP,line)) then
 do;
     DIMON_JOBSTEP_NAME = prxposn(DIMON_REGEX_JOBSTEP,1,line);
     DIMON_JOBSTEP_NR + 1;
-    output;
+	DIMON_LINE_NR = DIMON_LOG_LINE_NR;
+    *output;
 end;
 else if (prxmatch(DIMON_REGEX_EGSTEP,line)) then
 do;
     DIMON_JOBSTEP_NAME = prxposn(DIMON_REGEX_EGSTEP,1,line);
     DIMON_JOBSTEP_NR + 1;
-    output;
+	DIMON_LINE_NR = DIMON_LOG_LINE_NR;
+    *output;
+end;
+else if (prxmatch(DIMON_REGEX_LOOPSTEP,line)) then
+do;
+    DIMON_JOBSTEP_NAME = strip(prxposn(DIMON_REGEX_LOOPSTEP,1,line))!!' ()';
+    DIMON_JOBSTEP_NR + 1;
+	DIMON_LINE_NR = DIMON_LOG_LINE_NR;
+    *output;
+end;
+else if (prxmatch(DIMON_REGEX_LOOPSTEP_PARM,line)) then
+do;
+    length DIMON_PARAMETER_NAME $ 32 DIMON_PARAMETER_VALUE $ 200;
+    DIMON_PARAMETER_NAME  = prxposn(DIMON_REGEX_LOOPSTEP_PARM,2,line);
+    DIMON_PARAMETER_VALUE = prxposn(DIMON_REGEX_LOOPSTEP_PARM,3,line);
+	DIMON_LOOPSTEP_PARMS  = scan(DIMON_JOBSTEP_NAME,2,'()');
+	if (missing(DIMON_LOOPSTEP_PARMS)) then
+	   DIMON_JOBSTEP_NAME = substr(DIMON_JOBSTEP_NAME,1,length(DIMON_JOBSTEP_NAME)-1)!!strip(DIMON_PARAMETER_NAME)!!'='!!strip(DIMON_PARAMETER_VALUE)!!')';
+    else
+       /* add parameter to parameter list */	
+	   DIMON_JOBSTEP_NAME = substr(DIMON_JOBSTEP_NAME,1,length(DIMON_JOBSTEP_NAME)-1)!!','!!strip(DIMON_PARAMETER_NAME)!!'='!!strip(DIMON_PARAMETER_VALUE)!!')';
+    *DIMON_JOBSTEP_NR + 1;
+    *output;
 end;
 /* EOM Edit: end */
 
@@ -519,7 +548,7 @@ end;
                stepname=scan(prevline, 2, ' ');
             else
                stepname=scan(prevline, 3, ' ');
-		 
+
             /******************************************************
             * TIMESTAT:
             * Parses statistics that could be in time format
@@ -603,11 +632,12 @@ end;
                %getstat(Memory Pools  Destroyed, poolsx);
 
 /* EOM Edit: start */
-else if (index(line, "Step Count") gt 0) then do;
-  DIMON_STEP_COUNT = input(scan(line,3,' '), 20.);
+else if (prxmatch(DIMON_REGEX_STEPCOUNT,line) gt 0) then
+do;
+    DIMON_STEP_COUNT = input(scan(line,3,' '), 20.);
 end;
 /* EOM Edit: end */
-			   
+
                else if (index(line,"OS Memory ") > 0) then do;
                   osmem = input(compress(scan(line,3,' '),'k'), 20.);
                end;
@@ -717,5 +747,5 @@ end;
       quit;
    %end;
 
-%exit: 
+%exit:
 %mend dimon_logparse;
