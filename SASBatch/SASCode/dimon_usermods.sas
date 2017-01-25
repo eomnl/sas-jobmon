@@ -1,1 +1,0 @@
-libname dimon (dimonpos);
