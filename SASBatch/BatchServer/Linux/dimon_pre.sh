@@ -40,9 +40,12 @@ if [[ ! -z "$LSB_JOBID" && ! -z "$LSB_JOBNAME" ]] ; then
 
   DIMON_DATETIME="$(date '+%Y.%m.%d_%H.%M.%S')"
 
+  DIMON_CMDLINEARGS_ORG="$@"
+  DIMON_CMDLINEARGS="$@"
+
   if [ "$DIMON_SASLOGFILE_RESOLVE_YMDHMS" = "YES" ] ; then
     # resolve #Y.#m.#d_#H.#M.#s in the  command line arguments to a real datetime
-    DIMON_CMDLINEARGS=$(echo "$@" | sed "s/#Y.#m.#d_#H.#M.#s/${DIMON_DATETIME}/g")
+    DIMON_CMDLINEARGS=$(echo "$DIMON_CMDLINEARGS" | sed "s/#Y.#m.#d_#H.#M.#s/${DIMON_DATETIME}/g")
   fi
 
   # get LSF FLOWID and JOBID
@@ -50,13 +53,14 @@ if [[ ! -z "$LSB_JOBID" && ! -z "$LSB_JOBNAME" ]] ; then
   DIMON_LSF_JOBID=${LSB_JOBID}
 
   # get -log parm from command line
+  logparmpos=-1
   for parm in $DIMON_CMDLINEARGS; do
     ((index=index+1))
     if [ "$parm" = "-log" ] ; then
       logparmpos=$index
     fi
     # get logfile right after -log parm
-    if [ "$index" = $((logparmpos+1)) ] ; then
+    if [ "$index" = "$((logparmpos+1))" ] ; then
       DIMON_SASLOGFILE=$parm
       # No reason to continue this loop
       break
@@ -64,6 +68,7 @@ if [[ ! -z "$LSB_JOBID" && ! -z "$LSB_JOBNAME" ]] ; then
   done
 
   # get -print parm from command line
+  printparmpos=-1
   for parm in $DIMON_CMDLINEARGS; do
     ((index=index+1))
     if [ "$parm" = "-print" ] ; then
