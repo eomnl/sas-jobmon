@@ -75,7 +75,7 @@ if [[ ! -z "$LSB_JOBID" && ! -z "$LSB_JOBNAME" ]] ; then
       printparmpos=$index
     fi
     # get lstfile right after -lst parm
-    if [ "$index" = $((printparmpos+1)) ] ; then
+    if [ "$index" = "$((printparmpos+1))" ] ; then
       DIMON_SASLSTFILE=$parm
       # No reason to continue this loop
       break
