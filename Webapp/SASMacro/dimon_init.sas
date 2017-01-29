@@ -66,43 +66,8 @@
   %let flow_completion_mode_2_idle_time = 60; /* idle seconds before marking flow COMPLETED in mode 2     */
   %let lsf_flow_finished_dir = ;                                                                /* mode 3 */
 
-
-  /* Get usermods if exists */
-  data _null_;
-
-    text = getoption('sasautos');
-
-    /* blank out the parentheses */
-    if (substr(text,1,1) = '(') then substr(text,1,1) = ' ';
-    len = length(text);
-    if (substr(text,len,1) = ')') then substr(text,len,1) = ' ';
-
-    i = 0;
-    usermods_exists = 0;
-    do while (1);
-        i + 1;
-
-        /* read a quoted token (pathname) or non-quoted token (fileref) */
-        x = scan(text,i,' "''','q');
-        if (x = ' ') then leave;
-
-        /* check if dimon_usermods.sas exists */
-        fname = strip(dequote(x))!!'/dimon_usermods.sas';
-        usermods_exists = fileexist(fname);
-        if (usermods_exists) then leave;
-
-    end;/* do while */
-
-    if (usermods_exists) then
-    do;
-        put 'NOTE: A usermods file was found at "' fname +(-1) "'.";
-        call execute('%dimon_usermods;');
-    end;
-    else
-        put 'NOTE: A usermods file was not found.';
-
-  run;
-
+  /* Include dimon_usersmods */
+  %dimon_usermods;
 
   /* Get dimon engine. When it is  something other than SAS, dimon creates SQL */
   /* views instead of tables, where applicable, to let SQL  pass through.      */
