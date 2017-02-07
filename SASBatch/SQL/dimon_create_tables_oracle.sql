@@ -165,3 +165,5 @@ INSERT INTO DIMON_JOB_STATUS (JOB_STATUS_ID,JOB_STATUS_CODE,JOB_STATUS_DESC,JOB_
 
 INSERT INTO DIMON_TIMEZONES (TIMEZONE,CONDITION_SASCODE,CONDITION_DESC,TIMEDIFF,UPDATE_USER,UPDATE_DTS) VALUES ('UTC','dts > dhms(intnx(''week.1'',intnx(''month'',mdy(3,1,year(datepart(dts))),0,''E''),0,''B''),2,0,0) and dts < dhms(intnx(''week.1'',intnx(''month'',mdy(10,1,year(datepart(dts))),0,''E''),0,''B''),2,0,0)','UTC Daylight Saving Time',7200,USER,CURRENT_TIMESTAMP);
 INSERT INTO DIMON_TIMEZONES (TIMEZONE,CONDITION_SASCODE,CONDITION_DESC,TIMEDIFF,UPDATE_USER,UPDATE_DTS) VALUES ('UTC','dts <= dhms(intnx(''week.1'',intnx(''month'',mdy(3,1,year(datepart(dts))),0,''E''),0,''B''),2,0,0) or dts >= dhms(intnx(''week.1'',intnx(''month'',mdy(10,1,year(datepart(dts))),0,''E''),0,''B''),2,0,0)','UTC No Daylight Saving Time',3600,USER,CURRENT_TIMESTAMP);
+
+COMMIT;
