@@ -43,6 +43,7 @@
 
   %global urlspa sproot webroot _odsstyle viewlog_maxfilesize gantt_width trend_days
           flow_completion_mode flow_completion_mode_2_idle_time lsf_flow_finished_dir
+		  flow_scheduled_dts_match_seconds
           ;
 
   /* ------------------------------------------------------------------------- */
@@ -64,7 +65,8 @@
                                        /* 3 = base flows on lsf_flow_finished_dir, subflows use 1         */
                                        /* 4 = base flows on lsf_flow_finished_dir, subflows use 2         */
   %let flow_completion_mode_2_idle_time = 60; /* idle seconds before marking flow COMPLETED in mode 2     */
-  %let lsf_flow_finished_dir = ;                                                                /* mode 3 */
+  %let lsf_flow_finished_dir            = ;                                                     /* mode 3 */
+  %let flow_scheduled_dts_match_seconds = 60;
 
   /* Include dimon_usersmods */
   %dimon_usermods;
@@ -93,6 +95,7 @@
   %put NOTE: FLOW_COMPLETION_MODE             = &flow_completion_mode.;
   %put NOTE: FLOW_COMPLETION_MODE_2_IDLE_TIME = &flow_completion_mode_2_idle_time.;
   %put NOTE: LSF_FLOW_FINISHED_DIR            = &lsf_flow_finished_dir.;
+  %put NOTE: FLOW_SCHEDULED_DTS_MATCH_SECONDS = &flow_scheduled_dts_match_seconds.;
 
   ods path WORK.TAGSETS(UPDATE) SASHELP.TMPLMST(READ);
   proc template;
