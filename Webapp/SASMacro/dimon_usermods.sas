@@ -16,7 +16,7 @@
                                        /* 3 = base flows on lsf_flow_finished_dir, subflows use 1         */
                                        /* 4 = base flows on lsf_flow_finished_dir, subflows use 2         */
   %let flow_completion_mode_2_idle_time = 60; /* idle seconds before marking flow COMPLETED in mode 2     */
-  %let lsf_flow_finished_dir = ;                                                                /* mode 3 */
-
+  %let lsf_flow_finished_dir            = ;                                                     /* mode 3 */
+  %let flow_scheduled_dts_match_seconds = 60;
 %mend dimon_usermods;
 
