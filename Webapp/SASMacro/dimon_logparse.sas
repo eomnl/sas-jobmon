@@ -65,6 +65,7 @@ DIMON_JOBSTEP_NAME
 DIMON_JOBSTEP_NR
 DIMON_LOG_LINE_NR
 DIMON_LINE_NR
+DIMON_ERROR_MSG
 REALTIME
 USERTIME
 SYSTIME
@@ -251,12 +252,14 @@ retain DIMON_REGEX_JOBSTEP
        DIMON_REGEX_LOOPSTEP
        DIMON_REGEX_LOOPSTEP_PARM
        DIMON_REGEX_STEPCOUNT
+       DIMON_REGEX_ERROR
        ;
 DIMON_REGEX_JOBSTEP        = prxparse('/^\d+.*\*\sStep:\s*(.*).{8}\..{8}\s\*/');
 DIMON_REGEX_EGSTEP         = prxparse('/\/\*\s*START\sOF\sNODE:\s(.*)\*\//');
 DIMON_REGEX_LOOPSTEP       = prxparse('/^NOTE:\sRemote\ssignon\sto\s(.*)\scommencing/');
 DIMON_REGEX_LOOPSTEP_PARM  = prxparse('/^NOTE:\sSetting\smacro\svariable\s(.*)\swith\sstatement:%syslput\s(.*)=(.*)\s\/\sremote\s=\s(.*);/');
 DIMON_REGEX_STEPCOUNT      = prxparse('/\s{6}Step\sCount\s+\d+\s+Switch\sCount\s+\d+/');
+DIMON_REGEX_ERROR          = prxparse('/^ERROR/');
 /* EOM edit: end */
 
       end;
@@ -500,42 +503,42 @@ retain DIMON_JOBSTEP_NAME
        DIMON_JOBSTEP_NR
        DIMON_PARAMETER_NAME
        DIMON_PARAMETER_VALUE
-	   DIMON_LINE_NR
+       DIMON_LINE_NR
 	   ;
 if (prxmatch(DIMON_REGEX_JOBSTEP,line)) then
 do;
     DIMON_JOBSTEP_NAME = prxposn(DIMON_REGEX_JOBSTEP,1,line);
     DIMON_JOBSTEP_NR + 1;
-	DIMON_LINE_NR = DIMON_LOG_LINE_NR;
-    *output;
+    DIMON_LINE_NR = DIMON_LOG_LINE_NR;
 end;
 else if (prxmatch(DIMON_REGEX_EGSTEP,line)) then
 do;
     DIMON_JOBSTEP_NAME = prxposn(DIMON_REGEX_EGSTEP,1,line);
     DIMON_JOBSTEP_NR + 1;
-	DIMON_LINE_NR = DIMON_LOG_LINE_NR;
-    *output;
+    DIMON_LINE_NR = DIMON_LOG_LINE_NR;
 end;
 else if (prxmatch(DIMON_REGEX_LOOPSTEP,line)) then
 do;
     DIMON_JOBSTEP_NAME = strip(prxposn(DIMON_REGEX_LOOPSTEP,1,line))!!' ()';
     DIMON_JOBSTEP_NR + 1;
-	DIMON_LINE_NR = DIMON_LOG_LINE_NR;
-    *output;
+    DIMON_LINE_NR = DIMON_LOG_LINE_NR;
 end;
 else if (prxmatch(DIMON_REGEX_LOOPSTEP_PARM,line)) then
 do;
     length DIMON_PARAMETER_NAME $ 32 DIMON_PARAMETER_VALUE $ 200;
     DIMON_PARAMETER_NAME  = prxposn(DIMON_REGEX_LOOPSTEP_PARM,2,line);
     DIMON_PARAMETER_VALUE = prxposn(DIMON_REGEX_LOOPSTEP_PARM,3,line);
-	DIMON_LOOPSTEP_PARMS  = scan(DIMON_JOBSTEP_NAME,2,'()');
-	if (missing(DIMON_LOOPSTEP_PARMS)) then
-	   DIMON_JOBSTEP_NAME = substr(DIMON_JOBSTEP_NAME,1,length(DIMON_JOBSTEP_NAME)-1)!!strip(DIMON_PARAMETER_NAME)!!'='!!strip(DIMON_PARAMETER_VALUE)!!')';
+    DIMON_LOOPSTEP_PARMS  = scan(DIMON_JOBSTEP_NAME,2,'()');
+    if (missing(DIMON_LOOPSTEP_PARMS)) then
+       DIMON_JOBSTEP_NAME = substr(DIMON_JOBSTEP_NAME,1,length(DIMON_JOBSTEP_NAME)-1)!!strip(DIMON_PARAMETER_NAME)!!'='!!strip(DIMON_PARAMETER_VALUE)!!')';
     else
        /* add parameter to parameter list */	
-	   DIMON_JOBSTEP_NAME = substr(DIMON_JOBSTEP_NAME,1,length(DIMON_JOBSTEP_NAME)-1)!!','!!strip(DIMON_PARAMETER_NAME)!!'='!!strip(DIMON_PARAMETER_VALUE)!!')';
-    *DIMON_JOBSTEP_NR + 1;
-    *output;
+       DIMON_JOBSTEP_NAME = substr(DIMON_JOBSTEP_NAME,1,length(DIMON_JOBSTEP_NAME)-1)!!','!!strip(DIMON_PARAMETER_NAME)!!'='!!strip(DIMON_PARAMETER_VALUE)!!')';
+end;
+else if (prxmatch(DIMON_REGEX_ERROR,line)) then
+do;
+    DIMON_ERROR_MSG = line;
+    output;
 end;
 /* EOM Edit: end */
 
