@@ -249,8 +249,28 @@ div #viewlogHeader {
 div #viewlogTitle {
   padding:10px;
   font-size:1em;
-  float:left;
+  overflow:auto;
+  /*float:left;*/
 }
+
+#viewlogTitle-filename {
+	float:left;
+	margin-top:6px;
+	margin-bottom:5px;
+	margin-left:5px;
+}
+
+#viewlogOptionsButton {
+	float:right;
+	color: inherit !important;	
+	border: 1px solid #ffffff;
+	background: #ffffff;
+}
+
+#viewlogOptionsButton:hover path {
+	fill: black;
+}
+
 
 #viewlogCheckbox {
   float:right;

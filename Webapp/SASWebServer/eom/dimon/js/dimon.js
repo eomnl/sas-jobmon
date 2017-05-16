@@ -29,7 +29,7 @@ var settings =	{                  urlSPA : ''
 var _debug;
 var interval              =  0; // for javascript setInterval function
 var autorefresh_intervals = [1,2,3,4,5,10,15,20,25,30,40,50,60,75,90,105,120,180,240,300,600,900,1200,1500,1800,2700,3600,7200,9999999];
-var svgMenuNavbar = '<svg style="width:20px;height:20px" viewBox="0 0 24 24">'
+var svgDotsVertical = '<svg style="width:20px;height:20px" viewBox="0 0 24 24">'
 					+'<path fill="#454545" d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10'
 					+',18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2'
 					+',2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z" />'
@@ -83,6 +83,9 @@ $(document).click(function(event) {
 		if( (target.id != 'menubuttonNavbar') && ($(target).closest("#menuNavbar").attr('id') != 'menuNavbar') ) {
 			$('#menuNavbar').remove();
 		}
+		if( (target.id != 'viewlogOptionsButton') && ($(target).closest("#viewlogOptionsMenu").attr('id') != 'viewlogOptionsMenu') ) {
+			$('#viewlogOptionsMenu').remove();
+		}
 	}
 })
 
@@ -102,7 +105,7 @@ function setViewLogContentSize(){
 function setSearchSize(){
 	var sortButtonLeft = $("#menubuttonSort").position().left;
 	var searchLeft = $("#search").position().left;
-	var searchWidth = Math.max(100,sortButtonLeft - searchLeft - 300);
+	var searchWidth = Math.max(100,sortButtonLeft - searchLeft - 400);
 	$("#search").width(searchWidth);
 }//setSearchSize
 
@@ -642,7 +645,7 @@ function refreshFlows(run_date) {
 
 							// move SAS-generated report title to #dimon-navbar
 							$("#dimon-navbar").html('<div id="navpath"></div><span id="menubuttonNavbar"></span>');
-							$("#menubuttonNavbar").html(svgMenuNavbar).button().click(function() {
+							$("#menubuttonNavbar").html(svgDotsVertical).button().click(function() {
 								menuNavbar();
 							});
 							$("#results1 .systitleandfootercontainer").appendTo("#navpath");
@@ -784,7 +787,7 @@ function refreshJobs(path) {
 							
 								// move SAS-generated report title to #dimon-navbar
 								$("#dimon-navbar").html('<div id="navpath"></div><span id="menubuttonNavbar"></span>');
-								$("#menubuttonNavbar").html(svgMenuNavbar).button().click(function() {
+								$("#menubuttonNavbar").html(svgDotsVertical).button().click(function() {
 									menuNavbar();
 								});
 								$("#results1 .systitleandfootercontainer").appendTo("#navpath");
@@ -912,7 +915,7 @@ function refreshSteps(path) {
 
 								// move SAS-generated report title to #dimon-navbar
 								$("#dimon-navbar").html('<div id="navpath"></div><span id="menubuttonNavbar"></span>');
-								$("#menubuttonNavbar").html(svgMenuNavbar).button().click(function() {
+								$("#menubuttonNavbar").html(svgDotsVertical).button().click(function() {
 									menuNavbar();
 								});
 								$("#results1 .systitleandfootercontainer").appendTo("#navpath");
@@ -1064,7 +1067,14 @@ function getLog(job_run_id,anchor) {
 		 , dataType : 'json'
 		 ,  timeout : 60000 /* in ms */
 		 ,  success : function(data) {
-					$("#viewlogTitle").html("File: " + data.job_log_file);
+                        var s = '<div id="viewlogTitle-filename">File: ' + data.job_log_file + '</div>'
+                              + '<span id="viewlogOptionsButton" title="Options"></span>'
+      ;
+					//$("#viewlogTitle").html("File: " + data.job_log_file);
+					$("#viewlogTitle").html(s);
+							$("#viewlogOptionsButton").html(svgDotsVertical).button().click(function() {
+								viewlogOptionsMenu(job_run_id);
+							});					
 				  }
 		 ,    error : function(XMLHttpRequest,textStatus,errorThrown) {
 						var r= confirm("dimonGetLogfileName"
@@ -1110,6 +1120,33 @@ function getLog(job_run_id,anchor) {
   });
 
 }//getLog
+
+
+function viewlogOptionsMenu(job_run_id) {
+
+	$('#viewlogOptionsMenu').remove(); // remove filter in case it already exists
+	$('.ui-tooltip').fadeOut(300, function() { $(this).remove(); }); // fade-out and remove tooltip
+	var s =   '<ul class="dropdown-menu">'
+			+  '<li class="li-dropdown-item" id="viewlogDownload">'
+			+   '<div><span class="text-dropdown-item ui-widget">&nbsp;&nbsp;Download</span></div><br>'
+			+  '</li>'
+			+ '</ul>';
+	button = $("#viewlogOptionsButton");
+	var menuWidth = 160;
+	var buttonPosition = button.position();
+	var menuLeft       = buttonPosition.left + button.width() - menuWidth;
+	var menuTop        = buttonPosition.top + button.height() + 8;
+	$("#viewlogOptionsMenu").remove(); // remove menu in case it already exists
+	var viewlogOptionsMenu = $('<div id="viewlogOptionsMenu" style="display:block;z-index:1001;width:' + menuWidth + 'px;" class="dropdown-menu"></div>').appendTo('body');
+	$("#viewlogOptionsMenu").html(s)
+	                        .position({my:"right top",at:"center+10px bottom",of: button,collision:"fit"});
+	$("#viewlogDownload").click( function () {
+		$("#viewlogOptionsMenu").remove();
+		window.location.href = settings.urlSPA + '?_program=' + getSPName('dimonViewLogExternally') + '&job_run_id=' + job_run_id;;
+	});
+	$("#viewlogOptionsMenu").show();
+
+}//viewlogOptionsMenu
 
 
 function plot(parms) {
