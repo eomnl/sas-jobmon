@@ -125,7 +125,7 @@ function keepAlive() {
 		 ,    cache : false
 		 ,  timeout : 60000 /* in ms */
 		 ,    error : function(XMLHttpRequest,textStatus,errorThrown) {
-						showAjaxStoredProcessError('dimonKeepAlive',XMLHttpRequest,textStatus,errorThrown);
+						handleAjaxError('keepAlive',XMLHttpRequest,textStatus,errorThrown);
 					  }
 		 });
 
@@ -185,7 +185,7 @@ $(function() {
 		srun_date = $.datepicker.formatDate('ddMyy',new Date());
 		path = '//_' + srun_date;
 	}
-	navigate(path); 
+	navigate(path);
 	setSearchSize();
 
 	// Keep the Stored Process Server session alive by running the keepAlive Stored Process once every 5 minutes
@@ -564,7 +564,7 @@ function menuNavbar() {
 		dialogNavigationPath();
 	});
 	$("#menuNavbar").show();
-	
+
 }//menuNavbar
 
 
@@ -598,7 +598,7 @@ function dialogNavigationPath() {
 
 	var url = $(location).attr('protocol')+'//'+$(location).attr('host')+settings.webroot+'/?path='+$('#navpath .navpath-item:last').attr('id');
 	$("#navigationPath").css("width",dialogWidth-55).css("text-align","left").button().val(url);
-	
+
 }//dialogNavigationPath
 
 
@@ -610,7 +610,7 @@ function Flows(run_date) {
 	updateSortButtonLabel();
 	$("#menubuttonFilter").button("enable");
 	$("#menubuttonSort").button("enable");
-	$("#results1").html('<img src="' + settings.imgroot + '/dimon-ajax-loader.gif" />');	
+	$("#results1").html('<img src="' + settings.imgroot + '/dimon-ajax-loader.gif" />');
 	refreshFlows(run_date);
 	if (settings.autorefresh_interval != (autorefresh_intervals.length - 1)) {
 		interval = setInterval("refreshFlows('" + run_date + "')",autorefresh_intervals[settings.autorefresh_interval]*1000);
@@ -658,7 +658,7 @@ function refreshFlows(run_date) {
 																		navigate('//_' + $.datepicker.formatDate('ddMyy',$("#datepicker").datepicker("getDate")));
 														}})
 											.datepicker("setDate",run_date);
-							 
+
 						    $(".navpath-item").button()
 												.click(function() {
 													$("#datepicker").datepicker('show');
@@ -722,14 +722,14 @@ function refreshFlows(run_date) {
 
 						   //$(".dimon-bar").addClass('ui-corner-all'); // give gantt bars rounded corners
 						   $(":button:contains('Filter')").button("enable");
-						   
+
 						   setResults1Size();
 						   setSearchSize();
 
 						 }
 					   }
 		   ,   error : function(XMLHttpRequest,textStatus,errorThrown) {
-						 showAjaxStoredProcessError('dimonFlows',XMLHttpRequest,textStatus,errorThrown);
+						 handleAjaxError('refreshFlows',XMLHttpRequest,textStatus,errorThrown);
 					   }
 	});
   }
@@ -774,9 +774,9 @@ function refreshJobs(path) {
 
 							// To prevent delayed output from SP, check if we're still in Jobs view.
 							if (settings.currentView == 'Jobs') {
-								
+
 								$("#results1").html(data);
-							
+
 								// move SAS-generated report title to #dimon-navbar
 								$("#dimon-navbar").html('<div id="navpath"></div><span id="menubuttonNavbar"></span>');
 								$("#menubuttonNavbar").html(svgDotsVertical).button().click(function() {
@@ -788,7 +788,7 @@ function refreshJobs(path) {
 								// move SAS-generated footer to #dimon-footer
 								$("#dimon-footer").html("");
 								$("#results1 .reportfooter").appendTo("#dimon-footer");
-								
+
 								$(".navpath-item").button().click(function() { navigate($(this).attr('id')); });
 
 								$(".flow-status-link").click(function() {
@@ -859,7 +859,7 @@ function refreshJobs(path) {
 						 }
 					   }
 		   ,   error : function(XMLHttpRequest,textStatus,errorThrown) {
-						 showAjaxStoredProcessError('dimonJobs',XMLHttpRequest,textStatus,errorThrown);
+						 handleAjaxError('refreshJobs',XMLHttpRequest,textStatus,errorThrown);
 					   }
 	});
   }
@@ -927,7 +927,7 @@ function refreshSteps(path) {
 							}
 					   }
 		   ,   error : function(XMLHttpRequest,textStatus,errorThrown) {
-						 showAjaxStoredProcessError('dimonSteps',XMLHttpRequest,textStatus,errorThrown);
+						 handleAjaxError('refreshSteps',XMLHttpRequest,textStatus,errorThrown);
 					   }
 	});
   }
@@ -949,7 +949,7 @@ function viewLog(job_run_id,anchor) {
 		 ,    cache : false
 		 ,  timeout : 60000 /* in ms */
 		 ,  success : function(data) {
-
+			 
 						// chrome and firefox can handle much larger files than ie so maxsize is doubled for them
 						if (data.filesize > settings.viewlog_maxfilesize) {
 						  var dialog = $('<div id="dialog-confirm" title="View SAS log file">'
@@ -987,7 +987,7 @@ function viewLog(job_run_id,anchor) {
 						}
 					  }
 		 ,    error : function(XMLHttpRequest,textStatus,errorThrown) {
-						showAjaxStoredProcessError('dimonGetLogFileSize',XMLHttpRequest,textStatus,errorThrown);
+						handleAjaxError('viewLog',XMLHttpRequest,textStatus,errorThrown);
 					  }
   });
 
@@ -1051,10 +1051,10 @@ function getLog(job_run_id,anchor) {
 					$("#viewlogTitle").html(s);
 							$("#viewlogOptionsButton").html(svgDotsVertical).button().click(function() {
 								viewlogOptionsMenu(job_run_id);
-							});					
+							});
 				  }
 		 ,    error : function(XMLHttpRequest,textStatus,errorThrown) {
-						showAjaxStoredProcessError('dimonGetLogfileName',XMLHttpRequest,textStatus,errorThrown);
+						handleAjaxError('getLog',XMLHttpRequest,textStatus,errorThrown);
 					  }
   });
 
@@ -1078,11 +1078,11 @@ function getLog(job_run_id,anchor) {
 						$(":button:contains('Reload')").button("enable");
 						$(":button:contains('Close')").focus(); // Set focus to the [Close] button
 						$(".dimon-info-message").addClass('ui-state-highlight');
-						$(".dimon-error-message").addClass('ui-state-error');						
+						$(".dimon-error-message").addClass('ui-state-error');
 						setViewLogContentSize();
 					}
 		,    error : function(XMLHttpRequest,textStatus,errorThrown) {
-					   showAjaxStoredProcessError('dimonViewLog',XMLHttpRequest,textStatus,errorThrown);
+					   handleAjaxError('getLog',XMLHttpRequest,textStatus,errorThrown);
 					}
   });
 
@@ -1216,7 +1216,7 @@ function createPlot(parms) {
 							$('#' + parms.div).html(data);
 						 }
 			,    error : function(XMLHttpRequest,textStatus,errorThrown) {
-							showAjaxStoredProcessError('dimonPlot',XMLHttpRequest,textStatus,errorThrown);
+							handleAjaxError('createPlot',XMLHttpRequest,textStatus,errorThrown);
 						 }
 		});
 
@@ -1295,7 +1295,7 @@ function loadNotesWarningsErrorsContent(dialog,parms) {
 						$(".dimon-info-message").addClass('ui-state-highlight');
 					  }
 		 ,    error : function(XMLHttpRequest,textStatus,errorThrown) {
-						showAjaxStoredProcessError('dimonViewNotesWarningsErrors',XMLHttpRequest,textStatus,errorThrown);
+						handleAjaxError('loadNotesWarningsErrorsContent',XMLHttpRequest,textStatus,errorThrown);
 					  }
   });
 
@@ -1340,41 +1340,44 @@ var getUrlParameter = function getUrlParameter(sParam) {
 }//getUrlParameterer
 
 
-function showAjaxStoredProcessError(spName,XMLHttpRequest,textStatus,errorThrown) {
+function handleAjaxError(spName,XMLHttpRequest,textStatus,errorThrown) {
 
 	if (textStatus == "timeout") {
 		$('<div id="dimon-errormessage">' + spName + ': Server connection timeout</div>').appendTo('body').delay(3000).fadeOut(function() { $(this).remove(); });
 	} else {
-		var r= confirm(spName
+		clearInterval(interval); // stop autorefreshing
+		var r = confirm(spName
 					+ '\n\nError ' + XMLHttpRequest.status + ' : ' + textStatus + " (" + errorThrown + ")"
-					+ '\n\nClick OK to view the SAS log, Cancel to quit.');
+					+ '\n\nClick OK to view the error response text, click Cancel to return.');
 		if (r == true) {
-			showSasError(XMLHttpRequest.responseText);
+			showAjaxError(XMLHttpRequest.responseText);
+		} else {
+			refresh(); // continue
 		}
 	}
 
-}//showAjaxStoredProcessError
+}//handleAjaxError
 
 
-function showSasError(msg) {
+function showAjaxError(msg) {
 
   var dialog = $('<div id="dialogSasError"></div>').appendTo("body");
   dialog.dialog({    // add a close listener to prevent adding multiple divs to the document
 					 close : function(event, ui) {
-							   // remove div with all data and events
-							   dialog.remove();
+								// remove div with all data and events
+								dialog.remove();
 							 }
 				,    title : 'SAS Error'
 				,    width : $(window).width()*0.75
 				,   height : $(window).height()*0.95
 				,    modal : true
 				,  buttons : { "Close" : function(event, ui) {
-										   $(this).dialog('close');
+											$(this).dialog('close');
+											refresh(); // continue
 										 }
 							 }
 				});
   $("#dialogSasError").html(msg);
   $(":button:contains('Close')").focus(); // Set focus to the [Close] button
 
-}//showSasError
-
+}//showAjaxError
