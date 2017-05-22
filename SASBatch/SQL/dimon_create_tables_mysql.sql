@@ -164,7 +164,7 @@ INSERT INTO `DIMON_CALENDARS` (`CALENDAR_NAME`,`CALENDAR_SASCODE`,`UPDATE_USER`,
   ('Last_thursday_of_month@Sys', 'weekday(d) = 5 and d >= (intnx(''month'',d,0,''end'') - 6)', current_user(), current_timestamp()),
   ('Last_friday_of_month@Sys', 'weekday(d) = 6 and d >= (intnx(''month'',d,0,''end'') - 6)', current_user(), current_timestamp()),
   ('Last_saturday_of_month@Sys', 'weekday(d) = 7 and d >= (intnx(''month'',d,0,''end'') - 6)', current_user(), current_timestamp()),
-  ('Businessdays@Sys', 'weekday(d) >= 1 and weekday(d) <= 6', current_user(), current_timestamp())
+  ('Businessdays@Sys', 'weekday(d) >= 2 and weekday(d) <= 6', current_user(), current_timestamp())
   ;
 
 INSERT INTO `DIMON_TIMEZONES` (`TIMEZONE`,`CONDITION_SASCODE`,`CONDITION_DESC`,`TIMEDIFF`,`UPDATE_USER`,`UPDATE_DTS`) VALUES 

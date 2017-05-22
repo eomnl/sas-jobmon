@@ -170,7 +170,7 @@ INSERT INTO dimon_calendars (calendar_name,calendar_sascode,update_user,update_d
   ('Last_thursday_of_month@Sys', 'weekday(d) = 5 and d >= (intnx(''month'',d,0,''end'') - 6)', current_user, current_timestamp),
   ('Last_friday_of_month@Sys', 'weekday(d) = 6 and d >= (intnx(''month'',d,0,''end'') - 6)', current_user, current_timestamp),
   ('Last_saturday_of_month@Sys', 'weekday(d) = 7 and d >= (intnx(''month'',d,0,''end'') - 6)', current_user, current_timestamp),
-  ('Businessdays@Sys', 'weekday(d) >= 1 and weekday(d) <= 6', current_user, current_timestamp)
+  ('Businessdays@Sys', 'weekday(d) >= 2 and weekday(d) <= 6', current_user, current_timestamp)
   ;
   
 INSERT INTO dimon_job_status (job_status_id,job_status_code,job_status_desc,job_status_sequence_nr) VALUES

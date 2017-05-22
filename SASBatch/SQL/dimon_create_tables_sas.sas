@@ -188,7 +188,7 @@ PROC SQL;
     VALUES ('Last_thursday_of_month@Sys', 'weekday(d) = 5 and d >= (intnx(''month'',d,0,''end'') - 6)', "&SYSUSERID.", "&SYSDATE9. &SYSTIME."dt)
     VALUES ('Last_friday_of_month@Sys', 'weekday(d) = 6 and d >= (intnx(''month'',d,0,''end'') - 6)', "&SYSUSERID.", "&SYSDATE9. &SYSTIME."dt)
     VALUES ('Last_saturday_of_month@Sys', 'weekday(d) = 7 and d >= (intnx(''month'',d,0,''end'') - 6)', "&SYSUSERID.", "&SYSDATE9. &SYSTIME."dt)
-    VALUES ('Businessdays@Sys', 'weekday(d) >= 1 and weekday(d) <= 6', "&SYSUSERID.", "&SYSDATE9. &SYSTIME."dt)
+    VALUES ('Businessdays@Sys', 'weekday(d) >= 2 and weekday(d) <= 6', "&SYSUSERID.", "&SYSDATE9. &SYSTIME."dt)
 	;
 QUIT;
 PROC SQL;
