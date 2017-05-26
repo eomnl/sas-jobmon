@@ -628,7 +628,7 @@ function refreshFlows(run_date) {
   if ($("#results1").length) {
 
 	if (!refreshFlowsRunning) {
-		
+
 		refreshFlowsRunning = true;
 		$.ajax({     url : settings.urlSPA
 			,    data : $.extend({}
@@ -642,14 +642,14 @@ function refreshFlows(run_date) {
 			,   cache : false
 			, timeout : ajaxTimeout
 			, success : function(data) {
-	
+
 							refreshFlowsRunning = false;
-							
+
 							// To prevent delayed output from SP, check if we're still in Flows view.
 							if (settings.currentView == 'Flows') {
-	
+
 								$("#results1").html(data);
-	
+
 								// move SAS-generated report title to #dimon-navbar
 								$("#dimon-navbar").html('<div id="navpath"></div><span id="menubuttonNavbar"></span>');
 								$("#menubuttonNavbar").html(svgDotsVertical).button().click(function() {
@@ -657,23 +657,23 @@ function refreshFlows(run_date) {
 								});
 								$("#results1 .systitleandfootercontainer").appendTo("#navpath");
 								$("#results1").find('br:first').remove();
-	
+
 								// move SAS-generated footer to #dimon-footer
 								$("#dimon-footer").html("");
 								$("#results1 .reportfooter").appendTo("#dimon-footer");
-	
+
 								$("#datepicker").datepicker({ dateFormat : "ddMyy"
 															, showButtonPanel: true
 															,   onSelect : function(date) {
 																			navigate('//_' + $.datepicker.formatDate('ddMyy',$("#datepicker").datepicker("getDate")));
 															}})
 												.datepicker("setDate",run_date);
-	
+
 								$(".navpath-item").button()
 													.click(function() {
 														$("#datepicker").datepicker('show');
 													});
-	
+
 								$(".flow-status-link").click(function() {
 									viewNotesWarningsErrors({     "flow_run_id" : $(this).attr('id').split('_')[1]
 															, "flow_run_seq_nr" : $(this).attr('id').split('_')[2]
@@ -727,15 +727,15 @@ function refreshFlows(run_date) {
 																		,      "plot_yvar" : "ELAPSED_TIME"
 																		});
 															});
-	
+
 							});
-	
+
 							//$(".dimon-bar").addClass('ui-corner-all'); // give gantt bars rounded corners
 							$(":button:contains('Filter')").button("enable");
-	
+
 							setResults1Size();
 							setSearchSize();
-	
+
 							}
 						}
 			,   error : function(XMLHttpRequest,textStatus,errorThrown) {
@@ -771,7 +771,7 @@ function refreshJobs(path) {
   if ($("#results1").length) {
 
 	if (!refreshJobsRunning) {
-		
+
 		refreshJobsRunning = true;
 		$.ajax( {     url : settings.urlSPA
 				,    data : {        "_program" : getSPName('dimonJobs')
@@ -787,14 +787,14 @@ function refreshJobs(path) {
 				,   cache : false
 				, timeout : ajaxTimeout
 				, success : function(data) {
-	
+
 								refreshJobsRunning = false;
-								
+
 								// To prevent delayed output from SP, check if we're still in Jobs view.
 								if (settings.currentView == 'Jobs') {
-	
+
 									$("#results1").html(data);
-	
+
 									// move SAS-generated report title to #dimon-navbar
 									$("#dimon-navbar").html('<div id="navpath"></div><span id="menubuttonNavbar"></span>');
 									$("#menubuttonNavbar").html(svgDotsVertical).button().click(function() {
@@ -802,13 +802,13 @@ function refreshJobs(path) {
 									});
 									$("#results1 .systitleandfootercontainer").appendTo("#navpath");
 									$("#results1").find('br:first').remove();
-	
+
 									// move SAS-generated footer to #dimon-footer
 									$("#dimon-footer").html("");
 									$("#results1 .reportfooter").appendTo("#dimon-footer");
-	
+
 									$(".navpath-item").button().click(function() { navigate($(this).attr('id')); });
-	
+
 									$(".flow-status-link").click(function() {
 										viewNotesWarningsErrors({     "flow_run_id" : $(this).attr('id').split('_')[1]
 																, "flow_run_seq_nr" : $(this).attr('id').split('_')[2]
@@ -869,9 +869,9 @@ function refreshJobs(path) {
 																		,      "plot_yvar" : "ELAPSED_TIME"
 																		});
 																});
-	
+
 									setResults1Size();
-	
+
 							});
 							$(":button:contains('Filter')").button("enable");
 							}
@@ -907,7 +907,7 @@ function Steps(path) {
 function refreshSteps(path) {
 
   if ($("#results1").length) {
-	  
+
 	if (!refreshStepsRunning) {
 
 		refreshStepsRunning = true;
@@ -919,14 +919,14 @@ function refreshSteps(path) {
 			,   cache : false
 			, timeout : ajaxTimeout
 			, success : function(data) {
-	
+
 								refreshStepsRunning = false;
-								
+
 								// To prevent delayed output from SP, check if we're still in Steps view.
 								if (settings.currentView == 'Steps') {
-	
+
 									$("#results1").html(data);
-	
+
 									// move SAS-generated report title to #dimon-navbar
 									$("#dimon-navbar").html('<div id="navpath"></div><span id="menubuttonNavbar"></span>');
 									$("#menubuttonNavbar").html(svgDotsVertical).button().click(function() {
@@ -934,23 +934,23 @@ function refreshSteps(path) {
 									});
 									$("#results1 .systitleandfootercontainer").appendTo("#navpath");
 									$("#results1").find('br:first').remove();
-	
+
 									// move SAS-generated footer to #dimon-footer
 									$("#dimon-footer").html("");
 									$("#results1 .reportfooter").appendTo("#dimon-footer");
-	
+
 									$(".navpath-item").button().click(function() { navigate($(this).attr('id')); });
 									$(".view-log-link").click(function() {
 										viewLog($(this).attr('id').split('_')[1]
 											,$(this).attr('id').split('_')[2]);
 										});
-	
+
 									$(":button:contains('Filter')").button("disable");
 									$(".dimon-info-message").addClass('ui-state-highlight');
 									$(".dimon-error-message").addClass('ui-state-error');
-	
+
 									setResults1Size();
-	
+
 								}
 						}
 			,   error : function(XMLHttpRequest,textStatus,errorThrown) {
@@ -978,7 +978,7 @@ function viewLog(job_run_id,anchor) {
 		 ,    cache : false
 		 ,  timeout : ajaxTimeout
 		 ,  success : function(data) {
-			 
+
 						// chrome and firefox can handle much larger files than ie so maxsize is doubled for them
 						if (data.filesize > settings.viewlog_maxfilesize) {
 						  var dialog = $('<div id="dialog-confirm" title="View SAS log file">'
@@ -1053,7 +1053,7 @@ function viewLogInDimon(job_run_id,anchor) {
 							 }
 				});
   if (anchor == undefined) {
-	anchor = ( $('#viewlogCheckboxAutoRefresh').is(':checked') ? 'max' : 'l1' );
+	anchor = 'l1';
   }
   getLog(job_run_id,anchor);
 
@@ -1074,13 +1074,12 @@ function getLog(job_run_id,anchor) {
 		 ,  timeout : ajaxTimeout
 		 ,  success : function(data) {
                         var s = '<div id="viewlogTitle-filename">File: ' + data.job_log_file + '</div>'
-                              + '<span id="viewlogOptionsButton" title="Options"></span>'
-      ;
-					//$("#viewlogTitle").html("File: " + data.job_log_file);
-					$("#viewlogTitle").html(s);
-							$("#viewlogOptionsButton").html(svgDotsVertical).button().click(function() {
-								viewlogOptionsMenu(job_run_id);
-							});
+                            + '<span id="viewlogOptionsButton" title="Options"></span>'
+							;
+						$("#viewlogTitle").html(s);
+						$("#viewlogOptionsButton").html(svgDotsVertical).button().click(function() {
+							viewlogOptionsMenu(job_run_id);
+						});
 				  }
 		 ,    error : function(XMLHttpRequest,textStatus,errorThrown) {
 						handleAjaxError('getLog',XMLHttpRequest,textStatus,errorThrown);
@@ -1100,9 +1099,11 @@ function getLog(job_run_id,anchor) {
 		,  success : function(data) {
 						$("#viewlogContent").html(data);
 						$("#viewlogContent").focus();// IE7 Standard document mode hack to fix scrolling with absolute div positioning
-						$('#viewlogContent').animate({
-							scrollTop: $(anchor).offset().top - $('#l1').offset().top
-							}, 300);
+						if (anchor) {
+							$('#viewlogContent').animate({
+								scrollTop: $('#' + anchor).offset().top - $('#l1').offset().top
+								}, 300);
+						}
 						$(":button:contains('Reload')").button("enable");
 						$(":button:contains('Close')").focus(); // Set focus to the [Close] button
 						$(".dimon-info-message").addClass('ui-state-highlight');
@@ -1372,7 +1373,7 @@ var getUrlParameter = function getUrlParameter(sParam) {
 function handleAjaxError(spName,XMLHttpRequest,textStatus,errorThrown) {
 
 	// prevent errors when navigating away from the page either by refreshing, clicking a link, or changing the URL in the browser
-	if(XMLHttpRequest.readyState == 0 || XMLHttpRequest.status == 0) 
+	if(XMLHttpRequest.readyState == 0 || XMLHttpRequest.status == 0)
 		return;  // it's not really an error
 
 	if (textStatus == "timeout") {
