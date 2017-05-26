@@ -28,6 +28,10 @@ var settings =	{                  urlSPA : ''
 
 var _debug;
 var interval              =  0; // for javascript setInterval function
+var refreshFlowsRunning   = false;
+var refreshJobsRunning    = false;
+var refreshStepsRunning   = false;
+var ajaxTimeout           = 60000; // timeout value for Ajax calls
 var autorefresh_intervals = [1,2,3,4,5,10,15,20,25,30,40,50,60,75,90,105,120,180,240,300,600,900,1200,1500,1800,2700,3600,7200,9999999];
 var svgDotsVertical = '<svg style="width:20px;height:20px" viewBox="0 0 24 24">'
 					+'<path fill="#454545" d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10'
@@ -123,7 +127,7 @@ function keepAlive() {
 					  }
 		 ,    async : true
 		 ,    cache : false
-		 ,  timeout : 60000 /* in ms */
+		 ,  timeout : ajaxTimeout
 		 ,    error : function(XMLHttpRequest,textStatus,errorThrown) {
 						handleAjaxError('keepAlive',XMLHttpRequest,textStatus,errorThrown);
 					  }
@@ -623,115 +627,123 @@ function refreshFlows(run_date) {
 
   if ($("#results1").length) {
 
-	$.ajax({     url : settings.urlSPA
-		   ,    data : $.extend({}
-							   ,{  "_program" : getSPName('dimonFlows')
-								,  "run_date" : run_date
-								,    "filter" : settings.filterFlows
-								,      "sort" : settings.sortFlows
-								,    "search" : $('#search').val()
-								,    "_debug" : _debug
-								})
-		   ,   cache : false
-		   , success : function(data) {
-
-						 // To prevent delayed output from SP, check if we're still in Flows view.
-						 if (settings.currentView == 'Flows') {
-
-							$("#results1").html(data);
-
-							// move SAS-generated report title to #dimon-navbar
-							$("#dimon-navbar").html('<div id="navpath"></div><span id="menubuttonNavbar"></span>');
-							$("#menubuttonNavbar").html(svgDotsVertical).button().click(function() {
-								menuNavbar();
+	if (!refreshFlowsRunning) {
+		
+		refreshFlowsRunning = true;
+		$.ajax({     url : settings.urlSPA
+			,    data : $.extend({}
+								,{  "_program" : getSPName('dimonFlows')
+									,  "run_date" : run_date
+									,    "filter" : settings.filterFlows
+									,      "sort" : settings.sortFlows
+									,    "search" : $('#search').val()
+									,    "_debug" : _debug
+									})
+			,   cache : false
+			, timeout : ajaxTimeout
+			, success : function(data) {
+	
+							refreshFlowsRunning = false;
+							
+							// To prevent delayed output from SP, check if we're still in Flows view.
+							if (settings.currentView == 'Flows') {
+	
+								$("#results1").html(data);
+	
+								// move SAS-generated report title to #dimon-navbar
+								$("#dimon-navbar").html('<div id="navpath"></div><span id="menubuttonNavbar"></span>');
+								$("#menubuttonNavbar").html(svgDotsVertical).button().click(function() {
+									menuNavbar();
+								});
+								$("#results1 .systitleandfootercontainer").appendTo("#navpath");
+								$("#results1").find('br:first').remove();
+	
+								// move SAS-generated footer to #dimon-footer
+								$("#dimon-footer").html("");
+								$("#results1 .reportfooter").appendTo("#dimon-footer");
+	
+								$("#datepicker").datepicker({ dateFormat : "ddMyy"
+															, showButtonPanel: true
+															,   onSelect : function(date) {
+																			navigate('//_' + $.datepicker.formatDate('ddMyy',$("#datepicker").datepicker("getDate")));
+															}})
+												.datepicker("setDate",run_date);
+	
+								$(".navpath-item").button()
+													.click(function() {
+														$("#datepicker").datepicker('show');
+													});
+	
+								$(".flow-status-link").click(function() {
+									viewNotesWarningsErrors({     "flow_run_id" : $(this).attr('id').split('_')[1]
+															, "flow_run_seq_nr" : $(this).attr('id').split('_')[2]
+															,              "rc" : $(this).attr('id').split('_')[3]
+															});
 							});
-							$("#results1 .systitleandfootercontainer").appendTo("#navpath");
-							$("#results1").find('br:first').remove();
-
-							// move SAS-generated footer to #dimon-footer
-							$("#dimon-footer").html("");
-							$("#results1 .reportfooter").appendTo("#dimon-footer");
-
-							$("#datepicker").datepicker({ dateFormat : "ddMyy"
-														, showButtonPanel: true
-														,   onSelect : function(date) {
-																		navigate('//_' + $.datepicker.formatDate('ddMyy',$("#datepicker").datepicker("getDate")));
-														}})
-											.datepicker("setDate",run_date);
-
-						    $(".navpath-item").button()
-												.click(function() {
-													$("#datepicker").datepicker('show');
-												});
-
-							$(".flow-status-link").click(function() {
-								viewNotesWarningsErrors({     "flow_run_id" : $(this).attr('id').split('_')[1]
-														, "flow_run_seq_nr" : $(this).attr('id').split('_')[2]
-														,              "rc" : $(this).attr('id').split('_')[3]
-														});
-						   });
-							$(".flow-drilldown-link").click(function() {
-								navigate($(this).attr('id'));
+								$(".flow-drilldown-link").click(function() {
+									navigate($(this).attr('id'));
+								});
+							$(".start-dts-link").click(function() {
+								plot({	     "flow_run_id" : $(this).attr('id').split('_')[1]
+										,"flow_run_seq_nr" : $(this).attr('id').split('_')[2]
+										,    "flow_job_id" : $(this).attr('id').split('_')[3]
+										,      "plot_yvar" : "START_END_TIME"
+										});
 							});
-						   $(".start-dts-link").click(function() {
-							 plot({	     "flow_run_id" : $(this).attr('id').split('_')[1]
-									,"flow_run_seq_nr" : $(this).attr('id').split('_')[2]
-									,    "flow_job_id" : $(this).attr('id').split('_')[3]
-									,      "plot_yvar" : "START_END_TIME"
-									});
-						   });
-						   $(".end-dts-link").click(function() {
-							 plot({    "flow_run_id" : $(this).attr('id').split('_')[1]
-										 ,"flow_run_seq_nr" : $(this).attr('id').split('_')[2]
-										 ,    "flow_job_id" : $(this).attr('id').split('_')[3]
-										 ,      "plot_yvar" : "END_TIME"
-							             });
-						   });
-						   $(".elapsed-time-link").click(function() {
-							 plot({    "flow_run_id" : $(this).attr('id').split('_')[1]
-										 ,"flow_run_seq_nr" : $(this).attr('id').split('_')[2]
-										 ,    "flow_job_id" : $(this).attr('id').split('_')[3]
-										 ,      "plot_yvar" : "ELAPSED_TIME"
-							             });
-						   });
-						   $(".realtime-flows-audit-stats-link").click(function() {
-							 realtimeFlowAuditStats($(this).attr('id').split('_')[1]);
-						   });
-						   $(".dimon-status-progressbar").progressbar()
-														 .each(function(i) {
-															var value = parseInt(this.id.split('_')[1]); // get value from id
-											                if (isNaN(value)) {
-																$(this).progressbar( "option", "value", false ); // no value found -> undeterminate
-															} else {
-																var progressbarValue = Math.min(100,Math.max(5,value)); //value  min=5%, max=100%
-																$(this).progressbar("value",progressbarValue);
-											                    $(this).find('span').text(value + "%");
-															}
-															$(this).removeClass('ui-corner-all');
-														  });
-						   $(".trend-sparkline").each(function() {
-							 $(this).sparkline('html',{width:'150px',fillColor:undefined})
-							        .click(function(e) { plot({    "flow_run_id" : $(this).attr('id').split('_')[1]
-																	 ,"flow_run_seq_nr" : $(this).attr('id').split('_')[2]
-										                             ,    "flow_job_id" : $(this).attr('id').split('_')[3]
-										                             ,      "plot_yvar" : "ELAPSED_TIME"
-							                                         });
-														});
-
-						   });
-
-						   //$(".dimon-bar").addClass('ui-corner-all'); // give gantt bars rounded corners
-						   $(":button:contains('Filter')").button("enable");
-
-						   setResults1Size();
-						   setSearchSize();
-
-						 }
-					   }
-		   ,   error : function(XMLHttpRequest,textStatus,errorThrown) {
-						 handleAjaxError('refreshFlows',XMLHttpRequest,textStatus,errorThrown);
-					   }
-	});
+							$(".end-dts-link").click(function() {
+								plot({    "flow_run_id" : $(this).attr('id').split('_')[1]
+											,"flow_run_seq_nr" : $(this).attr('id').split('_')[2]
+											,    "flow_job_id" : $(this).attr('id').split('_')[3]
+											,      "plot_yvar" : "END_TIME"
+											});
+							});
+							$(".elapsed-time-link").click(function() {
+								plot({    "flow_run_id" : $(this).attr('id').split('_')[1]
+											,"flow_run_seq_nr" : $(this).attr('id').split('_')[2]
+											,    "flow_job_id" : $(this).attr('id').split('_')[3]
+											,      "plot_yvar" : "ELAPSED_TIME"
+											});
+							});
+							$(".realtime-flows-audit-stats-link").click(function() {
+								realtimeFlowAuditStats($(this).attr('id').split('_')[1]);
+							});
+							$(".dimon-status-progressbar").progressbar()
+															.each(function(i) {
+																var value = parseInt(this.id.split('_')[1]); // get value from id
+																if (isNaN(value)) {
+																	$(this).progressbar( "option", "value", false ); // no value found -> undeterminate
+																} else {
+																	var progressbarValue = Math.min(100,Math.max(5,value)); //value  min=5%, max=100%
+																	$(this).progressbar("value",progressbarValue);
+																	$(this).find('span').text(value + "%");
+																}
+																$(this).removeClass('ui-corner-all');
+															});
+							$(".trend-sparkline").each(function() {
+								$(this).sparkline('html',{width:'150px',fillColor:undefined})
+										.click(function(e) { plot({    "flow_run_id" : $(this).attr('id').split('_')[1]
+																		,"flow_run_seq_nr" : $(this).attr('id').split('_')[2]
+																		,    "flow_job_id" : $(this).attr('id').split('_')[3]
+																		,      "plot_yvar" : "ELAPSED_TIME"
+																		});
+															});
+	
+							});
+	
+							//$(".dimon-bar").addClass('ui-corner-all'); // give gantt bars rounded corners
+							$(":button:contains('Filter')").button("enable");
+	
+							setResults1Size();
+							setSearchSize();
+	
+							}
+						}
+			,   error : function(XMLHttpRequest,textStatus,errorThrown) {
+							refreshFlowsRunning = false;
+							handleAjaxError('refreshFlows',XMLHttpRequest,textStatus,errorThrown);
+						}
+		});
+	}
   }
 
 }//refreshFlows
@@ -758,110 +770,118 @@ function refreshJobs(path) {
 
   if ($("#results1").length) {
 
-	$.ajax( {     url : settings.urlSPA
-			,    data : {        "_program" : getSPName('dimonJobs')
-						,     "flow_run_id" : path.split('_')[1]
-						, "flow_run_seq_nr" : path.split('_')[2]
-						,     "flow_job_id" : path.split('_')[3]
-						,        "run_date" : path.split('_')[4]
-						,          "filter" : settings.filterJobs
-						,            "sort" : settings.sortJobs
-						,          "search" : $('#search').val()
-						,          "_debug" : _debug
-						}
-			,   cache : false
-			, success : function(data) {
-
-							// To prevent delayed output from SP, check if we're still in Jobs view.
-							if (settings.currentView == 'Jobs') {
-
-								$("#results1").html(data);
-
-								// move SAS-generated report title to #dimon-navbar
-								$("#dimon-navbar").html('<div id="navpath"></div><span id="menubuttonNavbar"></span>');
-								$("#menubuttonNavbar").html(svgDotsVertical).button().click(function() {
-									menuNavbar();
-								});
-								$("#results1 .systitleandfootercontainer").appendTo("#navpath");
-								$("#results1").find('br:first').remove();
-
-								// move SAS-generated footer to #dimon-footer
-								$("#dimon-footer").html("");
-								$("#results1 .reportfooter").appendTo("#dimon-footer");
-
-								$(".navpath-item").button().click(function() { navigate($(this).attr('id')); });
-
-								$(".flow-status-link").click(function() {
-									viewNotesWarningsErrors({     "flow_run_id" : $(this).attr('id').split('_')[1]
-															, "flow_run_seq_nr" : $(this).attr('id').split('_')[2]
-															,              "rc" : $(this).attr('id').split('_')[3]
-															,     "flow_job_id" : $(this).attr('id').split('_')[4]
-															});
-								});
-								$(".job-status-link").click(function() {
-									viewNotesWarningsErrors({"job_run_id" : $(this).attr('id').split('_')[1]
-															,        "rc" : $(this).attr('id').split('_')[2]
-															});
-								});
-								$(".flow-drilldown-link").click(function() {
-									navigate($(this).attr('id'));
-								});
-								$(".job-drilldown-link").click(function() {
-									navigate($(this).attr('id'));
-								});
-								$(".start-dts-link").click(function() {
-								plot({    "flow_run_id" : $(this).attr('id').split('_')[1]
-											,"flow_run_seq_nr" : $(this).attr('id').split('_')[2]
-											,    "flow_job_id" : $(this).attr('id').split('_')[3]
-											,      "plot_yvar" : "START_END_TIME"
-											});
-								});
-								$(".end-dts-link").click(function() {
-								plot({    "flow_run_id" : $(this).attr('id').split('_')[1]
-											,"flow_run_seq_nr" : $(this).attr('id').split('_')[2]
-											,    "flow_job_id" : $(this).attr('id').split('_')[3]
-											,      "plot_yvar" : "END_TIME"
-											});
-								});
-								$(".elapsed-time-link").click(function() {
-								plot({    "flow_run_id" : $(this).attr('id').split('_')[1]
-											,"flow_run_seq_nr" : $(this).attr('id').split('_')[2]
-											,    "flow_job_id" : $(this).attr('id').split('_')[3]
-											,      "plot_yvar" : "ELAPSED_TIME"
-											});
-								});
-								$(".view-log-link").click(function() { viewLog($(this).attr('id').split('_')[1]); });
-								$(".dimon-status-progressbar").progressbar()
-																.each(function(i) {
-																var value = parseInt(this.id.split('_')[1]); // get value from id
-																if (isNaN(value)) {
-																	$(this).progressbar( "option", "value", false ); // no value found -> undeterminate
-																} else {
-																	var progressbarValue = Math.min(100,Math.max(5,value)); //value  min=5%, max=100%
-																	$(this).progressbar("value",progressbarValue);
-																$(this).find('span').text(value + "%");
-																}
-																$(this).removeClass('ui-corner-all');
+	if (!refreshJobsRunning) {
+		
+		refreshJobsRunning = true;
+		$.ajax( {     url : settings.urlSPA
+				,    data : {        "_program" : getSPName('dimonJobs')
+							,     "flow_run_id" : path.split('_')[1]
+							, "flow_run_seq_nr" : path.split('_')[2]
+							,     "flow_job_id" : path.split('_')[3]
+							,        "run_date" : path.split('_')[4]
+							,          "filter" : settings.filterJobs
+							,            "sort" : settings.sortJobs
+							,          "search" : $('#search').val()
+							,          "_debug" : _debug
+							}
+				,   cache : false
+				, timeout : ajaxTimeout
+				, success : function(data) {
+	
+								refreshJobsRunning = false;
+								
+								// To prevent delayed output from SP, check if we're still in Jobs view.
+								if (settings.currentView == 'Jobs') {
+	
+									$("#results1").html(data);
+	
+									// move SAS-generated report title to #dimon-navbar
+									$("#dimon-navbar").html('<div id="navpath"></div><span id="menubuttonNavbar"></span>');
+									$("#menubuttonNavbar").html(svgDotsVertical).button().click(function() {
+										menuNavbar();
+									});
+									$("#results1 .systitleandfootercontainer").appendTo("#navpath");
+									$("#results1").find('br:first').remove();
+	
+									// move SAS-generated footer to #dimon-footer
+									$("#dimon-footer").html("");
+									$("#results1 .reportfooter").appendTo("#dimon-footer");
+	
+									$(".navpath-item").button().click(function() { navigate($(this).attr('id')); });
+	
+									$(".flow-status-link").click(function() {
+										viewNotesWarningsErrors({     "flow_run_id" : $(this).attr('id').split('_')[1]
+																, "flow_run_seq_nr" : $(this).attr('id').split('_')[2]
+																,              "rc" : $(this).attr('id').split('_')[3]
+																,     "flow_job_id" : $(this).attr('id').split('_')[4]
 																});
-								$(".trend-sparkline").each(function() {
-								$(this).sparkline('html',{width:'150px',fillColor:undefined})
-										.click(function(e) { plot({    "flow_run_id" : $(this).attr('id').split('_')[1]
-																	,"flow_run_seq_nr" : $(this).attr('id').split('_')[2]
-																	,    "flow_job_id" : $(this).attr('id').split('_')[3]
-																	,      "plot_yvar" : "ELAPSED_TIME"
+									});
+									$(".job-status-link").click(function() {
+										viewNotesWarningsErrors({"job_run_id" : $(this).attr('id').split('_')[1]
+																,        "rc" : $(this).attr('id').split('_')[2]
+																});
+									});
+									$(".flow-drilldown-link").click(function() {
+										navigate($(this).attr('id'));
+									});
+									$(".job-drilldown-link").click(function() {
+										navigate($(this).attr('id'));
+									});
+									$(".start-dts-link").click(function() {
+									plot({    "flow_run_id" : $(this).attr('id').split('_')[1]
+												,"flow_run_seq_nr" : $(this).attr('id').split('_')[2]
+												,    "flow_job_id" : $(this).attr('id').split('_')[3]
+												,      "plot_yvar" : "START_END_TIME"
+												});
+									});
+									$(".end-dts-link").click(function() {
+									plot({    "flow_run_id" : $(this).attr('id').split('_')[1]
+												,"flow_run_seq_nr" : $(this).attr('id').split('_')[2]
+												,    "flow_job_id" : $(this).attr('id').split('_')[3]
+												,      "plot_yvar" : "END_TIME"
+												});
+									});
+									$(".elapsed-time-link").click(function() {
+									plot({    "flow_run_id" : $(this).attr('id').split('_')[1]
+												,"flow_run_seq_nr" : $(this).attr('id').split('_')[2]
+												,    "flow_job_id" : $(this).attr('id').split('_')[3]
+												,      "plot_yvar" : "ELAPSED_TIME"
+												});
+									});
+									$(".view-log-link").click(function() { viewLog($(this).attr('id').split('_')[1]); });
+									$(".dimon-status-progressbar").progressbar()
+																	.each(function(i) {
+																	var value = parseInt(this.id.split('_')[1]); // get value from id
+																	if (isNaN(value)) {
+																		$(this).progressbar( "option", "value", false ); // no value found -> undeterminate
+																	} else {
+																		var progressbarValue = Math.min(100,Math.max(5,value)); //value  min=5%, max=100%
+																		$(this).progressbar("value",progressbarValue);
+																	$(this).find('span').text(value + "%");
+																	}
+																	$(this).removeClass('ui-corner-all');
 																	});
-															});
-
-								setResults1Size();
-
-						   });
-						   $(":button:contains('Filter')").button("enable");
-						 }
-					   }
-		   ,   error : function(XMLHttpRequest,textStatus,errorThrown) {
-						 handleAjaxError('refreshJobs',XMLHttpRequest,textStatus,errorThrown);
-					   }
-	});
+									$(".trend-sparkline").each(function() {
+									$(this).sparkline('html',{width:'150px',fillColor:undefined})
+											.click(function(e) { plot({    "flow_run_id" : $(this).attr('id').split('_')[1]
+																		,"flow_run_seq_nr" : $(this).attr('id').split('_')[2]
+																		,    "flow_job_id" : $(this).attr('id').split('_')[3]
+																		,      "plot_yvar" : "ELAPSED_TIME"
+																		});
+																});
+	
+									setResults1Size();
+	
+							});
+							$(":button:contains('Filter')").button("enable");
+							}
+						}
+			,   error : function(XMLHttpRequest,textStatus,errorThrown) {
+							refreshJobsRunning = false;
+							handleAjaxError('refreshJobs',XMLHttpRequest,textStatus,errorThrown);
+						}
+		});
+	}
   }
 
 }//refreshJobs
@@ -887,49 +907,58 @@ function Steps(path) {
 function refreshSteps(path) {
 
   if ($("#results1").length) {
-	$.ajax({     url : settings.urlSPA
-		   ,    data :	{   "_program" : getSPName('dimonSteps')
-						, "job_run_id" : path.split('_')[1]
-						,     "_debug" : _debug
-						}
-		   ,   cache : false
-		   , success : function(data) {
+	  
+	if (!refreshStepsRunning) {
 
-							// To prevent delayed output from SP, check if we're still in Steps view.
-							if (settings.currentView == 'Steps') {
-
-								$("#results1").html(data);
-
-								// move SAS-generated report title to #dimon-navbar
-								$("#dimon-navbar").html('<div id="navpath"></div><span id="menubuttonNavbar"></span>');
-								$("#menubuttonNavbar").html(svgDotsVertical).button().click(function() {
-									menuNavbar();
-								});
-								$("#results1 .systitleandfootercontainer").appendTo("#navpath");
-								$("#results1").find('br:first').remove();
-
-								// move SAS-generated footer to #dimon-footer
-								$("#dimon-footer").html("");
-								$("#results1 .reportfooter").appendTo("#dimon-footer");
-
-								$(".navpath-item").button().click(function() { navigate($(this).attr('id')); });
-								$(".view-log-link").click(function() {
-									viewLog($(this).attr('id').split('_')[1]
-										,$(this).attr('id').split('_')[2]);
-									});
-
-								$(":button:contains('Filter')").button("disable");
-								$(".dimon-info-message").addClass('ui-state-highlight');
-								$(".dimon-error-message").addClass('ui-state-error');
-
-								setResults1Size();
-
+		refreshStepsRunning = true;
+		$.ajax({     url : settings.urlSPA
+			,    data :	{   "_program" : getSPName('dimonSteps')
+							, "job_run_id" : path.split('_')[1]
+							,     "_debug" : _debug
 							}
-					   }
-		   ,   error : function(XMLHttpRequest,textStatus,errorThrown) {
-						 handleAjaxError('refreshSteps',XMLHttpRequest,textStatus,errorThrown);
-					   }
-	});
+			,   cache : false
+			, timeout : ajaxTimeout
+			, success : function(data) {
+	
+								refreshStepsRunning = false;
+								
+								// To prevent delayed output from SP, check if we're still in Steps view.
+								if (settings.currentView == 'Steps') {
+	
+									$("#results1").html(data);
+	
+									// move SAS-generated report title to #dimon-navbar
+									$("#dimon-navbar").html('<div id="navpath"></div><span id="menubuttonNavbar"></span>');
+									$("#menubuttonNavbar").html(svgDotsVertical).button().click(function() {
+										menuNavbar();
+									});
+									$("#results1 .systitleandfootercontainer").appendTo("#navpath");
+									$("#results1").find('br:first').remove();
+	
+									// move SAS-generated footer to #dimon-footer
+									$("#dimon-footer").html("");
+									$("#results1 .reportfooter").appendTo("#dimon-footer");
+	
+									$(".navpath-item").button().click(function() { navigate($(this).attr('id')); });
+									$(".view-log-link").click(function() {
+										viewLog($(this).attr('id').split('_')[1]
+											,$(this).attr('id').split('_')[2]);
+										});
+	
+									$(":button:contains('Filter')").button("disable");
+									$(".dimon-info-message").addClass('ui-state-highlight');
+									$(".dimon-error-message").addClass('ui-state-error');
+	
+									setResults1Size();
+	
+								}
+						}
+			,   error : function(XMLHttpRequest,textStatus,errorThrown) {
+							refreshStepsRunning = false;
+							handleAjaxError('refreshSteps',XMLHttpRequest,textStatus,errorThrown);
+						}
+		});
+	}
   }
 
 }//refreshSteps
@@ -947,7 +976,7 @@ function viewLog(job_run_id,anchor) {
 		 , dataType : 'json'
 		 ,    async : true
 		 ,    cache : false
-		 ,  timeout : 60000 /* in ms */
+		 ,  timeout : ajaxTimeout
 		 ,  success : function(data) {
 			 
 						// chrome and firefox can handle much larger files than ie so maxsize is doubled for them
@@ -1042,7 +1071,7 @@ function getLog(job_run_id,anchor) {
 		 ,    async : true
 		 ,    cache : false
 		 , dataType : 'json'
-		 ,  timeout : 60000 /* in ms */
+		 ,  timeout : ajaxTimeout
 		 ,  success : function(data) {
                         var s = '<div id="viewlogTitle-filename">File: ' + data.job_log_file + '</div>'
                               + '<span id="viewlogOptionsButton" title="Options"></span>'
@@ -1067,14 +1096,13 @@ function getLog(job_run_id,anchor) {
 						}
 		,    async : true
 		,    cache : false
-		,  timeout : 60000 /* in ms */
+		,  timeout : ajaxTimeout
 		,  success : function(data) {
 						$("#viewlogContent").html(data);
 						$("#viewlogContent").focus();// IE7 Standard document mode hack to fix scrolling with absolute div positioning
-						$("#viewlogContent").scrollTo(anchor
-												,300 /* scroll animation time */
-												,{offset:-15}
-												);
+						$('#viewlogContent').animate({
+							scrollTop: $(anchor).offset().top - $('#l1').offset().top
+							}, 300);
 						$(":button:contains('Reload')").button("enable");
 						$(":button:contains('Close')").focus(); // Set focus to the [Close] button
 						$(".dimon-info-message").addClass('ui-state-highlight');
@@ -1212,6 +1240,7 @@ function createPlot(parms) {
 									}
 									,parms)
 			,    cache : false
+			,  timeout : ajaxTimeout
 			,  success : function(data) {
 							$('#' + parms.div).html(data);
 						 }
@@ -1285,7 +1314,7 @@ function loadNotesWarningsErrorsContent(dialog,parms) {
 								,parms)
 		 ,    async : true
 		 ,    cache : false
-		 ,  timeout : 60000 /* in ms */
+		 ,  timeout : ajaxTimeout
 		 ,  success : function(data) {
 						$("#sasresultNotesWarningsErrors").html(data);
 						$(".view-log-links").click( function() { viewLog($(this).attr('id').split('_')[1]
@@ -1342,8 +1371,12 @@ var getUrlParameter = function getUrlParameter(sParam) {
 
 function handleAjaxError(spName,XMLHttpRequest,textStatus,errorThrown) {
 
+	// prevent errors when navigating away from the page either by refreshing, clicking a link, or changing the URL in the browser
+	if(XMLHttpRequest.readyState == 0 || XMLHttpRequest.status == 0) 
+		return;  // it's not really an error
+
 	if (textStatus == "timeout") {
-		$('<div id="dimon-errormessage">' + spName + ': Server connection timeout</div>').appendTo('body').delay(3000).fadeOut(function() { $(this).remove(); });
+		$('<div id="dimon-errormessage">' + spName + ': Server connection failed (time-out)</div>').appendTo('body').delay(3000).fadeOut(function() { $(this).remove(); });
 	} else {
 		clearInterval(interval); // stop autorefreshing
 		var r = confirm(spName
