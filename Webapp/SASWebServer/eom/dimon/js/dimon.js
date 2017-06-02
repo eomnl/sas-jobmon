@@ -32,6 +32,7 @@ var refreshFlowsRunning   = false;
 var refreshJobsRunning    = false;
 var refreshStepsRunning   = false;
 var ajaxTimeout           = 60000; // timeout value for Ajax calls
+var ajaxTimedOut          = false;
 var autorefresh_intervals = [1,2,3,4,5,10,15,20,25,30,40,50,60,75,90,105,120,180,240,300,600,900,1200,1500,1800,2700,3600,7200,9999999];
 var svgDotsVertical = '<svg style="width:20px;height:20px" viewBox="0 0 24 24">'
 					+'<path fill="#454545" d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10'
@@ -644,6 +645,7 @@ function refreshFlows(run_date) {
 			, success : function(data) {
 
 							refreshFlowsRunning = false;
+							handleAjaxSuccess();
 
 							// To prevent delayed output from SP, check if we're still in Flows view.
 							if (settings.currentView == 'Flows') {
@@ -789,6 +791,7 @@ function refreshJobs(path) {
 				, success : function(data) {
 
 								refreshJobsRunning = false;
+								handleAjaxSuccess();
 
 								// To prevent delayed output from SP, check if we're still in Jobs view.
 								if (settings.currentView == 'Jobs') {
@@ -921,6 +924,7 @@ function refreshSteps(path) {
 			, success : function(data) {
 
 								refreshStepsRunning = false;
+								handleAjaxSuccess();
 
 								// To prevent delayed output from SP, check if we're still in Steps view.
 								if (settings.currentView == 'Steps') {
@@ -1053,7 +1057,7 @@ function viewLogInDimon(job_run_id,anchor) {
 							 }
 				});
   if (anchor == undefined) {
-	anchor = 'l1';
+	anchor = ( $('#viewlogCheckboxAutoRefresh').is(':checked') ? 'max' : 'l1' );
   }
   getLog(job_run_id,anchor);
 
@@ -1074,12 +1078,13 @@ function getLog(job_run_id,anchor) {
 		 ,  timeout : ajaxTimeout
 		 ,  success : function(data) {
                         var s = '<div id="viewlogTitle-filename">File: ' + data.job_log_file + '</div>'
-                            + '<span id="viewlogOptionsButton" title="Options"></span>'
-							;
-						$("#viewlogTitle").html(s);
-						$("#viewlogOptionsButton").html(svgDotsVertical).button().click(function() {
-							viewlogOptionsMenu(job_run_id);
-						});
+                              + '<span id="viewlogOptionsButton" title="Options"></span>'
+      ;
+					//$("#viewlogTitle").html("File: " + data.job_log_file);
+					$("#viewlogTitle").html(s);
+							$("#viewlogOptionsButton").html(svgDotsVertical).button().click(function() {
+								viewlogOptionsMenu(job_run_id);
+							});
 				  }
 		 ,    error : function(XMLHttpRequest,textStatus,errorThrown) {
 						handleAjaxError('getLog',XMLHttpRequest,textStatus,errorThrown);
@@ -1099,11 +1104,10 @@ function getLog(job_run_id,anchor) {
 		,  success : function(data) {
 						$("#viewlogContent").html(data);
 						$("#viewlogContent").focus();// IE7 Standard document mode hack to fix scrolling with absolute div positioning
-						if (anchor) {
-							$('#viewlogContent').animate({
-								scrollTop: $('#' + anchor).offset().top - $('#l1').offset().top
-								}, 300);
-						}
+						$("#viewlogContent").scrollTo(anchor
+												,300 /* scroll animation time */
+												,{offset:-15}
+												);
 						$(":button:contains('Reload')").button("enable");
 						$(":button:contains('Close')").focus(); // Set focus to the [Close] button
 						$(".dimon-info-message").addClass('ui-state-highlight');
@@ -1372,12 +1376,11 @@ var getUrlParameter = function getUrlParameter(sParam) {
 
 function handleAjaxError(spName,XMLHttpRequest,textStatus,errorThrown) {
 
-	// prevent errors when navigating away from the page either by refreshing, clicking a link, or changing the URL in the browser
-	if(XMLHttpRequest.readyState == 0 || XMLHttpRequest.status == 0)
-		return;  // it's not really an error
-
 	if (textStatus == "timeout") {
-		$('<div id="dimon-errormessage">' + spName + ': Server connection failed (time-out)</div>').appendTo('body').delay(3000).fadeOut(function() { $(this).remove(); });
+		ajaxTimedOut = true;
+		$('<div id="dimon-statusmessage" class="error">Server connection failed (time-out)</div>').appendTo('body').delay(5000).fadeOut(function() { $(this).remove(); });
+	} else if (XMLHttpRequest.readyState == 0 || XMLHttpRequest.status == 0) {
+		return;  // it's not really an error
 	} else {
 		clearInterval(interval); // stop autorefreshing
 		var r = confirm(spName
@@ -1415,3 +1418,13 @@ function showAjaxError(msg) {
   $(":button:contains('Close')").focus(); // Set focus to the [Close] button
 
 }//showAjaxError
+
+
+function handleAjaxSuccess() {
+
+	if (ajaxTimedOut == true) {
+		$('<div id="dimon-statusmessage" class="info">  We\'re back.  </div>').appendTo('body').delay(5000).fadeOut(function() { $(this).remove(); });
+		ajaxTimedOut = false;
+	}
+
+}//handleAjaxSuccess
