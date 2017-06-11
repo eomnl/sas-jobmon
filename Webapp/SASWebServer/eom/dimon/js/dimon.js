@@ -1057,7 +1057,7 @@ function viewLogInDimon(job_run_id,anchor) {
 							 }
 				});
   if (anchor == undefined) {
-	anchor = ( $('#viewlogCheckboxAutoRefresh').is(':checked') ? 'max' : 'l1' );
+	anchor = 'l1';
   }
   getLog(job_run_id,anchor);
 
@@ -1104,10 +1104,11 @@ function getLog(job_run_id,anchor) {
 		,  success : function(data) {
 						$("#viewlogContent").html(data);
 						$("#viewlogContent").focus();// IE7 Standard document mode hack to fix scrolling with absolute div positioning
-						$("#viewlogContent").scrollTo(anchor
-												,300 /* scroll animation time */
-												,{offset:-15}
-												);
+						if (anchor) {
+							$('#viewlogContent').animate({
+								scrollTop: $('#' + anchor).offset().top - $('#l1').offset().top
+								}, 300);
+						}
 						$(":button:contains('Reload')").button("enable");
 						$(":button:contains('Close')").focus(); // Set focus to the [Close] button
 						$(".dimon-info-message").addClass('ui-state-highlight');
