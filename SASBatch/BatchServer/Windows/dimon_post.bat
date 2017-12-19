@@ -11,25 +11,33 @@ REM 30nov12  eombah  initial version
 REM 27nov16  eombah  updated for v3
 REM -----------------------------------------------------------------
 
-set DIR=%CD%
-cd %CONFIGDIR%
+SETLOCAL ENABLEDELAYEDEXPANSION
 
-REM -----------------------------------------------------------------
-REM Execute dimonFinishJob.sas
-REM -----------------------------------------------------------------
-set DIMONLOGFILE=%DIMONLOGDIR%\%FILENAME_PREFIX%_%DATETIME%_dimonFinishJob.log
-"%SASCMD%" %CMD_OPTIONS% -sysin "%DIMONSCRIPTDIR%\dimonFinishJob.sas" -log "%DIMONLOGFILE%" -set JOB_RC "%JOB_RC%" -set LSB_JOBID "%LSB_JOBID%"
-set RC_DIMON=%ERRORLEVEL%
-if %RC_DIMON% GTR 1 (
-  echo ERROR: Registering the Finish of the job failed. RC=%RC_DIMON%
-  echo ERROR: See log file %DIMONLOGFILE%
-  if  %CONTINUEONDIMONFAIL% NEQ YES (
-      exit %RC_DIMON%
-  )
-) else (
-  if %DIMONDEBUG% neq YES (
-    del "%DIMONLOGFILE%"
+REM only execute this code when LSF variables are set
+IF DEFINED LSB_JOBID (
+  IF DEFINED LSB_JOBNAME (
+
+    REM -----------------------------------------------------------------
+    REM Execute dimon_job_finish.sas
+    REM -----------------------------------------------------------------
+    SET DIMON_JOB_FINISH_LOG=%DIMON_SASLOGFILE:.log=_dimon_job_finish.log%
+    "%SAS_COMMAND%" %CMD_OPTIONS% -sysin "%DIMON_SCRIPTDIR%/dimon_job_finish.sas" -log "!DIMON_JOB_FINISH_LOG!" -set LSB_JOBID "%LSB_JOBID%" -set JOB_RC "%DIMON_JOBRC%"
+    set DIMON_RC=%ERRORLEVEL%
+    if !DIMON_RC! GTR 1 (
+      echo ERROR: Registering DIMON Job Finish event failed for job "%LSB_JOBNAME%". RC=!DIMON_RC!
+      echo ERROR: See log file !DIMON_JOB_FINISH_LOG!
+      IF "%DIMON_CONTINUEONFAIL%" NEQ "YES" (
+        REM exit sasbatch.sh with non-zero return code if continue on fail = NO
+        exit /b !DIMON_RC!
+      )
+    ) else (
+      if "%DIMON_DEBUG%" NEQ "YES" (
+        REM remove file DIMON_JOB_FINISH_LOG if we are not in debug mode
+        del "!DIMON_JOB_FINISH_LOG!"
+      )
+    )
+
   )
 )
 
-cd %DIR%
+ENDLOCAL

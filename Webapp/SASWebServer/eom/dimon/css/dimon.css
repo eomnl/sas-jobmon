@@ -2,13 +2,32 @@
 
 .batch {indent:-10px !important;}
 
-
 .ui-widget {
 	font-size:1.1em;
 }
 
 .ui-datepicker {
 	margin-top: 36px;
+}
+
+#dimon-statusmessage {
+	position: fixed;
+	top: 10px;
+	right: 10px;
+	font-size: 1.2em;
+	padding: 20px;
+	font-weight: bold;
+	z-index:10000;
+}
+
+#dimon-statusmessage.info {
+	background-color: #2fb67a;
+	color: white;
+}
+
+#dimon-statusmessage.error {
+	background-color: red;
+	color: white;
 }
 
 #dimon-menubar {
@@ -250,8 +269,28 @@ div #viewlogHeader {
 div #viewlogTitle {
   padding:10px;
   font-size:1em;
-  float:left;
+  overflow:auto;
+  /*float:left;*/
 }
+
+#viewlogTitle-filename {
+	float:left;
+	margin-top:6px;
+	margin-bottom:5px;
+	margin-left:5px;
+}
+
+#viewlogOptionsButton {
+	float:right;
+	color: inherit !important;	
+	border: 1px solid #ffffff;
+	background: #ffffff;
+}
+
+#viewlogOptionsButton:hover path {
+	fill: black;
+}
+
 
 #viewlogCheckbox {
   float:right;

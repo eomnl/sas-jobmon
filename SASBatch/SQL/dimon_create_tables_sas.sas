@@ -1,5 +1,3 @@
-
-LIBNAME DIMON (DIMONSAS);
 PROC SQL;
   CREATE TABLE DIMON.DIMON_FLOWS
     (  FLOW_ID CHAR(20)
@@ -128,7 +126,7 @@ PROC SQL;
     ,  UPDATE_DTS NUM FORMAT=DATETIME19. INFORMAT=DATETIME19.
     )
   ;
-  CREATE UNIQUE INDEX PK_DIMON_FLOW_SCHEDULES ON DIMON.DIMON_FLOW_SCHEDULES(FLOW_ID,VALID_FROM_DTS);
+  CREATE UNIQUE INDEX PK_DIMON_FLOW_SCHEDULES ON DIMON.DIMON_FLOW_SCHEDULES(FLOW_ID,TRIGGERING_EVENT_CONDITION,VALID_FROM_DTS);
 QUIT;
 
 PROC SQL;
@@ -190,7 +188,7 @@ PROC SQL;
     VALUES ('Last_thursday_of_month@Sys', 'weekday(d) = 5 and d >= (intnx(''month'',d,0,''end'') - 6)', "&SYSUSERID.", "&SYSDATE9. &SYSTIME."dt)
     VALUES ('Last_friday_of_month@Sys', 'weekday(d) = 6 and d >= (intnx(''month'',d,0,''end'') - 6)', "&SYSUSERID.", "&SYSDATE9. &SYSTIME."dt)
     VALUES ('Last_saturday_of_month@Sys', 'weekday(d) = 7 and d >= (intnx(''month'',d,0,''end'') - 6)', "&SYSUSERID.", "&SYSDATE9. &SYSTIME."dt)
-    VALUES ('Businessdays@Sys', 'weekday(d) >= 1 and weekday(d) <= 6', "&SYSUSERID.", "&SYSDATE9. &SYSTIME."dt)
+    VALUES ('Businessdays@Sys', 'weekday(d) >= 2 and weekday(d) <= 6', "&SYSUSERID.", "&SYSDATE9. &SYSTIME."dt)
 	;
 QUIT;
 PROC SQL;

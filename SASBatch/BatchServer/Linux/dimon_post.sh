@@ -3,7 +3,7 @@
 # program : dimon_post.sh
 # version : 3.1
 # date    : 27nov16
-# purpose : execute dimonFinishJob.sas
+# purpose : execute dimon_job_finish.sas
 #
 # Uncomment the set -x to run in debug mode
 # set -x
@@ -15,27 +15,29 @@
 #                  added comments
 # 27nov16  eombah  Updated for v3
 # -----------------------------------------------------------------
-dir=$(pwd)
-cd $CONFIGDIR
 
-# -----------------------------------------------------------------
-# Execute dimonFinishJob.sas
-# -----------------------------------------------------------------
-DIMONLOGFILE=${DIMONLOGDIR}/${FILENAME_PREFIX}_${DATETIME}_dimonFinishJob.log
-"$SASCMD" -lrecl 32767 -sysin "$DIMONSCRIPTDIR/dimonFinishJob.sas" -autoexec "$SASAUTOEXEC" -log "$DIMONLOGFILE" -set JOB_RC "$JOB_RC" -set LSB_JOBID "$LSB_JOBID"
-rc_dimon=$?
-if [ "$rc_dimon" -gt "1" ] ; then
-  echo ERROR: Registering the Finish of the job failed. RC=$rc_dimon
-  echo ERROR: See log file $DIMONLOGFILE
-  if [ "$CONTINUEONDIMONFAIL" != "YES" ] ; then
-    cd $dir
-    exit "$rc_dimon"
+# only execute this code when LSF variables are set
+if [[ ! -z "$LSB_JOBID" && ! -z "$LSB_JOBNAME" ]] ; then
+
+  # -----------------------------------------------------------------
+  # Execute dimon_job_finish.sas
+  # -----------------------------------------------------------------
+  DIMON_LOGFILE=$(echo "$DIMON_SASLOGFILE" | sed "s:\.log$:_dimon_job_finish.log:g")
+  "$SAS_COMMAND" -sysin "${DIMON_SCRIPTDIR}/dimon_job_finish.sas" -log "${DIMON_LOGFILE}" -set LSB_JOBID "${LSB_JOBID}" -set JOB_RC "${DIMON_JOBRC}"
+  DIMON_RC=$?
+  if [ $DIMON_RC -gt 1 ] ; then
+    echo ERROR: Registering DIMON Job Finish event failed for job \"${LSB_JOBNAME}\". RC=$DIMON_RC
+    echo ERROR: See log file $DIMON_LOGFILE
+    if [ "$DIMON_CONTINUEONFAIL" != "YES" ] ; then
+      # exit sasbatch.sh with non-zero return code if continue on fail = NO
+      exit "$DIMON_RC"
+    fi
+  else
+    if [ "$DIMON_DEBUG" != "YES" ] ; then
+      # remove dimonStartJob logfile if we are not in debug mode
+      rm "$DIMON_LOGFILE"
+    fi
   fi
-else
-  if [ "$DIMONDEBUG" != "YES" ] ; then
-    rm "$DIMONLOGFILE"
-  fi
+
 fi
-
-cd $dir
 
