@@ -52,10 +52,10 @@ Add additional notes about how to deploy this on a live system
 
 ## Built With
 
-* [SAS Enterprise Guide](http://support.sas.com/software/products/enterprise-guide/index.html) - The tool used for the SAS Stored Processes in the Web Application
-* [SAS Data Integration Studio](http://support.sas.com/software/products/etls/index.html) - The tool used for the SAS DI Jobs that load flow, job, and schedule metadata
-* [JQuery](https://jquery.com/) - 
-* [JQuery UI](http://jqueryui.com/) - 
+* [SAS Enterprise Guide](http://support.sas.com/software/products/enterprise-guide/index.html) - Used for the SAS Stored Processes in the Web Application
+* [SAS Data Integration Studio](http://support.sas.com/software/products/etls/index.html) - Used for the SAS DI Jobs that load flow, job, and schedule metadata
+* [JQuery](https://jquery.com/) - used for the webapp
+* [JQuery UI](http://jqueryui.com/) - used for the webapp
 
 ## Contributing
 
