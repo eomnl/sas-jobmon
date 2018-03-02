@@ -141,4 +141,7 @@ if [[ ! -z "$LSB_JOBID" && ! -z "$LSB_JOBNAME" ]] ; then
     fi
   fi
 
+else
+  DIMON_CMDLINEARGS="$@"
+
 fi
