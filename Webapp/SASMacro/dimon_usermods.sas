@@ -1,7 +1,7 @@
 %macro dimon_usermods;
 
   /* If you use a library other than the default DIMON, allocate it here */
-  /* %libname dimon (dimonpos); */
+  /* libname dimon (dimonpos); */
 
   /* URL to the SAS Stored Process Web Application */
   %let urlspa               = /SASStoredProcess/do;
