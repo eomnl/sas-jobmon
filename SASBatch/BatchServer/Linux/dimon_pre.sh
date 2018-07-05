@@ -137,7 +137,7 @@ if [[ ! -z "$LSB_JOBID" && ! -z "$LSB_JOBNAME" ]] ; then
   else
     if [ "$DIMON_DEBUG" != "YES" ] ; then
       # remove dimon_job_start logfile if we are not in debug mode
-      rm "$DIMON_LOGFILE"
+      rm -f "$DIMON_LOGFILE"
     fi
   fi
 
