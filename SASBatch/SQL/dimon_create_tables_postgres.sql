@@ -168,6 +168,20 @@ WITH (
   OIDS=FALSE
 );
 
+CREATE TABLE public.dimon_nav_items
+(
+  nav_item_nr smallint,
+  nav_item_code character varying(8) NOT NULL,
+  nav_item_desc character varying(32) NOT NULL,
+  nav_item_url character varying(255) NOT NULL,
+  update_user character varying(32),
+  update_dts timestamp without time zone,
+  CONSTRAINT pk_dimon_nav_items PRIMARY KEY (nav_item_nr)
+)
+WITH (
+  OIDS=FALSE
+);
+
 INSERT INTO public.dimon_calendars (calendar_name,calendar_sascode,update_user,update_dts) VALUES
   ('Daily@Sys','1', current_user, current_timestamp),
   ('First_day_of_year@Sys', 'd = intnx(''year'',d,0,''beginning'')', current_user, current_timestamp),
