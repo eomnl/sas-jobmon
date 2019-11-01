@@ -139,6 +139,17 @@ CREATE TABLE dbo.dimon_timezones
   CONSTRAINT pk_dimon_timezones PRIMARY KEY (timezone, timediff)
 );
 
+CREATE TABLE dbo.dimon_nav_items
+(
+  nav_item_nr smallint,
+  nav_item_code varchar(8) NOT NULL,
+  nav_item_desc varchar(32) NOT NULL,
+  nav_item_url varchar(255) NOT NULL,
+  update_user varchar(32),
+  update_dts datetime,
+  CONSTRAINT dimon_nav_items PRIMARY KEY (nav_item_nr)
+);
+
 INSERT INTO dimon_calendars (calendar_name,calendar_sascode,update_user,update_dts) VALUES
   ('Daily@Sys','1', current_user, current_timestamp),
   ('First_day_of_year@Sys', 'd = intnx(''year'',d,0,''beginning'')', current_user, current_timestamp),
