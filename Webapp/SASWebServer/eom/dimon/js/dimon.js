@@ -416,12 +416,20 @@ function createNavigateMenu() {
   s += '<ul class="dropdown-menu">';
 
   // Add Filter items
-  for (i=0; i < navigateMenuItems.length; i++) {
-    s += '<li class="li-dropdown-item li-dropdown-navigate-item ui-widget" id="navigate-' + i + '"><div>'
-       + '<span class="ui-icon ui-icon-dropdown-item ' + (currentNavigate == navigateMenuItems[i].value ? 'ui-icon-check' : 'ui-icon-blank' ) + '"></span>'
-       + '<span class="text-dropdown-item">' + navigateMenuItems[i].text + '</span>'
-       + '</div><br></li>'
-       ;
+  if (navigateMenuItems.length > 0) {
+    for (i=0; i < navigateMenuItems.length; i++) {
+      s += '<li class="li-dropdown-item li-dropdown-navigate-item ui-widget" id="navigate-' + i + '"><div>'
+         + '<span class="ui-icon ui-icon-dropdown-item ' + (currentNavigate == navigateMenuItems[i].value ? 'ui-icon-check' : 'ui-icon-blank' ) + '"></span>'
+         + '<span class="text-dropdown-item">' + navigateMenuItems[i].text + '</span>'
+         + '</div><br></li>'
+         ;
+    }
+  } else {
+      s += '<li class="li-dropdown-item li-dropdown-navigate-item ui-widget" id="navigate-null"><div>'
+         + '<span class="ui-icon ui-icon-dropdown-item ui-icon-blank"></span>'
+         + '<span class="text-dropdown-item">&lt;no items&gt;</span>'
+         + '</div><br></li>'
+         ;
   }
 
   s += '</ul>';
