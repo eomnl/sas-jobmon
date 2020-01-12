@@ -23,7 +23,7 @@
   %do;
        options notes source source2 mprint;
        %put NOTE: setting debug options because %nrstr(&)_DEBUG = &_DEBUG.;
-	   options msglevel=i;
+       options msglevel=i;
        options sastrace=',,,d' sastraceloc=saslog nostsuffix;
   %end;
 
@@ -43,7 +43,7 @@
 
   %global urlspa sproot webroot _odsstyle viewlog_maxfilesize gantt_width trend_days
           flow_completion_mode flow_completion_mode_2_idle_time lsf_flow_finished_dir
-		  flow_scheduled_dts_match_seconds
+          flow_scheduled_dts_match_seconds
           ;
 
   /* ------------------------------------------------------------------------- */
