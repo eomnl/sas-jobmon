@@ -19,7 +19,7 @@
 
   /* _debug parameter is passed on the url as &_debug= */
   %global _debug;
-  %if (&_debug. ne 0) %then
+  %if (&_debug. gt 0) %then
   %do;
        options notes source source2 mprint;
        %put NOTE: setting debug options because %nrstr(&)_DEBUG = &_DEBUG.;
@@ -43,7 +43,7 @@
 
   %global urlspa sproot webroot _odsstyle viewlog_maxfilesize gantt_width trend_days
           flow_completion_mode flow_completion_mode_2_idle_time lsf_flow_finished_dir
-          flow_scheduled_dts_match_seconds
+          lsf_flow_active_dir flow_scheduled_dts_match_seconds
           ;
 
   /* ------------------------------------------------------------------------- */
@@ -89,7 +89,7 @@
   %let flow_scheduled_dts_match_seconds = 60;
 
   /* Include dimon_usermods */
-  %dimon_usermods;
+  %dimon_usermods
 
   /* Get dimon engine. When it is  something other than SAS, dimon creates SQL */
   /* views instead of tables, where applicable, to let SQL  pass through.      */
@@ -115,6 +115,7 @@
   %put NOTE: FLOW_COMPLETION_MODE             = &flow_completion_mode.;
   %put NOTE: FLOW_COMPLETION_MODE_2_IDLE_TIME = &flow_completion_mode_2_idle_time.;
   %put NOTE: LSF_FLOW_FINISHED_DIR            = &lsf_flow_finished_dir.;
+  %put NOTE: LSF_FLOW_ACTIVE_DIR              = &lsf_flow_active_dir.;
   %put NOTE: FLOW_SCHEDULED_DTS_MATCH_SECONDS = &flow_scheduled_dts_match_seconds.;
 
   ods path WORK.TAGSETS(UPDATE) SASHELP.TMPLMST(READ);
