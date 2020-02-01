@@ -13,6 +13,11 @@
 /* ========================================================================= */
 %macro dimon_init;
 
+  /* save options */
+  %let optNotes = %sysfunc(getoption(NOTES));
+  %let optSource = %sysfunc(getoption(SOURCE));
+  %let optSource2 = %sysfunc(getoption(SOURCE2));
+  %let optMprint = %sysfunc(getoption(MPRINT));
   options nonotes nosource nosource2 nomprint;
 
   %let dts1 = %sysfunc(datetime());
@@ -179,5 +184,7 @@
   %let elapsed = %sysfunc(putn(%sysevalf(&dts2. - &dts1.),8.2));
   %put NOTE: dimon_init macro completed execution in &elapsed. seconds.;
   %put NOTE: ====================================================================;
+
+  options &optNotes &optSource &optSource2 &optMprint;
 
 %mend dimon_init;
