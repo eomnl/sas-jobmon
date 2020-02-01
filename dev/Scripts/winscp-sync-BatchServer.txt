@@ -1,0 +1,3 @@
+open sftp://sasinst@sas94lax8.localdomain/ -hostkey="ssh-ed25519 256 Rtr26+lF8gb9UXtPADb4F8jBrIq7A/6k6a8otncnekE="
+synchronize remote "C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\SASBatch\BatchServer\Linux" "/apps/sas/SASConfig/Lev1/SASApp/BatchServer"
+keepuptodate "C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\SASBatch\BatchServer\Linux" "/apps/sas/SASConfig/Lev1/SASApp/BatchServer"
