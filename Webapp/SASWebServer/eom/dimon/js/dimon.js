@@ -165,6 +165,10 @@ $(function() {
                     }
                 })
               ;
+    $("#menubuttonFlowGroups").button({ icons: { primary: 'ui-icon-tag' }
+                                      ,  text: false
+                                      })
+                              .click( function() { flowGroups(); });
 
     $("#menubuttonNavigate").button({ icons: { secondary: "ui-icon-arrowthick-1-e" } })
                             .click(function(event) {
@@ -227,6 +231,208 @@ $(function() {
     window.setInterval("keepAlive()",300000);
 
 });
+
+
+function flowGroups() {
+
+    var tableFlows;
+
+    
+  var dialog = $( '<div id="dialogFlowTags">'
+                + '  <p>'
+                + '  <div style="width:100%">'
+                + '    <div style="width:55%; float:left">'
+                + '      <h3>Flows</h3>'
+                + '      Filter: <input type="text" id="textFlows" />'
+                + '      <table id="tableFlows">'
+                + '        <thead>'
+                + '          <tr>'
+                + '            <th></th>'
+                + '            <th>Flow</th>'
+                + '          </tr>'
+                + '        </thead>'
+                + '      </table>'
+                + '    </div>'
+                + '    <div style="width:40%; float:right">'
+                + '      <h3>Label as</h3>'
+                + '      <input type="text" id="textTags" />'
+                + '      <table id="tableTags">'
+                + '        <thead>'
+                + '          <tr>'
+                + '            <th></th>'
+                + '            <th>Tag</th>'
+                + '          </tr>'
+                + '        </thead>'
+                + '        <tbody>'
+                + '          <tr><td></td><td>PI Flows</td></tr>'
+                + '          <tr><td></td><td>SAP Flows</td></tr>'
+                + '          <tr><td></td><td>PI Flows</td></tr>'
+                + '          <tr><td></td><td>SAP Flows</td></tr>'
+                + '          <tr><td></td><td>PI Flows</td></tr>'
+                + '          <tr><td></td><td>SAP Flows</td></tr>'
+                + '          <tr><td></td><td>PI Flows</td></tr>'
+                + '        </tbody>'
+                + '      </table>'
+                + '      <button id="btnApplyTags">Apply</button>'
+                + '    </div>'
+                + '  </div>'
+                + '</div>').appendTo('body');
+
+  dialog.dialog({    // add a close listener to prevent adding multiple divs to the document
+                     close : function(event, ui) {
+                               // remove div with all data and events
+                               dialog.remove();
+                             }
+                ,    title : 'Label flows'
+                ,    width : 1400
+                ,   height : 720
+                ,    modal : true
+                ,  buttons : { "Apply" : function(event, ui) {
+                                            $(this).dialog('close');
+                                            refresh();
+                                         }
+                             , "Close" : function(event, ui) {
+                                           $(this).dialog('close');
+                                         }
+                             }
+                });
+
+  $.ajax({     type : "GET"
+          ,      url : settings.urlSPA
+          ,     data : { "_program" : getSPName('dimonGetFLows') }
+          ,    async : true
+          ,    cache : false
+          ,  timeout : ajaxTimeout
+        //   ,  dataype : 'json'
+          ,  success : function(response) {
+                         var tabledata = $.parseJSON(response).data;
+                         tableFlows = $('#tableFlows').DataTable({
+                              data: tabledata,
+                              paging: false,
+                              scrollY: 400,
+                              columnDefs: [ {
+                                orderable: false,
+                                className: 'select-checkbox',
+                                width: 20,
+                                targets:   0
+                            },
+                            {
+                                className: 'dt-head-left',
+                                targets:   1
+                            } ],
+                            select: {
+                                style:    'multi'
+                            }
+                          })
+                          // hide the Flows datatables search box (but leave the search functionality)
+                          $("#tableFlows_filter").css({'display':'none'});
+                          $('#textFlows').on('keyup',function () {
+                              // filter the tags table
+                              tableFlows.search(this.value).draw();
+                              setApplyTagsButton(); 
+                          });
+                          tableFlows.on( 'select.dt', function ( e, dt, type, indexes ) {
+                            setApplyTagsButton('tagselect');
+                          } );
+                          tableFlows.on( 'deselect.dt', function ( e, dt, type, indexes ) {
+                            setApplyTagsButton();
+                          } );
+                          setApplyTagsButton();
+                        }
+          ,    error : function(XMLHttpRequest,textStatus,errorThrown) {
+                         handleAjaxError('keepAlive',XMLHttpRequest,textStatus,errorThrown);
+                       }
+          });
+
+          var tableTags = $('#tableTags').DataTable({
+              paging: false,
+              scrollY: 400,
+              columnDefs: [ {
+                orderable: false,
+                className: 'select-checkbox',
+                width: 20,
+                targets:   0
+            }],
+            select: {
+                style:    'multi',
+            }
+          });
+
+$("#textFlows").button().css({
+    'font' : 'inherit',
+   'color' : 'inherit',
+   'background-color' : 'white',
+'text-align' : 'left',
+ 'outline' : 'none',
+  'cursor' : 'text',
+  'width': '90%'
+});   
+
+
+$("#textTags").button().css({
+    'font' : 'inherit',
+   'color' : 'inherit',
+   'background-color' : 'white',
+'text-align' : 'left',
+ 'outline' : 'none',
+  'cursor' : 'text',
+  'width': '90%'
+});   
+
+// hide the Tags datatables search box (but leave the search functionality)
+$("#tableTags_filter").css({'display':'none'});
+$('#textTags').on('keyup',function () {
+    // filter the tags table
+    tableTags.search(this.value).draw();
+    setApplyTagsButton(); 
+});
+
+$("#textTags").focus();
+// setApplyTagsButton();
+
+
+$("#btnApplyTags").button().css({'width':'200px','margin-top':'10px'});
+
+//setApplyTagsButton();
+tableTags.on('select.dt', function ( e, dt, type, indexes ) {
+    setApplyTagsButton();
+} );
+tableTags.on('deselect.dt', function ( e, dt, type, indexes ) {
+    setApplyTagsButton();
+} );
+
+
+function setApplyTagsButton() {
+
+    if (tableFlows.rows('.selected').count() > 0) {
+
+      if (tableTags.rows('.selected').count() > 0) {
+
+        $('#btnApplyTags').prop('disabled',false).css('opacity',1);
+        $("#btnApplyTags > span").text('Apply');  
+
+      } else if ($('#textTags').val() !== "") {
+
+        $('#btnApplyTags').prop('disabled',false).css('opacity',1);
+        $("#btnApplyTags > span").text('"' + $('#textTags').val() + '" (create new)');
+
+      } else {
+
+        // no tags are selected and no text is entered -> disable the button
+        $('#btnApplyTags').prop('disabled',true).css('opacity',0.5);
+
+      }
+    } else {
+
+        // no flows are selected -> disable the button
+        $('#btnApplyTags').prop('disabled',true).css('opacity',0.5);
+
+    }
+
+  }
+
+
+}// flowGroups
 
 
 function getSettings() {
