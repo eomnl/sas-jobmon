@@ -112,13 +112,17 @@
 	float:left;
 }
 
+#menubuttonSearchClear {
+	margin-left: 40px;
+}
+
+
 #search {
 	color: #454545;
 	background-color: white;
 	text-align : left;
 	outline : none;
 	cursor : text;
-	margin-left: 40px;
 	width: 100px;
 }
 
