@@ -556,6 +556,32 @@ function labels(initialSelectLabel, message) {
     });
 
     $("#btnDeleteLabel").button().click(function () {
+        var r = confirm('Are you sure you want to delete label "' + selectedLabel + '"?');
+        if (r) {
+            $.ajax({
+                url: settings.urlSPA
+                , data: $.extend({}
+                    , {
+                        "_program": getSPName('dimonDeleteLabel')
+                        , "label": selectedLabel
+                    })
+                , cache: false
+                , timeout: ajaxTimeout
+                , success: function (response) {
+                    data = $.parseJSON(response);
+                    if (data.syscc == 0) {
+                        dialog.remove();
+                        labels(selectedLabel, "Label '" + selectedLabel + "' was deleted");
+                    } else {
+                        alert('The request completed with errors (syscc=' + data.syscc + ')\n'
+                            + 'The last known error is:\n\n' + data.sysmsg + '\n\n');
+                    }
+                }
+                , error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    handleAjaxError('dimonSaveLabels', XMLHttpRequest, textStatus, errorThrown);
+                }
+            });
+        }
     });
 
     function selectLabel(label) {
@@ -1494,7 +1520,7 @@ function refreshFlows(run_date) {
 
                             $("#datepicker").datepicker({
                                 dateFormat: "ddMyy"
-                                , onSelect: function (date,event) {
+                                , onSelect: function (date, event) {
                                     $("#inputRundate").val($.datepicker.formatDate('ddMyy', $("#datepicker").datepicker("getDate")));
                                 }
                             });
