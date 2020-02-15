@@ -255,9 +255,8 @@ $(function () {
             // set navTitle - find http://hostname:port in navMenuItems.url
             var thisLocation = location.protocol + '//' + location.hostname + (location.port ? ':' + location.port : '');
             for (i = 0; i < navMenuItems.length; i++) {
-                if (navMenuItems[i].url.startsWith(thisLocation)) {
+                if (navMenuItems[i].url.indexOf(thisLocation) == 0) {
                     $("#navTitle").html(navMenuItems[i].text);
-                    console.log('found ' + navMenuItems[i].text + '!');
                     break;
                 }
             }
@@ -390,7 +389,6 @@ function labels(initialSelectLabel, message) {
         , dataype: 'json'
         , success: function (response) {
 
-            // console.log(response);
             sasdata = $.parseJSON(response).data;
             selections = sasdata.selections;
 
@@ -415,8 +413,6 @@ function labels(initialSelectLabel, message) {
                 confirmedCancel = false;
 
                 selectedLabel = tableLabels.row(indexes).data()[0].toString();
-                console.log('You selected label: ' + selectedLabel);
-
 
                 // create array selectedFlows to contain flow_ids of selected Label
                 var selectedFlows = [];
@@ -550,7 +546,6 @@ function labels(initialSelectLabel, message) {
     });
 
     $("#btnNewLabel").button().click(function () {
-        console.log(workLabels);
         var newLabel = [];
         newLabel[0] = $('#textFilterLabels').val();
         workLabels.push(newLabel);
@@ -678,7 +673,6 @@ function labels(initialSelectLabel, message) {
     $("#btnAddToSelected").button().css({ width: "50px" }).click(function () {
         var tSelections = tableAvailableFlows.rows('.selected').data().slice();
         for (var i = 0; i < tSelections.length; i++) {
-            console.log('i=' + i);
             var selectedFlowId = tSelections[i][0]; // [0] contains the flow_id
             removeFromAvailableFlows(selectedFlowId);
             addToSelectedFlows(selectedFlowId);
@@ -699,7 +693,6 @@ function labels(initialSelectLabel, message) {
     $("#btnAddAllToSelected").button().css({ width: "50px" }).click(function () {
         var tSelections = tableAvailableFlows.rows({ page: 'current' }).data().slice();
         for (var i = 0; i < tSelections.length; i++) {
-            console.log('i=' + i);
             var selectedFlowId = tSelections[i][0]; // [0] contains the flow_id
             removeFromAvailableFlows(selectedFlowId);
             addToSelectedFlows(selectedFlowId);
@@ -719,7 +712,6 @@ function labels(initialSelectLabel, message) {
 
 
     function removeFromAvailableFlows(flow_id) {
-        console.log('removeFromAvailableFlows:' + flow_id);
         for (var i = 0; i < workAvaFlows.length; i++) {
             if (workAvaFlows[i][0] == flow_id) {
                 workAvaFlows.splice(i, 1);
@@ -728,7 +720,6 @@ function labels(initialSelectLabel, message) {
         isDirty = true;
     }
     function addToSelectedFlows(flow_id) {
-        console.log('addToSelectedFlows:' + flow_id);
         for (var i = 0; i < sasdata.flows.length; i++) {
             if (sasdata.flows[i][0] == flow_id) {
                 workSelFlows.push(sasdata.flows[i].slice());
@@ -738,7 +729,6 @@ function labels(initialSelectLabel, message) {
     }
 
     function removeFromSelectedFlows(flow_id) {
-        console.log('removeFromSelectedFlows:' + flow_id);
         for (var i = 0; i < workSelFlows.length; i++) {
             if (workSelFlows[i][0] == flow_id) {
                 workSelFlows.splice(i, 1);
@@ -748,7 +738,6 @@ function labels(initialSelectLabel, message) {
     }
 
     function addToAvailableFlows(flow_id) {
-        console.log('addToAvailableFlows:' + flow_id);
         for (var i = 0; i < sasdata.flows.length; i++) {
             if (sasdata.flows[i][0] == flow_id) {
                 workAvaFlows.push(sasdata.flows[i].slice());
@@ -763,9 +752,6 @@ function labels(initialSelectLabel, message) {
 
     $("#btnApply").button().css({ 'width': '100%', 'margin-top': '10px' })
         .click(function () {
-            console.log(selectedLabel);
-            console.log(workSelFlows);
-            console.log(JSON.stringify(workSelFlows));
             $.ajax({
                 url: settings.urlSPA
                 , data: $.extend({}
@@ -1145,14 +1131,12 @@ function createSearchOptionsMenu() {
 
             sasdata = $.parseJSON(response).data;
             var labels = sasdata.labels;
-            console.log(sasdata.labels);
 
             var currentLabel = '';
 
             // createdropdown menu
             var s = '<ul class="dropdown-menu">';
             for (i = 0; i < labels.length; i++) {
-                console.log(labels[i][0]);
                 s += '<li class="li-dropdown-item li-dropdown-label-item ui-widget" id="label_' + labels[i][0].replace(/ /g, '-') + '"><div>'
                     + '<span class="ui-icon ui-icon-dropdown-item ' + (currentLabel == labels[i][0] ? 'ui-icon-check' : 'ui-icon-blank') + '"></span>'
                     + '<span class="text-dropdown-item">' + labels[i][0] + '</span>'
@@ -1511,8 +1495,6 @@ function refreshFlows(run_date) {
                             $("#datepicker").datepicker({
                                 dateFormat: "ddMyy"
                                 , onSelect: function (date,event) {
-                                    console.log(date);
-                                    console.log(event);
                                     $("#inputRundate").val($.datepicker.formatDate('ddMyy', $("#datepicker").datepicker("getDate")));
                                 }
                             });
