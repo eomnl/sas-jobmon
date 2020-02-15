@@ -1845,7 +1845,7 @@ function refreshJobs(path) {
                     , "run_date": path.split('_')[4]
                     , "filter": settings.filterJobs
                     , "sort": settings.sortJobs
-                    , "search": $('#search').val()
+                    //, "search": $('#search').val()
                     , "_debug": _debug
                 }
                 , cache: false
