@@ -25,6 +25,7 @@ var settings = {
     , filterJobs: 'all_jobs'
     , sortFlows: ''
     , sortJobs: ''
+    // , rundateHistDays: 0
 };
 
 var _debug;
@@ -101,6 +102,11 @@ $(document).click(function (event) {
             && (target.id != 'menuLabels')) {
             $('#menuLabels').remove();
         }
+        if ((target.id != 'rundate')
+            && ($(target).closest("#dialogRundate").attr('id') != 'dialogRundate')
+            && (target.id != 'dialogRundate')) {
+            $('#dialogRundate').remove();
+        }
 
     }
 })
@@ -159,6 +165,7 @@ $(function () {
     settings.sortFlows = (Cookies.get('dimonSortFlows') == null ? 'trigger_time desc' : Cookies.get('dimonSortFlows'));
     settings.sortJobs = (Cookies.get('dimonSortJobs') == null ? 'job_seq_nr asc' : Cookies.get('dimonSortJobs'));
     settings.autorefresh_interval = (Cookies.get('dimonAutoRefreshInterval') == null ? 5 : Cookies.get('dimonAutoRefreshInterval'));
+    settings.rundateHistDays = (Cookies.get('dimonRundateHistDays') == null ? 0 : Cookies.get('dimonRundateHistDays'));
 
     $(document).tooltip();
 
@@ -169,7 +176,7 @@ $(function () {
 
     $('#search').button()
         .keydown(function (event) {
-            if (event.keyCode == 13) {
+            if (event.keyCode == 13) { // on enter
                 refresh();
             }
         })
@@ -284,7 +291,7 @@ $(function () {
 });
 
 
-function labels(initialSelectLabel) {
+function labels(initialSelectLabel, message) {
 
     var tableAvailableFlows;
     var tableSelectedFlows
@@ -298,7 +305,7 @@ function labels(initialSelectLabel) {
     var isDirty = false;
 
     var dialog = $('<div id="dialogFlowTags">'
-        + '  <div id="labelsStatusMessage"></div>'
+        + '  <div id="labelsStatusMessage"><div id="labelsStatusMessageInner"></div></div>'
         + '  <div style="width:100%">'
         + '    <div style="width:35%; float:left">'
         + '      <h3>Label</h3>'
@@ -485,8 +492,15 @@ function labels(initialSelectLabel) {
                 updateFlowsButtons();
             });
 
+            // select an initial label if it was passed on the function call
             if (initialSelectLabel != undefined) {
                 selectLabel(initialSelectLabel);
+            }
+
+            // display message if it was passed on the function call
+            if (message != undefined) {
+                $("#labelsStatusMessageInner").html(message);
+                $("#labelsStatusMessage").slideDown(0).delay(2000).slideUp(0);
             }
 
         }
@@ -640,9 +654,6 @@ function labels(initialSelectLabel) {
         $('.ui-tooltip').remove(); // remove tooltip since it remains after button disable
     });
 
-
-
-
     function refreshLabels() {
         tableLabels.destroy();
         reloadLabels(workLabels);
@@ -770,8 +781,7 @@ function labels(initialSelectLabel) {
                     // if (data.syscc == 0) alert('Saved!');
                     // else alert('ERROR: ' + data.sysmsg);
                     dialog.remove();
-                    labels(selectedLabel);
-                    $("#labelsStatusMessage").html("Label " + selectedLabel + " was saved.");
+                    labels(selectedLabel, "Label '" + selectedLabel + "' was saved");
                 }
                 , error: function (XMLHttpRequest, textStatus, errorThrown) {
                     handleAjaxError('dimonSaveLabels', XMLHttpRequest, textStatus, errorThrown);
@@ -1428,7 +1438,7 @@ function refreshFlows(run_date) {
                     , {
                         "_program": getSPName('dimonFlows')
                         , "run_date": run_date
-                        , "run_date_histdays": 0
+                        , "run_date_histdays": settings.rundateHistDays
                         , "filter": settings.filterFlows
                         , "sort": settings.sortFlows
                         , "search": $('#search').val()
@@ -1458,55 +1468,121 @@ function refreshFlows(run_date) {
                         $("#dimon-footer").html("");
                         $("#results1 .reportfooter").appendTo("#dimon-footer");
 
+                        function createRundateDialog(initRundate) {
 
-                        function createDatepickerMenu() {
-                            var dp = $("#datepicker");
+                            var dp = $("#rundate");
                             var dpPosition = dp.offset();
                             var dpLeft = dpPosition.left;
-                            var dpBottom = dpPosition.top + dp.height() + 14;
+                            var dpBottom = dpPosition.top + dp.height() + 2;
                             var dpWidth = dp.width() + 400;
-                            $("#menuDatepicker").remove(); // remove menu in case it already exists
-                            var menuDatepicker = $('<div id="menuDatepicker" style="display:block;'
+                            $("#dialogRundate").remove(); // remove menu in case it already exists
+                            var dialogRundate = $('<div id="dialogRundate" style="display:block;'
                                 + 'position:absolute;'
                                 + 'top:' + dpBottom + 'px;'
                                 + 'left:' + dpLeft + 'px;'
                                 + 'width:' + dpWidth + 'px;'
                                 + 'z-index:1001;'
                                 + '" class="dropdown-menu"></div>').appendTo('body');
-                            $("#menuDatepicker").html('<div id="dialogRundate">'
-                                + '  <div style="width:35%; float:left">'
-                                + '    <h3>Date</h3>'
-                                + '    <div id="datepicker2"></div>'
-                                + '    <p></p>'
+
+                            $("#dialogRundate").html('<div id="dialogRundate">'
+                                + '  <div style="float:left">'
+                                + '    <div id="datepicker" style="padding:15px;"></div>'
                                 + '  </div>'
-                                + '  <div style="width:10%; float:left; text-align:center">'
-                                + '    <div style="display: inline-block; margin-top:200px;">'
+                                + '  <div style="float:left;">'
+                                + '    <div style="padding:15px;">'
+                                + '      <table>'
+                                + '        <tr><td><span class="ui-widget">Selected date</span></td><td><input type="text" id="inputRundate"></td></tr>'
+                                + '        <tr><td><span class="ui-widget">History (days)</span></td><td><input type="text" id="inputRundateHistdays"></td></tr>'
+                                + '        <tr>'
+                                + '          <td>'
+                                + '            <button id="btnRundateToday" style="margin-top:20px">Today</button>'
+                                + '          </td>'
+                                + '          <td align="right">'
+                                + '            <button id="btnRundateCancel" style="margin-top:20px">Cancel</button>'
+                                + '            <button id="btnRundateApply" style="margin-top:20px">Apply</button>'
+                                + '          </td>'
+                                + '        </tr>'
+                                + '      </table>'
                                 + '    </div>'
-                                + '  </div>'
-                                + '  <div style="width:20%; float:left">'
-                                + '    History (days): <input type="text" id="inputRundateHistdays"><br />'
-                                + '    <button id="btnRundateApply">Apply</button>'
                                 + '  </div>'
                                 + '</div>'
                             );
-                            $("#datepicker2").datepicker();
-                            $("#btnRundateApply").button().click(function() {
-                                $("#menuDatepicker").remove();
+
+                            $("#datepicker").datepicker({
+                                dateFormat: "ddMyy"
+                                , onSelect: function (date,event) {
+                                    console.log(date);
+                                    console.log(event);
+                                    $("#inputRundate").val($.datepicker.formatDate('ddMyy', $("#datepicker").datepicker("getDate")));
+                                }
                             });
-                            $("#inputRundateHistdays").button().css({
-                                'font': 'inherit',
-                                'color': 'inherit',
-                                'background-color': 'white',
-                                'text-align': 'left',
-                                'outline': 'none',
-                                'cursor': 'text',
-                                'width': '30%'
+
+                            // get initial rundate from #rundate and set it on the datepicker and in the input field
+                            var rundate = $("#rundate").text().split(" ").pop().substr(0, 9);
+                            $("#inputRundate").val(rundate);
+                            $("#datepicker").datepicker("setDate", rundate);
+
+                            // make the inputRundate field a spinner
+                            $("#inputRundate").spinner({
+                                spin: function (event, ui) {
+                                    event.preventDefault();
+                                    var rundate1 = $("#datepicker").datepicker("getDate");
+                                    rundate1.setDate(rundate1.getDate() + ui.value); // ui.value returns the increment value
+                                    $("#inputRundate").val($.datepicker.formatDate('ddMyy', rundate1));
+                                    $("#inputRundate").change(); // update the datepicker
+                                }
                             });
-                                                }
-                        $("#datepicker").button()
+
+                            // get and set initial rundateHistDays
+                            $("#inputRundateHistdays").val(settings.rundateHistDays)
+                                .spinner({
+                                    min: 0
+                                    , max: 365
+                                });;
+
+                            // update the datepicker when inputRundate has changed
+                            $("#inputRundate").change(function (event) {
+                                let value = $(this).val();
+                                let format = $("#datepicker").datepicker('option', 'dateFormat');
+                                let valueIsValid = false;
+                                try {
+                                    $.datepicker.parseDate(format, value);
+                                    valueIsValid = true;
+                                    enableButton($("#btnRundateApply"));
+                                    $("#datepicker").datepicker("setDate", $("#inputRundate").val());
+                                }
+                                catch (e) {
+                                    alert('Invalid date entered, it must in the format DDMMMYYYY.')
+                                    disableButton($("#btnRundateApply"));
+                                }
+                            })
+
+                            $("#btnRundateToday").button().click(function () {
+                                $("#inputRundate").val($.datepicker.formatDate('ddMyy', new Date()));
+                                $("#inputRundate").change(); // update the datepicker
+                            });
+                            $("#btnRundateCancel").button().click(function () {
+                                $("#dialogRundate").remove();
+                            });
+                            $("#btnRundateApply").button().click(function () {
+                                settings.rundateHistDays = $("#inputRundateHistdays").val();
+                                Cookies.set('dimonRundateHistDays', settings.rundateHistDays, { expires: 365 });
+                                navigate('//_' + $("#inputRundate").val());
+                                $("#dialogRundate").remove();
+                            });
+                        }
+
+                        // rundate click handler
+                        $("#rundate").button()
                             .click(function (event) {
-                                createDatepickerMenu();
-                                $("#menuDatepicker").show();
+                                if ($('#dialogRundate').length) {
+                                    // remove the menu if it already exists
+                                    $('#dialogRundate').remove();
+                                } else {
+                                    createRundateDialog();
+                                    $("#dialogRundate").show();
+                                    $(".navpath-item").addClass('ui-state-hover');
+                                }
                             });
 
                         // $("#datepicker").datepicker({
@@ -2309,3 +2385,11 @@ function handleAjaxSuccess() {
     }
 
 }//handleAjaxSuccess
+
+function disableButton(btn) {
+    btn.prop('disabled', true).addClass("ui-state-disabled");
+}
+
+function enableButton(btn) {
+    btn.prop('disabled', false).removeClass("ui-state-disabled");
+}

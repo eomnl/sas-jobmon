@@ -7,9 +7,9 @@
 	font-size: 1.1em;
 }
 
-.ui-datepicker {
+/* .ui-datepicker {
 	margin-top: 36px;
-}
+} */
 
 #dimon-statusmessage {
 	position: fixed;
@@ -504,7 +504,29 @@ a:active {
 }
 
 #labelsStatusMessage {
+	position: absolute;
+	left: 50%;
+	display: none;
+	top: 0px;
+	height: 20px;
+	z-index: 2000;
+	/* text-align: center;
+	font-weight: bold;
+	color: blue; */
+}
+
+#labelsStatusMessageInner {
+	position: relative;
+	z-index: inherit;
+	left: -50%;
+	padding: 15px;
+	border: solid #404040 1px;
+	background-color: khaki;
 	text-align: center;
 	font-weight: bold;
-	color: red;
 }
+
+#dialogRundate {
+	box-shadow: 9px 10px 24px #888, 0px 0px 1px #869;
+}
+
