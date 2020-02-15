@@ -111,7 +111,6 @@ $(document).click(function (event) {
     }
 })
 
-
 function setResults1Size() {
     var results1Height = $(window).height() - $("#dimon-menubar").height() - $("#dimon-navbar").height() - $("#dimon-footer").height() - 55;
     var results1Width = $(window).width() - 35;
@@ -136,7 +135,6 @@ $(window).resize(function () {
     setResults1Size();
 });
 
-
 function keepAlive() {
 
     $.ajax({
@@ -159,145 +157,163 @@ function keepAlive() {
 // JQuery initialization
 $(function () {
 
-    // get settings from cookies
-    settings.filterFlows = (Cookies.get('dimonFilterFlows') == null ? 'all_excl_hidden' : Cookies.get('dimonFilterFlows'));
-    settings.filterJobs = (Cookies.get('dimonFilterJobs') == null ? 'all' : Cookies.get('dimonFilterJobs'));
-    settings.sortFlows = (Cookies.get('dimonSortFlows') == null ? 'trigger_time desc' : Cookies.get('dimonSortFlows'));
-    settings.sortJobs = (Cookies.get('dimonSortJobs') == null ? 'job_seq_nr asc' : Cookies.get('dimonSortJobs'));
-    settings.autorefresh_interval = (Cookies.get('dimonAutoRefreshInterval') == null ? 5 : Cookies.get('dimonAutoRefreshInterval'));
-    settings.rundateHistDays = (Cookies.get('dimonRundateHistDays') == null ? 0 : Cookies.get('dimonRundateHistDays'));
+    $("#app").html('<div id="dimon-menubar">'
+    + '<a href="#" id="linkHome"><img id="dimon-logo"></a>"'
+        + '<span id="navTitle" class="dimon-menuitem left"></span>'
+        + '<button id="btnClearSearch" class="dimon-menuitem left">Clear search</button>'
+        + '<input type="text" id="search" class="dimon-menuitem left" placeholder="Search" />'
+        + '<button id="btnSettings" class="dimon-menuitem right">Settings</button>'
+        + '<button id="btnFilter" class="dimon-menuitem right">Filter</button>'
+        + '<button id="btnSort" class="dimon-menuitem right">Sort</button>'
+        + '<button id="btnNavigate" class="dimon-menuitem right">Navigate</button>'
+        + '<button id="btnFilterLabel" class="dimon-menuitem left">Filter on label</button>'
+        + '<button id="btnLabels" class="dimon-menuitem left">Label flows</button>'
+        + '</div>'
+        + '<div id="dimon-navbar"></div>'
+        + '<div id="results1"></div>'
+        + '<div id="dimon-footer"></div>' 
+    );
 
-    $(document).tooltip();
 
-    $("#dimon-logo").attr("src", settings.imgroot + '/dimon-logo.png'); // set logo
-    $("#linkHome").click(function () {
-        window.location.href = settings.urlSPA + '?_program=' + getSPName('dimon');
+// get settings from cookies
+settings.filterFlows = (Cookies.get('dimonFilterFlows') == null ? 'all_excl_hidden' : Cookies.get('dimonFilterFlows'));
+settings.filterJobs = (Cookies.get('dimonFilterJobs') == null ? 'all' : Cookies.get('dimonFilterJobs'));
+settings.sortFlows = (Cookies.get('dimonSortFlows') == null ? 'trigger_time desc' : Cookies.get('dimonSortFlows'));
+settings.sortJobs = (Cookies.get('dimonSortJobs') == null ? 'job_seq_nr asc' : Cookies.get('dimonSortJobs'));
+settings.autorefresh_interval = (Cookies.get('dimonAutoRefreshInterval') == null ? 5 : Cookies.get('dimonAutoRefreshInterval'));
+settings.rundateHistDays = (Cookies.get('dimonRundateHistDays') == null ? 0 : Cookies.get('dimonRundateHistDays'));
+
+$(document).tooltip();
+
+$("#dimon-logo").attr("src", settings.imgroot + '/dimon-logo.png'); // set logo
+$("#linkHome").click(function () {
+    window.location.href = settings.urlSPA + '?_program=' + getSPName('dimon');
+});
+
+$('#search').button()
+    .keydown(function (event) {
+        if (event.keyCode == 13) { // on enter
+            refresh();
+        }
+    })
+    ;
+
+$("#btnClearSearch").button({
+    icons: { primary: 'ui-icon-close' }
+    , text: false
+})
+    .click(function () { clearSearch(); });
+
+
+function clearSearch() {
+    $("#search").val("");
+    refresh();
+}
+
+$("#btnFilterLabel").button({
+    icons: { primary: 'ui-icon-triangle-1-s' }
+    , text: false
+})
+    .click(function (event) {
+        if ($('#menuLabels').length) {
+            // remove the menu if it already exists
+            $('#menuLabels').remove();
+        } else {
+            // create and show the menu
+            createFilterLabelMenu();
+            $("#menuLabels").show();
+        }
     });
 
-    $('#search').button()
-        .keydown(function (event) {
-            if (event.keyCode == 13) { // on enter
-                refresh();
-            }
+$("#btnLabels").button({
+    icons: { primary: 'ui-icon-tag' }
+    , text: false
+})
+    .click(function () { labels(); });
+
+$("#btnNavigate").button({ icons: { secondary: "ui-icon-arrowthick-1-e" } })
+    .click(function (event) {
+        if ($('#menuNavigate').length) {
+            // remove the menu if it already exists
+            $('#menuNavigate').remove();
+        } else {
+            createNavigateMenu();
+        }
+    });
+
+$("#btnSettings").button({
+    icons: { primary: 'ui-icon-gear' }
+    , text: false
+}).click(function () { getSettings(); });
+
+$("#btnFilter").button({ icons: { secondary: "ui-icon-triangle-1-s" } })
+    .click(function (event) {
+        if ($('#menuFilter').length) {
+            // remove the menu if it already exists
+            $('#menuFilter').remove();
+        } else {
+            createFilterMenu();
+        }
+    });
+
+$("#btnSort").button()
+    .click(function (event) {
+        if ($('#menuSort').length) {
+            // remove the menu if it already exists
+            $('#menuSort').remove();
+        } else {
+            createSortMenu();
+        }
+    });
+
+// get navigate menu items
+$.ajax({
+    url: settings.urlSPA
+    , data: $.extend({}
+        , {
+            "_program": getSPName('dimonNavMenu')
+            //, "_debug": _debug
         })
-        ;
+    , cache: false
+    , timeout: ajaxTimeout
+    , success: function (data) {
 
-    $("#btnClearSearch").button({
-        icons: { primary: 'ui-icon-close' }
-        , text: false
-    })
-        .click(function () { clearSearch(); });
+        navMenuItems = $.parseJSON(data).items;
 
-
-    function clearSearch() {
-        $("#search").val("");
-        refresh();
-    }
-
-    $("#btnFilterLabel").button({
-        icons: { primary: 'ui-icon-triangle-1-s' }
-        , text: false
-    })
-        .click(function (event) {
-            if ($('#menuLabels').length) {
-                // remove the menu if it already exists
-                $('#menuLabels').remove();
-            } else {
-                // create and show the menu
-                createFilterLabelMenu();
-                $("#menuLabels").show();
-            }
-        });
-
-    $("#btnLabels").button({
-        icons: { primary: 'ui-icon-tag' }
-        , text: false
-    })
-        .click(function () { labels(); });
-
-    $("#btnNavigate").button({ icons: { secondary: "ui-icon-arrowthick-1-e" } })
-        .click(function (event) {
-            if ($('#menuNavigate').length) {
-                // remove the menu if it already exists
-                $('#menuNavigate').remove();
-            } else {
-                createNavigateMenu();
-            }
-        });
-
-    $("#btnSettings").button({
-        icons: { primary: 'ui-icon-gear' }
-        , text: false
-    }).click(function () { getSettings(); });
-
-    $("#btnFilter").button({ icons: { secondary: "ui-icon-triangle-1-s" } })
-        .click(function (event) {
-            if ($('#menuFilter').length) {
-                // remove the menu if it already exists
-                $('#menuFilter').remove();
-            } else {
-                createFilterMenu();
-            }
-        });
-
-    $("#btnSort").button()
-        .click(function (event) {
-            if ($('#menuSort').length) {
-                // remove the menu if it already exists
-                $('#menuSort').remove();
-            } else {
-                createSortMenu();
-            }
-        });
-
-    // get navigate menu items
-    $.ajax({
-        url: settings.urlSPA
-        , data: $.extend({}
-            , {
-                "_program": getSPName('dimonNavMenu')
-                //, "_debug": _debug
-            })
-        , cache: false
-        , timeout: ajaxTimeout
-        , success: function (data) {
-
-            navMenuItems = $.parseJSON(data).items;
-
-            // set navTitle - find http://hostname:port in navMenuItems.url
-            var thisLocation = location.protocol + '//' + location.hostname + (location.port ? ':' + location.port : '');
-            for (i = 0; i < navMenuItems.length; i++) {
-                if (navMenuItems[i].url.indexOf(thisLocation) == 0) {
-                    $("#navTitle").html(navMenuItems[i].text);
-                    break;
-                }
+        // set navTitle - find http://hostname:port in navMenuItems.url
+        var thisLocation = location.protocol + '//' + location.hostname + (location.port ? ':' + location.port : '');
+        for (i = 0; i < navMenuItems.length; i++) {
+            if (navMenuItems[i].url.indexOf(thisLocation) == 0) {
+                $("#navTitle").html(navMenuItems[i].text);
+                break;
             }
         }
-
-        , error: function (XMLHttpRequest, textStatus, errorThrown) {
-            refreshFlowsRunning = false;
-            handleAjaxError('refreshFlows', XMLHttpRequest, textStatus, errorThrown);
-        }
-    });
-
-
-    // set #dimon-navbar height
-    $("#dimon-navbar").html('<div style="margin:1.15em;"><span class="l systemtitle">&nbsp;</span><div>');
-
-    _debug = (getUrlParameter('_debug') != null ? getUrlParameter('_debug') : 0);
-
-    var srun_date = '';
-    var path = getUrlParameter('path');
-    if (path) {
-    } else {
-        srun_date = $.datepicker.formatDate('ddMyy', new Date());
-        path = '//_' + srun_date;
     }
-    navigate(path);
-    setSearchSize();
 
-    // Keep the Stored Process Server session alive by running the keepAlive Stored Process once every 5 minutes
-    window.setInterval("keepAlive()", 300000);
+    , error: function (XMLHttpRequest, textStatus, errorThrown) {
+        refreshFlowsRunning = false;
+        handleAjaxError('refreshFlows', XMLHttpRequest, textStatus, errorThrown);
+    }
+});
+
+
+// set #dimon-navbar height
+$("#dimon-navbar").html('<div style="margin:1.15em;"><span class="l systemtitle">&nbsp;</span><div>');
+
+_debug = (getUrlParameter('_debug') != null ? getUrlParameter('_debug') : 0);
+
+var srun_date = '';
+var path = getUrlParameter('path');
+if (path) {
+} else {
+    srun_date = $.datepicker.formatDate('ddMyy', new Date());
+    path = '//_' + srun_date;
+}
+navigate(path);
+setSearchSize();
+
+// Keep the Stored Process Server session alive by running the keepAlive Stored Process once every 5 minutes
+window.setInterval("keepAlive()", 300000);
 
 });
 
