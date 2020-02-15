@@ -158,7 +158,7 @@ function keepAlive() {
 $(function () {
 
     $("#app").html('<div id="dimon-menubar">'
-    + '<a href="#" id="linkHome"><img id="dimon-logo"></a>"'
+        + '<a href="#" id="linkHome"><img id="dimon-logo"></a>'
         + '<span id="navTitle" class="dimon-menuitem left"></span>'
         + '<button id="btnClearSearch" class="dimon-menuitem left">Clear search</button>'
         + '<input type="text" id="search" class="dimon-menuitem left" placeholder="Search" />'
@@ -171,149 +171,149 @@ $(function () {
         + '</div>'
         + '<div id="dimon-navbar"></div>'
         + '<div id="results1"></div>'
-        + '<div id="dimon-footer"></div>' 
+        + '<div id="dimon-footer"></div>'
     );
 
 
-// get settings from cookies
-settings.filterFlows = (Cookies.get('dimonFilterFlows') == null ? 'all_excl_hidden' : Cookies.get('dimonFilterFlows'));
-settings.filterJobs = (Cookies.get('dimonFilterJobs') == null ? 'all' : Cookies.get('dimonFilterJobs'));
-settings.sortFlows = (Cookies.get('dimonSortFlows') == null ? 'trigger_time desc' : Cookies.get('dimonSortFlows'));
-settings.sortJobs = (Cookies.get('dimonSortJobs') == null ? 'job_seq_nr asc' : Cookies.get('dimonSortJobs'));
-settings.autorefresh_interval = (Cookies.get('dimonAutoRefreshInterval') == null ? 5 : Cookies.get('dimonAutoRefreshInterval'));
-settings.rundateHistDays = (Cookies.get('dimonRundateHistDays') == null ? 0 : Cookies.get('dimonRundateHistDays'));
+    // get settings from cookies
+    settings.filterFlows = (Cookies.get('dimonFilterFlows') == null ? 'all_excl_hidden' : Cookies.get('dimonFilterFlows'));
+    settings.filterJobs = (Cookies.get('dimonFilterJobs') == null ? 'all' : Cookies.get('dimonFilterJobs'));
+    settings.sortFlows = (Cookies.get('dimonSortFlows') == null ? 'trigger_time desc' : Cookies.get('dimonSortFlows'));
+    settings.sortJobs = (Cookies.get('dimonSortJobs') == null ? 'job_seq_nr asc' : Cookies.get('dimonSortJobs'));
+    settings.autorefresh_interval = (Cookies.get('dimonAutoRefreshInterval') == null ? 5 : Cookies.get('dimonAutoRefreshInterval'));
+    settings.rundateHistDays = (Cookies.get('dimonRundateHistDays') == null ? 0 : Cookies.get('dimonRundateHistDays'));
 
-$(document).tooltip();
+    $(document).tooltip();
 
-$("#dimon-logo").attr("src", settings.imgroot + '/dimon-logo.png'); // set logo
-$("#linkHome").click(function () {
-    window.location.href = settings.urlSPA + '?_program=' + getSPName('dimon');
-});
-
-$('#search').button()
-    .keydown(function (event) {
-        if (event.keyCode == 13) { // on enter
-            refresh();
-        }
-    })
-    ;
-
-$("#btnClearSearch").button({
-    icons: { primary: 'ui-icon-close' }
-    , text: false
-})
-    .click(function () { clearSearch(); });
-
-
-function clearSearch() {
-    $("#search").val("");
-    refresh();
-}
-
-$("#btnFilterLabel").button({
-    icons: { primary: 'ui-icon-triangle-1-s' }
-    , text: false
-})
-    .click(function (event) {
-        if ($('#menuLabels').length) {
-            // remove the menu if it already exists
-            $('#menuLabels').remove();
-        } else {
-            // create and show the menu
-            createFilterLabelMenu();
-            $("#menuLabels").show();
-        }
+    $("#dimon-logo").attr("src", settings.imgroot + '/dimon-logo.png'); // set logo
+    $("#linkHome").click(function () {
+        window.location.href = settings.urlSPA + '?_program=' + getSPName('dimon');
     });
 
-$("#btnLabels").button({
-    icons: { primary: 'ui-icon-tag' }
-    , text: false
-})
-    .click(function () { labels(); });
-
-$("#btnNavigate").button({ icons: { secondary: "ui-icon-arrowthick-1-e" } })
-    .click(function (event) {
-        if ($('#menuNavigate').length) {
-            // remove the menu if it already exists
-            $('#menuNavigate').remove();
-        } else {
-            createNavigateMenu();
-        }
-    });
-
-$("#btnSettings").button({
-    icons: { primary: 'ui-icon-gear' }
-    , text: false
-}).click(function () { getSettings(); });
-
-$("#btnFilter").button({ icons: { secondary: "ui-icon-triangle-1-s" } })
-    .click(function (event) {
-        if ($('#menuFilter').length) {
-            // remove the menu if it already exists
-            $('#menuFilter').remove();
-        } else {
-            createFilterMenu();
-        }
-    });
-
-$("#btnSort").button()
-    .click(function (event) {
-        if ($('#menuSort').length) {
-            // remove the menu if it already exists
-            $('#menuSort').remove();
-        } else {
-            createSortMenu();
-        }
-    });
-
-// get navigate menu items
-$.ajax({
-    url: settings.urlSPA
-    , data: $.extend({}
-        , {
-            "_program": getSPName('dimonNavMenu')
-            //, "_debug": _debug
+    $('#search').button()
+        .keydown(function (event) {
+            if (event.keyCode == 13) { // on enter
+                refresh();
+            }
         })
-    , cache: false
-    , timeout: ajaxTimeout
-    , success: function (data) {
+        ;
 
-        navMenuItems = $.parseJSON(data).items;
+    $("#btnClearSearch").button({
+        icons: { primary: 'ui-icon-close' }
+        , text: false
+    })
+        .click(function () { clearSearch(); });
 
-        // set navTitle - find http://hostname:port in navMenuItems.url
-        var thisLocation = location.protocol + '//' + location.hostname + (location.port ? ':' + location.port : '');
-        for (i = 0; i < navMenuItems.length; i++) {
-            if (navMenuItems[i].url.indexOf(thisLocation) == 0) {
-                $("#navTitle").html(navMenuItems[i].text);
-                break;
+
+    function clearSearch() {
+        $("#search").val("");
+        refresh();
+    }
+
+    $("#btnFilterLabel").button({
+        icons: { primary: 'ui-icon-triangle-1-s' }
+        , text: false
+    })
+        .click(function (event) {
+            if ($('#menuLabels').length) {
+                // remove the menu if it already exists
+                $('#menuLabels').remove();
+            } else {
+                // create and show the menu
+                createFilterLabelMenu();
+                $("#menuLabels").show();
+            }
+        });
+
+    $("#btnLabels").button({
+        icons: { primary: 'ui-icon-tag' }
+        , text: false
+    })
+        .click(function () { labels(); });
+
+    $("#btnNavigate").button({ icons: { secondary: "ui-icon-arrowthick-1-e" } })
+        .click(function (event) {
+            if ($('#menuNavigate').length) {
+                // remove the menu if it already exists
+                $('#menuNavigate').remove();
+            } else {
+                createNavigateMenu();
+            }
+        });
+
+    $("#btnSettings").button({
+        icons: { primary: 'ui-icon-gear' }
+        , text: false
+    }).click(function () { getSettings(); });
+
+    $("#btnFilter").button({ icons: { secondary: "ui-icon-triangle-1-s" } })
+        .click(function (event) {
+            if ($('#menuFilter').length) {
+                // remove the menu if it already exists
+                $('#menuFilter').remove();
+            } else {
+                createFilterMenu();
+            }
+        });
+
+    $("#btnSort").button()
+        .click(function (event) {
+            if ($('#menuSort').length) {
+                // remove the menu if it already exists
+                $('#menuSort').remove();
+            } else {
+                createSortMenu();
+            }
+        });
+
+    // get navigate menu items
+    $.ajax({
+        url: settings.urlSPA
+        , data: $.extend({}
+            , {
+                "_program": getSPName('dimonNavMenu')
+                //, "_debug": _debug
+            })
+        , cache: false
+        , timeout: ajaxTimeout
+        , success: function (data) {
+
+            navMenuItems = $.parseJSON(data).items;
+
+            // set navTitle - find http://hostname:port in navMenuItems.url
+            var thisLocation = location.protocol + '//' + location.hostname + (location.port ? ':' + location.port : '');
+            for (i = 0; i < navMenuItems.length; i++) {
+                if (navMenuItems[i].url.indexOf(thisLocation) == 0) {
+                    $("#navTitle").html(navMenuItems[i].text);
+                    break;
+                }
             }
         }
+
+        , error: function (XMLHttpRequest, textStatus, errorThrown) {
+            refreshFlowsRunning = false;
+            handleAjaxError('refreshFlows', XMLHttpRequest, textStatus, errorThrown);
+        }
+    });
+
+
+    // set #dimon-navbar height
+    $("#dimon-navbar").html('<div style="margin:1.15em;"><span class="l systemtitle">&nbsp;</span><div>');
+
+    _debug = (getUrlParameter('_debug') != null ? getUrlParameter('_debug') : 0);
+
+    var srun_date = '';
+    var path = getUrlParameter('path');
+    if (path) {
+    } else {
+        srun_date = $.datepicker.formatDate('ddMyy', new Date());
+        path = '//_' + srun_date;
     }
+    navigate(path);
+    setSearchSize();
 
-    , error: function (XMLHttpRequest, textStatus, errorThrown) {
-        refreshFlowsRunning = false;
-        handleAjaxError('refreshFlows', XMLHttpRequest, textStatus, errorThrown);
-    }
-});
-
-
-// set #dimon-navbar height
-$("#dimon-navbar").html('<div style="margin:1.15em;"><span class="l systemtitle">&nbsp;</span><div>');
-
-_debug = (getUrlParameter('_debug') != null ? getUrlParameter('_debug') : 0);
-
-var srun_date = '';
-var path = getUrlParameter('path');
-if (path) {
-} else {
-    srun_date = $.datepicker.formatDate('ddMyy', new Date());
-    path = '//_' + srun_date;
-}
-navigate(path);
-setSearchSize();
-
-// Keep the Stored Process Server session alive by running the keepAlive Stored Process once every 5 minutes
-window.setInterval("keepAlive()", 300000);
+    // Keep the Stored Process Server session alive by running the keepAlive Stored Process once every 5 minutes
+    window.setInterval("keepAlive()", 300000);
 
 });
 
@@ -427,11 +427,13 @@ function labels(initialSelectLabel, message) {
 
             // copy labels to working copy workLabels for Labels table and load table from it
             workLabels = [];
-            for (var i = 0; i < sasdata.labels.length; i++)
-                workLabels[i] = sasdata.labels[i].slice();
+            for (var i = 0; i < sasdata.labels.length; i++) {
+                if (sasdata.labels[i][1] != '*')
+                   workLabels[i] = sasdata.labels[i].slice();
+            }
             reloadLabels(workLabels);
-            reloadAvailableFlows(workAvaFlows);
-            reloadSelectedFlows(workSelFlows);
+            reloadAvailableFlows(workAvaFlows); // initially empty
+            reloadSelectedFlows(workSelFlows); // initially empty
 
             // label select handler
             tableLabels.on('select.dt', function (e, dt, type, indexes) {
@@ -931,20 +933,58 @@ function labels(initialSelectLabel, message) {
 function getSettings() {
 
     var dialog = $('<div id="dialogSettings">'
-        + '<p>'
-        + '<label for="autorefresh-interval" style="float:left">Auto-refresh interval:</label>'
-        + '<div id="slider-autorefresh-interval" style="float:left; width:400px; margin-left: 10px;"></div>'
-        + '<input type="text" id="autorefresh-interval" readonly style="border:0; float:left; margin-left: 10px;">'
-        + '</p>'
+        // + '<p>'
+        // + '<label for="autorefresh-interval" style="float:left">Auto-refresh interval:</label>'
+        // + '<div id="slider-autorefresh-interval" style="float:left; width:400px; margin-left: 10px;"></div>'
+        // + '<input type="text" id="autorefresh-interval" readonly style="border:0; float:left; margin-left: 10px;">'
+        // + '</p>'
+        + '  <div id="tabs">'
+
+        + '    <ul>'
+        + '      <li><a href="#tabs-general">General</a></li>'
+        + '      <li><a href="#tabs-alerts">Alerts</a></li>'
+        + '    </ul>'
+
+        + '    <div id="tabs-general" style="height:500px;">'
+        + '      <p>'
+        + '      <label for="autorefresh-interval" style="float:left">Auto-refresh interval:</label>'
+        + '      <div id="slider-autorefresh-interval" style="float:left; width:400px; margin-left: 10px;"></div>'
+        + '      <input type="text" id="autorefresh-interval" readonly style="border:0; float:left; margin-left: 10px;">'
+        + '      </p>'
+        + '    </div>'
+
+        + '    <div id="tabs-alerts">'
+        + '      <div class="row">'
+        + '        <div class="column">'
+        + '          <h3>Flows</h3>'
+        + '          <label for="filterFlows">Filter:&nbsp;</label><input type="text" id="filterFlows" />'
+        + '          <button id="btnClearTextFlows">Clear</button>'
+        + '          <table id="tableFlows" style="cursor:default">'
+        + '            <thead>'
+        + '              <tr>'
+        + '                <th></th>'
+        + '                <th></th>'
+        + '              </tr>'
+        + '            </thead>'
+        + '          </table>'
+        + '        </div>'
+        + '        <div class="column">'
+        + '          <h3>Alerts</h3>'
+        + '        </div>'
+        + '      </div>'
+        + '    </div>'
+
+        + '  </div>'
         + '</div>').appendTo('body');
+
     dialog.dialog({    // add a close listener to prevent adding multiple divs to the document
         close: function (event, ui) {
             // remove div with all data and events
             dialog.remove();
         }
         , title: 'Settings'
-        , width: 800
-        , height: 400
+        , width: 1200
+        , height: 700
         , modal: true
         , buttons: {
             "Apply": function (event, ui) {
@@ -960,6 +1000,9 @@ function getSettings() {
         }
     });
 
+    $("#tabs").tabs();
+
+    // AUTOREFRESH SLIDER INIT - BEGIN
     $("#slider-autorefresh-interval").slider({
         range: "min",
         value: settings.autorefresh_interval,
@@ -980,6 +1023,67 @@ function getSettings() {
     } else {
         $("#autorefresh-interval").val(autorefresh_intervals[$("#slider-autorefresh-interval").slider("value")] + ' seconds');
     }
+    // AUTOREFRESH SLIDER INIT - END
+
+    // ALERTS - BEGIN
+    $.ajax({
+        type: "GET"
+        , url: settings.urlSPA
+        , data: { "_program": getSPName('dimonGetFLowLabels') }
+        , async: true
+        , cache: false
+        , timeout: ajaxTimeout
+        , dataype: 'json'
+        , success: function (response) {
+
+            sasdata = $.parseJSON(response).data;
+            $('#tableFlows').empty();
+            tableFlows = $('#tableFlows').DataTable({
+                data: sasdata.flows,
+                paging: false,
+                scrollY: 350,
+                columnDefs: [{
+                    targets: 0,
+                    visible: false,
+                    searchable: false
+                },
+                {
+                    className: 'dt-head-left',
+                    targets: 1
+                }],
+                select: {
+                    style: 'os'
+                }
+            });
+            tableFlows.search(filterFlows.value).draw(); // apply filter
+
+            // hide the Flows datatables search box (but leave the search functionality)
+            $("#tableFlows_filter").css({ 'display': 'none' });
+            $('#filterFlows').on('keyup', function () {
+                // filter the table
+                tableFlows.search(this.value).draw();
+                //updateFlowsButtons();
+            });
+
+            // label select handler
+            tableFlows.on('select.dt', function (e, dt, type, indexes) {
+
+                // reset isDirty
+                isDirty = false;
+                confirmedCancel = false;
+
+                selectedLabel = tableFlows.row(indexes).data()[0].toString();
+                alert(selectedLabel);
+            });
+            
+        }
+
+        , error: function (XMLHttpRequest, textStatus, errorThrown) {
+            handleAjaxError('keepAlive', XMLHttpRequest, textStatus, errorThrown);
+        }
+    });
+
+    // ALERTS - END
 
     $(":button:contains('Close')").focus(); // Set focus to the [Close] button
 
@@ -1194,8 +1298,9 @@ function createFilterLabelMenu() {
             // createdropdown menu
             var s = '<ul class="dropdown-menu">';
             for (i = 0; i < labels.length; i++) {
+                if (labels[i][1] == '*') labels[i][0] = labels[i][0] + ' *';
                 s += '<li class="li-dropdown-item li-dropdown-label-item ui-widget" id="label_' + labels[i][0].replace(/ /g, '-') + '"><div>'
-                    + '<span class="ui-icon ui-icon-dropdown-item ' + (currentLabel == labels[i][0] ? 'ui-icon-check' : 'ui-icon-blank') + '"></span>'
+                    + '<span class="ui-icon ui-icon-dropdown-item ui-icon-blank"></span>'
                     + '<span class="text-dropdown-item">' + labels[i][0] + '</span>'
                     + '</div><br></li>'
                     ;
@@ -1515,8 +1620,9 @@ function refreshFlows(run_date) {
                             var dpPosition = dp.offset();
                             var dpLeft = dpPosition.left;
                             var dpBottom = dpPosition.top + dp.height() + 2;
-                            var dpWidth = dp.width() + 400;
+                            var dpWidth = dp.width() + 420;
                             $("#dialogRundate").remove(); // remove menu in case it already exists
+
                             var dialogRundate = $('<div id="dialogRundate" style="display:block;'
                                 + 'position:absolute;'
                                 + 'top:' + dpBottom + 'px;'
@@ -1532,8 +1638,8 @@ function refreshFlows(run_date) {
                                 + '  <div style="float:left;">'
                                 + '    <div style="padding:15px;">'
                                 + '      <table>'
-                                + '        <tr><td><span class="ui-widget">Selected date</span></td><td><input type="text" id="inputRundate"></td></tr>'
-                                + '        <tr><td><span class="ui-widget">History (days)</span></td><td><input type="text" id="inputRundateHistdays"></td></tr>'
+                                + '        <tr><td><label for="inputRundate" class="ui-widget">Selected date:</label></td><td><input type="text" id="inputRundate"></td></tr>'
+                                + '        <tr><td><label for="inputRundateHistdays" class="ui-widget">History (in days):</label></td><td><input type="text" id="inputRundateHistdays"></td></tr>'
                                 + '        <tr>'
                                 + '          <td>'
                                 + '            <button id="btnRundateToday" style="margin-top:20px">Today</button>'

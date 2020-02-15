@@ -530,3 +530,20 @@ a:active {
 #dialogRundate {
 	box-shadow: 9px 10px 24px #888, 0px 0px 1px #869;
 }
+
+#tabs > ul {
+	background-color: inherit;
+}
+
+.row {
+	/* Clear floats after the columns */
+  content: "";
+  display: table;
+  clear: both;
+}
+
+.column {
+  float: left;
+  padding: 10px;
+  /* height: 300px; Should be removed. Only for demonstration */
+}
