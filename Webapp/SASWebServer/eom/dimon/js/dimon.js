@@ -357,7 +357,7 @@ function labels(initialSelectLabel, message) {
         + '          </tr>'
         + '        </thead>'
         + '      </table>'
-        + '      <button id="btnApply">Apply</button>'
+        + '      <button id="btnSaveLabels">Apply</button>'
         + '    </div>'
         + '  </div>'
         + '</div>').appendTo('body');
@@ -776,7 +776,7 @@ function labels(initialSelectLabel, message) {
     $("#textFlows").focus();
 
 
-    $("#btnApply").button().css({ 'width': '100%', 'margin-top': '10px' })
+    $("#btnSaveLabels").button().css({ 'width': '100%', 'margin-top': '10px' })
         .click(function () {
             $.ajax({
                 url: settings.urlSPA
@@ -790,10 +790,13 @@ function labels(initialSelectLabel, message) {
                 , timeout: ajaxTimeout
                 , success: function (response) {
                     data = $.parseJSON(response);
-                    // if (data.syscc == 0) alert('Saved!');
-                    // else alert('ERROR: ' + data.sysmsg);
-                    dialog.remove();
-                    labels(selectedLabel, "Label '" + selectedLabel + "' was saved");
+                    if (data.syscc == 0) {
+                        dialog.remove();
+                        labels(selectedLabel, "Label '" + selectedLabel + "' was saved");
+                    } else {
+                        alert('The request completed with errors (syscc=' + data.syscc + ')\n'
+                            + 'The last known error is:\n\n' + data.sysmsg + '\n\n');
+                    }
                 }
                 , error: function (XMLHttpRequest, textStatus, errorThrown) {
                     handleAjaxError('dimonSaveLabels', XMLHttpRequest, textStatus, errorThrown);
@@ -885,11 +888,11 @@ function labels(initialSelectLabel, message) {
             updateFlowsButtons();
         });
 
-        // set btnApply button status
+        // set btnSaveLabels button status
         if (isDirty) {
-            $("#btnApply").prop('disabled', false).removeClass("ui-state-disabled");
+            $("#btnSaveLabels").prop('disabled', false).removeClass("ui-state-disabled");
         } else {
-            $("#btnApply").prop('disabled', true).addClass("ui-state-disabled");
+            $("#btnSaveLabels").prop('disabled', true).addClass("ui-state-disabled");
         }
 
     }
