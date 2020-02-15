@@ -97,7 +97,7 @@ $(document).click(function (event) {
         if ((target.id != 'viewlogOptionsButton') && ($(target).closest("#viewlogOptionsMenu").attr('id') != 'viewlogOptionsMenu')) {
             $('#viewlogOptionsMenu').remove();
         }
-        if ((target.id != 'btnSearchLabel')
+        if ((target.id != 'btnFilterLabel')
             && ($(target).closest("#menuLabels").attr('id') != 'menuLabels')
             && (target.id != 'menuLabels')) {
             $('#menuLabels').remove();
@@ -194,7 +194,7 @@ $(function () {
         refresh();
     }
 
-    $("#btnSearchLabel").button({
+    $("#btnFilterLabel").button({
         icons: { primary: 'ui-icon-triangle-1-s' }
         , text: false
     })
@@ -204,7 +204,7 @@ $(function () {
                 $('#menuLabels').remove();
             } else {
                 // create and show the menu
-                createSearchOptionsMenu();
+                createFilterLabelMenu();
                 $("#menuLabels").show();
             }
         });
@@ -217,25 +217,37 @@ $(function () {
 
     $("#btnNavigate").button({ icons: { secondary: "ui-icon-arrowthick-1-e" } })
         .click(function (event) {
-            createNavigateMenu();
-            $("#menuNavigate").show();
+            if ($('#menuNavigate').length) {
+                // remove the menu if it already exists
+                $('#menuNavigate').remove();
+            } else {
+                createNavigateMenu();
+            }
         });
 
     $("#btnSettings").button({
         icons: { primary: 'ui-icon-gear' }
         , text: false
-    })
-        .click(function () { getSettings(); });
+    }).click(function () { getSettings(); });
 
     $("#btnFilter").button({ icons: { secondary: "ui-icon-triangle-1-s" } })
         .click(function (event) {
-            createFilterMenu();
-            $("#menuFilter").show();
+            if ($('#menuFilter').length) {
+                // remove the menu if it already exists
+                $('#menuFilter').remove();
+            } else {
+                createFilterMenu();
+            }
         });
 
     $("#btnSort").button()
         .click(function (event) {
-            createSortMenu();
+            if ($('#menuSort').length) {
+                // remove the menu if it already exists
+                $('#menuSort').remove();
+            } else {
+                createSortMenu();
+            }
         });
 
     // get navigate menu items
@@ -1131,7 +1143,7 @@ function createNavigateMenu() {
 }//createNavigateMenu
 
 
-function createSearchOptionsMenu() {
+function createFilterLabelMenu() {
 
     inputSearch = $("#search");
     var inputPosition = inputSearch.offset();
@@ -1188,7 +1200,7 @@ function createSearchOptionsMenu() {
 
     });
 
-}//createSearchOptionsMenu
+}//createFilterLabelMenu
 
 
 function filter(options) {
@@ -1251,7 +1263,7 @@ function createSortMenu() {
     }
 
     s += '</ul>';
-    menuWidth = 300;
+    menuWidth = 200;
     button = $("#btnSort");
     var buttonPosition = button.position();
     var menuLeft = buttonPosition.left;
@@ -1595,20 +1607,6 @@ function refreshFlows(run_date) {
                                     $(".navpath-item").addClass('ui-state-hover');
                                 }
                             });
-
-                        // $("#datepicker").datepicker({
-                        //     dateFormat: "ddMyy"
-                        //     , showButtonPanel: true
-                        //     , onSelect: function (date) {
-                        //         navigate('//_' + $.datepicker.formatDate('ddMyy', $("#datepicker").datepicker("getDate")));
-                        //     }
-                        // })
-                        //     .datepicker("setDate", run_date);
-
-                        // $(".navpath-item").button()
-                        //     .click(function () {
-                        //         $("#datepicker").datepicker('show');
-                        //     });
 
                         $(".flow-status-link").click(function () {
                             viewNotesWarningsErrors({
