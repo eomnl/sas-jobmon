@@ -42,6 +42,10 @@ var svgDotsVertical = '<svg style="width:20px;height:20px" viewBox="0 0 24 24">'
     + ',2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z" />'
     + '</svg>';
 
+var settingsMenuItems = [{ 'value': 'settings', 'text': 'Settings' }
+    , { 'value': 'alerts', 'text': 'Alerts' }
+];
+
 var filterFlowsMenuItems = [{ 'value': 'running', 'text': 'Running' }
     , { 'value': 'completed', 'text': 'Completed' }
     , { 'value': 'failed', 'text': 'Failed' }
@@ -90,6 +94,9 @@ $(document).click(function (event) {
         }
         if ((target.id != 'btnFilter') && ($(target).closest("#menuFilter").attr('id') != 'menuFilter')) {
             $('#menuFilter').remove();
+        }
+        if ((target.id != 'btnSettings') && ($(target).closest("#menuSettings").attr('id') != 'menuSettings')) {
+            $('#menuSettings').remove();
         }
         if ((target.id != 'btnNavbar') && ($(target).closest("#menuNavbar").attr('id') != 'menuNavbar')) {
             $('#menuNavbar').remove();
@@ -244,7 +251,15 @@ $(function () {
     $("#btnSettings").button({
         icons: { primary: 'ui-icon-gear' }
         , text: false
-    }).click(function () { getSettings(); });
+    }).click(function () {
+        if ($('#menuSettings').length) {
+            // remove the menu if it already exists
+            $('#menuSettings').remove();
+        } else {
+            createSettingsMenu();
+        }
+        // getSettings(); 
+    });
 
     $("#btnFilter").button({ icons: { secondary: "ui-icon-triangle-1-s" } })
         .click(function (event) {
@@ -315,6 +330,128 @@ $(function () {
     // Keep the Stored Process Server session alive by running the keepAlive Stored Process once every 5 minutes
     window.setInterval("keepAlive()", 300000);
 
+
+
+    // combobox --BEGIN
+    $.widget("custom.combobox", {
+        _create: function () {
+            this.wrapper = $("<span>")
+                .addClass("custom-combobox")
+                .insertAfter(this.element);
+
+            this.element.hide();
+            this._createAutocomplete();
+            this._createShowAllButton();
+        },
+
+        _createAutocomplete: function () {
+            var selected = this.element.children(":selected"),
+                value = selected.val() ? selected.text() : "";
+
+            this.input = $("<input>")
+                .appendTo(this.wrapper)
+                .val(value)
+                .attr("title", "")
+                .addClass("custom-combobox-input ui-widget ui-widget-content ui-state-default ui-corner-left")
+                .autocomplete({
+                    delay: 0,
+                    minLength: 0,
+                    source: $.proxy(this, "_source")
+                })
+                .tooltip({
+                    classes: {
+                        "ui-tooltip": "ui-state-highlight"
+                    }
+                });
+            this._on(this.input, {
+                autocompleteselect: function (event, ui) {
+                    ui.item.option.selected = true;
+                    this._trigger("select", event, {
+                        item: ui.item.option
+                    });
+                },
+                autocompletechange: "_removeIfInvalid"
+            });
+        },
+        _createShowAllButton: function () {
+            var input = this.input,
+                wasOpen = false;
+            $("<a>")
+                .attr("tabIndex", -1)
+                .attr("title", "Show All Items")
+                .tooltip()
+                .appendTo(this.wrapper)
+                .button({
+                    icons: {
+                        primary: "ui-icon-triangle-1-s"
+                    },
+                    text: false
+                })
+                .removeClass("ui-corner-all")
+                .addClass("custom-combobox-toggle ui-corner-right")
+                .on("mousedown", function () {
+                    wasOpen = input.autocomplete("widget").is(":visible");
+                })
+                .on("click", function () {
+                    input.trigger("focus");
+                    // Close if already visible
+                    if (wasOpen) {
+                        return;
+                    }
+                    // Pass empty string as value to search for, displaying all results
+                    input.autocomplete("search", "");
+                });
+        },
+        _source: function (request, response) {
+            var matcher = new RegExp($.ui.autocomplete.escapeRegex(request.term), "i");
+            response(this.element.children("option").map(function () {
+                var text = $(this).text();
+                if (this.value && (!request.term || matcher.test(text)))
+                    return {
+                        label: text,
+                        value: text,
+                        option: this
+                    };
+            }));
+        },
+        _removeIfInvalid: function (event, ui) {
+            // Selected an item, nothing to do
+            if (ui.item) {
+                return;
+            }
+            // Search for a match (case-insensitive)
+            var value = this.input.val(),
+                valueLowerCase = value.toLowerCase(),
+                valid = false;
+            this.element.children("option").each(function () {
+                if ($(this).text().toLowerCase() === valueLowerCase) {
+                    this.selected = valid = true;
+                    return false;
+                }
+            });
+            // Found a match, nothing to do
+            if (valid) {
+                return;
+            }
+            // Remove invalid value
+            this.input
+                .val("")
+                .attr("title", value + " didn't match any item")
+                .tooltip("open");
+            this.element.val("");
+            this._delay(function () {
+                this.input.tooltip("close").attr("title", "");
+            }, 2500);
+            this.input.autocomplete("instance").term = "";
+        },
+        _destroy: function () {
+            this.wrapper.remove();
+            this.element.show();
+        }
+    });
+    // combobox --END
+
+
 });
 
 
@@ -357,12 +494,12 @@ function labels(initialSelectLabel, message) {
         + '      Filter: <input type="text" id="filterAvailableFlows" />'
         + '      <button id="btnClearTextAvailableFlows">Clear</button>'
         + '      <table id="tableAvailableFlows" style="cursor:default">'
-        + '        <thead>'
-        + '          <tr>'
-        + '            <th></th>'
-        + '            <th></th>'
-        + '          </tr>'
-        + '        </thead>'
+        // + '        <thead>'
+        // + '          <tr>'
+        // + '            <th></th>'
+        // + '            <th></th>'
+        // + '          </tr>'
+        // + '        </thead>'
         + '      </table>'
         + '    </div>'
         + '    <div style="width:10%; float:left; text-align:center">'
@@ -378,12 +515,12 @@ function labels(initialSelectLabel, message) {
         + '      Filter: <input type="text" id="filterSelectedFlows" />'
         + '      <button id="btnClearTextSelectedFlows">Clear</button>'
         + '      <table id="tableSelectedFlows" style="cursor:default">'
-        + '        <thead>'
-        + '          <tr>'
-        + '            <th></th>'
-        + '            <th></th>'
-        + '          </tr>'
-        + '        </thead>'
+        // + '        <thead>'
+        // + '          <tr>'
+        // + '            <th></th>'
+        // + '            <th></th>'
+        // + '          </tr>'
+        // + '        </thead>'
         + '      </table>'
         + '      <button id="btnSaveLabels">Apply</button>'
         + '    </div>'
@@ -429,7 +566,7 @@ function labels(initialSelectLabel, message) {
             workLabels = [];
             for (var i = 0; i < sasdata.labels.length; i++) {
                 if (sasdata.labels[i][1] != '*')
-                   workLabels[i] = sasdata.labels[i].slice();
+                    workLabels[i] = sasdata.labels[i].slice();
             }
             reloadLabels(workLabels);
             reloadAvailableFlows(workAvaFlows); // initially empty
@@ -537,7 +674,7 @@ function labels(initialSelectLabel, message) {
     });
 
     $("#filterAvailableFlows").button().css({
-        'font': 'inherit',
+        // 'font': 'inherit',
         'color': 'inherit',
         'background-color': 'white',
         'text-align': 'left',
@@ -547,7 +684,7 @@ function labels(initialSelectLabel, message) {
     });
 
     $("#filterSelectedFlows").button().css({
-        'font': 'inherit',
+        // 'font': 'inherit',
         'color': 'inherit',
         'background-color': 'white',
         'text-align': 'left',
@@ -557,7 +694,7 @@ function labels(initialSelectLabel, message) {
     });
 
     $("#textFilterLabels").button().css({
-        'font': 'inherit',
+        // 'font': 'inherit',
         'color': 'inherit',
         'background-color': 'white',
         'text-align': 'left',
@@ -639,12 +776,12 @@ function labels(initialSelectLabel, message) {
         }
         if ((textFilterLabels != '') && (!exists)) {
             // enable New button
-            $("#btnNewLabel").prop('disabled', false).removeClass("ui-state-disabled");
+            enableButton($("#btnNewLabel"));
             $('#btnNewLabel').button('option', 'label', textFilterLabels + ' (create new)');
         } else {
             // disable New button
             $('#btnNewLabel').button('option', 'label', 'New');
-            $("#btnNewLabel").prop('disabled', true).addClass("ui-state-disabled");
+            disableButton($("#btnNewLabel"));
         }
 
         if (textFilterLabels == "") {
@@ -864,18 +1001,10 @@ function labels(initialSelectLabel, message) {
             data: data,
             paging: false,
             scrollY: 400,
-            columnDefs: [{
-                targets: 0,
-                visible: false,
-                searchable: false
-            },
-            {
-                className: 'dt-head-left',
-                targets: 1
-            }],
-            select: {
-                style: 'os'
-            }
+            columnDefs: [{ targets: 0, visible: false, searchable: false },
+            { targets: 1, className: 'dt-head-left', }
+            ],
+            select: { style: 'os' }
         });
         tableAvailableFlows.search(filterAvailableFlows.value).draw(); // apply filter
 
@@ -894,19 +1023,10 @@ function labels(initialSelectLabel, message) {
             data: data,
             paging: false,
             scrollY: 400,
-            columnDefs: [
-                {
-                    targets: 0,
-                    visible: false,
-                    searchable: false
-                },
-                {
-                    className: 'dt-head-left',
-                    targets: 1
-                }],
-            select: {
-                style: 'os'
-            }
+            columnDefs: [{ targets: 0, visible: false, searchable: false },
+            { targets: 1, className: 'dt-head-left' }
+            ],
+            select: { style: 'os' }
         });
         tableSelectedFlows.search(filterSelectedFlows.value).draw(); // apply filter
 
@@ -920,9 +1040,9 @@ function labels(initialSelectLabel, message) {
 
         // set btnSaveLabels button status
         if (isDirty) {
-            $("#btnSaveLabels").prop('disabled', false).removeClass("ui-state-disabled");
+            enableButton($("#btnSaveLabels"));
         } else {
-            $("#btnSaveLabels").prop('disabled', true).addClass("ui-state-disabled");
+            disableButton($("#btnSaveLabels"));
         }
 
     }
@@ -932,59 +1052,22 @@ function labels(initialSelectLabel, message) {
 
 function getSettings() {
 
-    var dialog = $('<div id="dialogSettings">'
-        // + '<p>'
-        // + '<label for="autorefresh-interval" style="float:left">Auto-refresh interval:</label>'
-        // + '<div id="slider-autorefresh-interval" style="float:left; width:400px; margin-left: 10px;"></div>'
-        // + '<input type="text" id="autorefresh-interval" readonly style="border:0; float:left; margin-left: 10px;">'
-        // + '</p>'
-        + '  <div id="tabs">'
-
-        + '    <ul>'
-        + '      <li><a href="#tabs-general">General</a></li>'
-        + '      <li><a href="#tabs-alerts">Alerts</a></li>'
-        + '    </ul>'
-
-        + '    <div id="tabs-general" style="height:500px;">'
-        + '      <p>'
-        + '      <label for="autorefresh-interval" style="float:left">Auto-refresh interval:</label>'
-        + '      <div id="slider-autorefresh-interval" style="float:left; width:400px; margin-left: 10px;"></div>'
-        + '      <input type="text" id="autorefresh-interval" readonly style="border:0; float:left; margin-left: 10px;">'
-        + '      </p>'
-        + '    </div>'
-
-        + '    <div id="tabs-alerts">'
-        + '      <div class="row">'
-        + '        <div class="column">'
-        + '          <h3>Flows</h3>'
-        + '          <label for="filterFlows">Filter:&nbsp;</label><input type="text" id="filterFlows" />'
-        + '          <button id="btnClearTextFlows">Clear</button>'
-        + '          <table id="tableFlows" style="cursor:default">'
-        + '            <thead>'
-        + '              <tr>'
-        + '                <th></th>'
-        + '                <th></th>'
-        + '              </tr>'
-        + '            </thead>'
-        + '          </table>'
-        + '        </div>'
-        + '        <div class="column">'
-        + '          <h3>Alerts</h3>'
-        + '        </div>'
-        + '      </div>'
-        + '    </div>'
-
-        + '  </div>'
+    var dialogSettings = $('<div id="dialogSettings">'
+        + '<p>'
+        + '<label for="autorefresh-interval" style="float:left">Auto-refresh interval:</label>'
+        + '<div id="slider-autorefresh-interval" style="float:left; width:400px; margin-left: 10px;"></div>'
+        + '<input type="text" id="autorefresh-interval" readonly style="border:0; float:left; margin-left: 10px;">'
+        + '</p>'
         + '</div>').appendTo('body');
 
-    dialog.dialog({    // add a close listener to prevent adding multiple divs to the document
+    dialogSettings.dialog({    // add a close listener to prevent adding multiple divs to the document
         close: function (event, ui) {
             // remove div with all data and events
-            dialog.remove();
+            dialogSettings.remove();
         }
         , title: 'Settings'
-        , width: 1200
-        , height: 700
+        , width: 800
+        , height: 400
         , modal: true
         , buttons: {
             "Apply": function (event, ui) {
@@ -1000,9 +1083,6 @@ function getSettings() {
         }
     });
 
-    $("#tabs").tabs();
-
-    // AUTOREFRESH SLIDER INIT - BEGIN
     $("#slider-autorefresh-interval").slider({
         range: "min",
         value: settings.autorefresh_interval,
@@ -1023,13 +1103,63 @@ function getSettings() {
     } else {
         $("#autorefresh-interval").val(autorefresh_intervals[$("#slider-autorefresh-interval").slider("value")] + ' seconds');
     }
-    // AUTOREFRESH SLIDER INIT - END
 
-    // ALERTS - BEGIN
+    $(":button:contains('Close')").focus(); // Set focus to the [Close] button
+
+}
+
+
+function getAlerts() {
+
+    var dialogAlerts = $('<div id="dialogAlerts">'
+        + '  <div class="row">'
+        + '    <div class="column" style="width:500px">'
+        + '      <label for="filterAlerts">Filter:&nbsp;</label><input type="text" id="filterAlerts" />'
+        + '      <button id="btnClearFilter">Clear</button>'
+        + '      <button id="btnNewAlert">New</button>'
+        + '      <table id="tableAlerts" style="cursor:default; margin-top:20px;">'
+        + '        <thead>'
+        + '          <tr>'
+        + '            <th>Flow ID</th>'
+        + '            <th>Flow</th>'
+        + '            <th>Condition</th>'
+        + '            <th>Action</th>'
+        + '          </tr>'
+        + '        </thead>'
+        + '        <tbody>'
+        + '        </tbody>'
+        + '      </table>'
+        + '    </div>'
+        + '  </div>'
+        + '</div>').appendTo('body');
+
+    dialogAlerts.dialog({    // add a close listener to prevent adding multiple divs to the document
+        close: function (event, ui) {
+            // remove div with all data and events
+            dialogAlerts.remove();
+        }
+        , title: 'Alerts'
+        , width: 1200
+        , height: 700
+        , modal: true
+        , buttons: {
+            "Apply": function (event, ui) {
+                autorefresh_interval = $("#slider-autorefresh-interval").slider("value");
+                settings.autorefresh_interval = autorefresh_interval;
+                Cookies.set('dimonAutoRefreshInterval', settings.autorefresh_interval, { expires: 365 });
+                $(this).dialog('close');
+                refresh();
+            }
+            , "Close": function (event, ui) {
+                $(this).dialog('close');
+            }
+        }
+    });
+
     $.ajax({
         type: "GET"
         , url: settings.urlSPA
-        , data: { "_program": getSPName('dimonGetFLowLabels') }
+        , data: { "_program": getSPName('dimonGetAlerts') }
         , async: true
         , cache: false
         , timeout: ajaxTimeout
@@ -1037,45 +1167,164 @@ function getSettings() {
         , success: function (response) {
 
             sasdata = $.parseJSON(response).data;
-            $('#tableFlows').empty();
-            tableFlows = $('#tableFlows').DataTable({
-                data: sasdata.flows,
+            console.log(sasdata.alerts);
+            var workAlerts = [];
+            for (i = 0; i < sasdata.alerts.length; i++) {
+                var element = [];
+                workAlerts.push(element);
+                element.push(sasdata.alerts[i][0]);
+                element.push(sasdata.alerts[i][1]);
+                element.push(sasdata.alerts[i][2]);
+                element.push(sasdata.alerts[i][3]);
+            }
+            tableAlerts = $('#tableAlerts').DataTable({
+                //data: sasdata.flows,
+                data: workAlerts,
                 paging: false,
-                scrollY: 350,
-                columnDefs: [{
-                    targets: 0,
-                    visible: false,
-                    searchable: false
-                },
-                {
-                    className: 'dt-head-left',
-                    targets: 1
-                }],
+                scrollY: 340,
+                columnDefs: [
+                    { targets: 0, visible: false, searchable: false },
+                    { targets: 1, className: 'dt-head-left', width: "200px" },
+                    { targets: 2, className: 'dt-center' },
+                    { targets: 3, className: 'dt-head-left', width: "200px" }
+                ],
                 select: {
                     style: 'os'
                 }
             });
-            tableFlows.search(filterFlows.value).draw(); // apply filter
+            tableAlerts.search(filterAlerts.value).draw(); // apply filter
 
             // hide the Flows datatables search box (but leave the search functionality)
-            $("#tableFlows_filter").css({ 'display': 'none' });
-            $('#filterFlows').on('keyup', function () {
+            $("#tableAlerts_filter").css({ 'display': 'none' });
+            $('#filterAlerts').on('keyup', function () {
                 // filter the table
-                tableFlows.search(this.value).draw();
-                //updateFlowsButtons();
+                tableAlerts.search(this.value).draw();
+                setButtonStatus();
             });
 
+            function setButtonStatus() {
+                btn = $("#btnClearFilter");
+                if ($("#filterAlerts").val() == "") disableButton(btn);
+                else enableButton(btn);
+            }
+
+            // $("#filterAlerts").button().css({
+            $(":text").button().css({
+                // 'font': 'inherit',
+                'color': 'inherit',
+                'background-color': 'white',
+                'text-align': 'left',
+                'outline': 'none',
+                'cursor': 'text',
+                'width': '50%'
+            });
+            $("#btnClearFilter").button({
+                icons: { primary: 'ui-icon-close' }
+                , text: false
+            }).click(function () {
+                $("#filterAlerts").val("");
+                tableAlerts.search(this.value).draw();
+            });
+            setButtonStatus();
+
+
+            $("#btnNewAlert").button()
+                .click(function (event) {
+
+                    s = '<div id="dialogNewAlert">'
+                        + '<table cellpadding="10"><tr>'
+                        + '<td style="vertical-align:middle"><label>Flow: </label></td>'
+                        + '<td><select id="combobox">'
+                        + '<option value="">Select one...</option>'
+                        ;
+                    for (var i = 0; i < sasdata.flows.length; i++) {
+                        s += '<option value="' + sasdata.flows[i][0] + '">' + sasdata.flows[i][1] + '</option>'
+                    }
+                    s += '</select></td>'
+                        + '<td></td><td></td></tr>'
+                        + '<tr><td style="vertical-align:middle"><label>Condition: </label></td>'
+                        + '<td><select id="condition">'
+                        + '<option value="completes_successfully">Completes successfully</option>'
+                        + '<option value="ends_with_any_exist_code">Ends with any exit code</option>'
+                        + '<option value="starts">Starts</option>'
+                        + '<option value="ends_with_exit_code">Ends with exit code</option>'
+                        + '<option value="misses_scheduled_time">Misses scheduled time</option>'
+                        + '<option value="fails_to_start">Fails to start</option>'
+                        + '<option value="cannot_run">Cannot run</option>'
+                        + '<option value="runs_more_than">Runs more than</option>'
+                        + '</select></td>'
+                        + '<td><div id="div-condition-comparison"><select id="condition-comparison">'
+                        + '<option>Equal to</option>'
+                        + '<option>Greater than</option>'
+                        + '<option>Greater than or equal to</option>'
+                        + '<option>Less than</option>'
+                        + '<option>Less than or equal to</option>'
+                        + '</select></div></td>'
+                        + '<td><div id="div-condition-rc"><input type="text" id="condition-rc"></div></td>'
+                        + '</tr>'
+                        + '<tr>'
+                        + '<td style="vertical-align:middle"><label>Action: </label></td>'
+                        + '<td><select id="action"><option value="email">email</option></select>'
+                        + '<td></td><td></td></tr>'
+                        + '</table>'
+                        + '</div>'
+                        ;
+                    var dialogNewAlert = $(s).appendTo('body');
+                    dialogNewAlert.dialog({    // add a close listener to prevent adding multiple divs to the document
+                        close: function (event, ui) {
+                            // remove div with all data and events
+                            dialogNewAlert.remove();
+                        }
+                        , title: 'New alert'
+                        , width: 700
+                        , height: 300
+                        , modal: true
+                        , buttons: {
+                            "Cancel": function (event, ui) {
+                                $(this).dialog('close');
+                            },
+                            "Save": function (event, ui) {
+                                $(this).dialog('close');
+                            }
+                        }
+                    });
+                    $("#combobox").combobox();
+
+                    $("#condition").selectmenu({change: function( event, ui ) {
+                        if (this.value == 'ends_with_exit_code') {
+                            $("#div-condition-comparison").show();
+                            $("#div-condition-rc").show();
+                        } else {
+                            $("#div-condition-comparison").hide();
+                            $("#div-condition-rc").hide();
+                        }
+                    }});
+                    $("#div-condition-comparison").hide();
+                    $("#div-condition-rc").hide();
+                    $("#condition-comparison").selectmenu();
+                    $("#action").selectmenu();
+                    $("#condition-rc").button().css({
+                        // 'font': 'inherit',
+                        'color': 'inherit',
+                        'background-color': 'white',
+                        'text-align': 'left',
+                        'outline': 'none',
+                        'cursor': 'text',
+                        'width': '50%'
+                    });
+                });
+
             // label select handler
-            tableFlows.on('select.dt', function (e, dt, type, indexes) {
+            tableAlerts.on('select.dt', function (e, dt, type, indexes) {
 
                 // reset isDirty
                 isDirty = false;
                 confirmedCancel = false;
 
-                selectedLabel = tableFlows.row(indexes).data()[0].toString();
-                alert(selectedLabel);
+                selectedLabel = tableAlerts.row(indexes).data()[0].toString();
+                // alert(selectedLabel);
             });
-            
+
         }
 
         , error: function (XMLHttpRequest, textStatus, errorThrown) {
@@ -1085,9 +1334,7 @@ function getSettings() {
 
     // ALERTS - END
 
-    $(":button:contains('Close')").focus(); // Set focus to the [Close] button
-
-}//getSettings
+}//getAlerts
 
 
 function updateFilterButtonLabel() {
@@ -1193,12 +1440,12 @@ function createFilterMenu() {
 
     s += '</ul>';
 
-    var menuWidth = 193;
+    var menuWidth = 150;
     button = $("#btnFilter");
     var buttonPosition = button.position();
     var buttonLeft = buttonPosition.left;
-    var buttonBottom = buttonPosition.top + button.height() + 6;
-    var menuLeft = buttonLeft + button.width() - menuWidth;
+    var buttonBottom = buttonPosition.top + button.height() + 18;
+    var menuLeft = buttonLeft + button.width() - menuWidth + 26;
     $("#menuFilter").remove(); // remove menu in case it already exists
     var menuFilter = $('<div id="menuFilter" style="display:block;'
         + 'position:absolute;'
@@ -1211,6 +1458,52 @@ function createFilterMenu() {
     $('.li-dropdown-filter-item').click(function () { filter($(this).attr('id').split('-')[1]); });
 
 }//createFilterMenu
+
+
+function createSettingsMenu() {
+
+    $('.ui-tooltip').remove(); // remove tooltip immediately on menu open
+    var s = '<ul class="dropdown-menu">'
+    // Add Filter items
+    for (i = 0; i < settingsMenuItems.length; i++) {
+        s += '<li class="li-dropdown-item li-dropdown-filter-item ui-widget" id="setting-' + settingsMenuItems[i].value + '"><div>'
+            + '<span class="ui-icon ui-icon-dropdown-item ui-icon-blank"></span>'
+            + '<span class="text-dropdown-item">' + settingsMenuItems[i].text + '</span>'
+            + '</div><br></li>'
+            ;
+    }
+    s += '</ul>';
+
+    var menuWidth = 150;
+    button = $("#btnSettings");
+    var buttonPosition = button.position();
+    var buttonLeft = buttonPosition.left;
+    var buttonBottom = buttonPosition.top + button.height() + 18;
+    var menuLeft = buttonLeft + button.width() - menuWidth + 27;
+    $("#menuSettings").remove(); // remove menu in case it already exists
+    var menuSettings = $('<div id="menuSettings" style="display:block;'
+        + 'position:absolute;'
+        + 'top:' + buttonBottom + 'px;'
+        + 'left:' + menuLeft + 'px;'
+        + 'width:' + menuWidth + 'px;'
+        + 'z-index:1001;'
+        + '" class="dropdown-menu"></div>').appendTo('body');
+    $("#menuSettings").html(s);
+    $('.li-dropdown-filter-item').click(function () {
+        $("#menuSettings").remove(); // remove menu
+        var selectedItem = $(this).attr('id').split('-')[1];
+        switch (selectedItem) {
+            case 'settings':
+                getSettings();
+                break;
+            case 'alerts':
+                getAlerts();
+                break;
+            default:
+        }
+    });
+
+}//createSettingsMenu
 
 
 function createNavigateMenu() {
@@ -1241,7 +1534,7 @@ function createNavigateMenu() {
     var menuWidth = 193;
     button = $("#btnNavigate");
     var buttonPosition = button.position();
-    var buttonBottom = buttonPosition.top + button.height() + 6;
+    var buttonBottom = buttonPosition.top + button.height() + 18;
     var menuLeft = buttonPosition.left;
     $("#menuNavigate").remove(); // remove menu in case it already exists
     var menuNavigate = $('<div id="menuNavigate" style="display:block;'
@@ -1268,7 +1561,7 @@ function createFilterLabelMenu() {
     inputSearch = $("#search");
     var inputPosition = inputSearch.offset();
     var inputLeft = inputPosition.left;
-    var inputBottom = inputPosition.top + inputSearch.height() + 14;
+    var inputBottom = inputPosition.top + inputSearch.height() + 13;
     var inputWidth = inputSearch.width() + 25;
     $("#menuLabels").remove(); // remove menu in case it already exists
     var menuLabels = $('<div id="menuLabels" style="display:block;'
@@ -1388,7 +1681,7 @@ function createSortMenu() {
     button = $("#btnSort");
     var buttonPosition = button.position();
     var menuLeft = buttonPosition.left;
-    var menuTop = buttonPosition.top + button.height() + 6;
+    var menuTop = buttonPosition.top + button.height() + 18;
     $("#menuSort").remove(); // remove menu in case it already exists
     var menuSort = $('<div id="menuSort" style="display:block;'
         + 'position:absolute;'
@@ -1619,15 +1912,13 @@ function refreshFlows(run_date) {
                             var dp = $("#rundate");
                             var dpPosition = dp.offset();
                             var dpLeft = dpPosition.left;
-                            var dpBottom = dpPosition.top + dp.height() + 2;
-                            var dpWidth = dp.width() + 420;
+                            var dpBottom = dpPosition.top + dp.height() + 15;
                             $("#dialogRundate").remove(); // remove menu in case it already exists
 
                             var dialogRundate = $('<div id="dialogRundate" style="display:block;'
                                 + 'position:absolute;'
                                 + 'top:' + dpBottom + 'px;'
                                 + 'left:' + dpLeft + 'px;'
-                                + 'width:' + dpWidth + 'px;'
                                 + 'z-index:1001;'
                                 + '" class="dropdown-menu"></div>').appendTo('body');
 
@@ -2523,4 +2814,13 @@ function disableButton(btn) {
 
 function enableButton(btn) {
     btn.prop('disabled', false).removeClass("ui-state-disabled");
+}
+
+function disableText(t) {
+    t.disabed = true;
+    t.prop('disabled', true).addClass("ui-state-disabled");
+}
+function enableText(t) {
+    t.disabed = false;
+    t.prop('disabled', false).removeClass("ui-state-disabled");
 }
