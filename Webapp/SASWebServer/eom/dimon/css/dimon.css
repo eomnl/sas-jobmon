@@ -365,18 +365,20 @@ div #dimon-menu-left {
 }
 
 div.dropdown-menu {
-	display: none;
+	/* display: none; */
 	color: #444;
 	background-color: white;
 	border: 1px solid #DEDEDE;
 	white-space: nowrap;
 	padding: 0;
 	line-height: 2.5;
-	/* font-size: 1.1em;*/
+	border-radius: 4px;
+	/* box-shadow: 9px 10px 24px #888, 0px 0px 1px #869; */
+	box-shadow: 0 8px 10px 1px rgba(0,0,0,0.14), 0 3px 14px 2px rgba(0,0,0,0.12), 0 5px 5px -3px rgba(0,0,0,0.2);
 }
 
 ul.dropdown-menu {
-	margin: 10px;
+	margin: 10px 0px 10px 0px;
 	padding: 0px;
 }
 
@@ -394,6 +396,7 @@ ul.dropdown-menu {
 
 span.ui-icon-dropdown-item {
 	float: left;
+	margin-left: 20px;
 	margin-top: 8px;
 	margin-right: 4px;
 }
@@ -527,9 +530,9 @@ a:active {
 	font-weight: bold;
 }
 
-#dialogRundate {
+/* #dialogRundate {
 	box-shadow: 9px 10px 24px #888, 0px 0px 1px #869;
-}
+} */
 
 #tabs > ul {
 	background-color: inherit;
