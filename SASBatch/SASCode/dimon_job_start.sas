@@ -195,7 +195,7 @@ options nosource;
            ,   JOB_STATUS_ID   = ( select JOB_STATUS_ID from DIMON.DIMON_JOB_STATUS where JOB_STATUS_CODE = 'RUNNING' )
            ,   JOB_RC          = .
            ,   UPDATE_USER     = "&sysuserid."
-           ,   UPDATE_DTS      = "&sysdate9. &systime."dt
+           ,   UPDATE_DTS      = datetime()
          ;
        quit;
 
