@@ -44,6 +44,7 @@ var svgDotsVertical = '<svg style="width:20px;height:20px" viewBox="0 0 24 24">'
 
 var settingsMenuItems = [{ 'value': 'settings', 'text': 'Settings' }
     , { 'value': 'alerts', 'text': 'Alerts' }
+    , { 'value': 'reports', 'text': 'Reports' }
 ];
 
 var filterFlowsMenuItems = [{ 'value': 'running', 'text': 'Running' }
@@ -1111,35 +1112,38 @@ function getSettings() {
 
 function getAlerts() {
 
+    var email_address;
+
     var dialogAlerts = $('<div id="dialogAlerts">'
-        + '  <div class="row">'
-        // + '    <div class="column" style="width:800px">'
-        + '    <div class="column">'
-        + '      <div style="margin-bottom:20px">'
-        + '        <label for="filterAlerts">Filter:&nbsp;</label><input type="text" id="filterAlerts" />'
-        + '        <button id="btnClearFilter">Clear</button>'
-        + '        <button id="btnNewAlert">New</button>'
-        + '        <button id="btnDeleteAlert">Delete</button>'
-        + '      </div>'
-        + '      <div>'
-        + '        <table id="tableAlerts" class="cell-border row-border stripe" style="width:100%"; cursor:default;">'
-        + '          <thead>'
-        + '            <tr>'
-        + '              <th>Flow ID</th>'
-        + '              <th>Flow</th>'
-        + '              <th>Condition</th>'
-        + '              <th>Condition Operator</th>'
-        + '              <th>Condition Value</th>'
-        + '              <th>Action</th>'
-        + '              <th>Action Details</th>'
-        + '            </tr>'
-        + '          </thead>'
-        + '          <tbody>'
-        + '          </tbody>'
-        + '        </table>'
-        + '      </div>'
-        + '    </div>'
-        + '  </div>'
+        + '<div class="row">'
+        +   '<div class="column">'
+        +     '<div style="margin-bottom:20px">'
+        +       '<label for="filterAlerts">Filter:&nbsp;</label><input type="text" id="filterAlerts" />'
+        +       '<button id="btnClearFilter">Clear</button>'
+        +       '<button id="btnNewAlert">New</button>'
+        +       '<button id="btnDeleteAlert">Delete</button>'
+        +       '<button id="btnEditAlert">Edit</button>'
+        +     '</div>'
+        +     '<div>'
+        +       '<table id="tableAlerts" class="cell-border row-border stripe" style="cursor:default;">'
+        +         '<thead>'
+        +           '<tr>'
+        +             '<th>flow_alert_id</th>'
+        +             '<th>flow_id</th>'
+        +             '<th>Flow</th>'
+        +             '<th>Condition</th>'
+        +             '<th>Condition Operator</th>'
+        +             '<th>Condition Value</th>'
+        +             '<th>Action</th>'
+        +             '<th>Action Details</th>'
+        +           '</tr>'
+        +         '</thead>'
+        +         '<tbody>'
+        +         '</tbody>'
+        +       '</table>'
+        +     '</div>'
+        +   '</div>'
+        + '</div>'
         + '</div>').appendTo('body');
 
     dialogAlerts.dialog({    // add a close listener to prevent adding multiple divs to the document
@@ -1169,19 +1173,20 @@ function getAlerts() {
         , success: function (response) {
 
             sasdata = $.parseJSON(response).data;
-            var email_address = sasdata.email_address;
-            
-            // console.log(sasdata.alerts);
+            email_address = sasdata.email_address;
+
+            console.log(sasdata);
             var tableAlerts = $('#tableAlerts').DataTable({
                 data: sasdata.alerts,
                 paging: false,
                 scrollY: 340,
                 columnDefs: [
                     { targets: 0, visible: false, searchable: false },
-                    { targets: 1, className: 'dt-head-left', width: "200px" },
-                    // { targets: 2, className: 'dt-center' },
-                    { targets: 3, className: 'dt-center', width: "200px" },
-                    { targets: 4, className: 'dt-center' }
+                    { targets: 1, visible: false, searchable: false },
+                    { targets: 2, className: 'dt-head-left', "width": "300px" },
+                    // { targets: 3, className: 'dt-center' },
+                    { targets: 4, className: 'dt-center', width: "200px" },
+                    { targets: 5, className: 'dt-center' }
                 ],
                 select: {
                     style: 'os'
@@ -1198,9 +1203,25 @@ function getAlerts() {
             });
 
             function setButtonStatus() {
-                btn = $("#btnClearFilter");
-                if ($("#filterAlerts").val() == "") disableButton(btn);
-                else enableButton(btn);
+
+                // enable/disable btnClearFilter
+                if ($("#filterAlerts").val() == "") disableButton($("#btnClearFilter"));
+                else enableButton($("#btnClearFilter"));
+
+                // enable/disable btnDeleteAlert
+                if (tableAlerts.rows({ selected: true }).count() > 0) {
+                    enableButton($("#btnDeleteAlert"));
+                } else {
+                    disableButton($("#btnDeleteAlert"));
+                }
+
+                // enable/disable btnEditAlert
+                if (tableAlerts.rows({ selected: true }).count() == 1) {
+                    enableButton($("#btnEditAlert"));
+                } else {
+                    disableButton($("#btnEditAlert"));
+                }
+
             }
 
             // $("#filterAlerts").button().css({
@@ -1218,7 +1239,9 @@ function getAlerts() {
             }).click(function () {
                 $("#filterAlerts").val("");
                 tableAlerts.search(this.value).draw();
+                setButtonStatus();
             });
+
             setButtonStatus();
 
             $("#btnDeleteAlert").button().click(function (event) {
@@ -1227,20 +1250,16 @@ function getAlerts() {
                 if (numSelectedItems > 0) {
                     var r = confirm("Are you sure you want to delete the selected alert" + (numSelectedItems > 1 ? "s" : "") + "?");
                     if (r) {
-                        var selectedAlerts = [];
-                        for (i=0; i<numSelectedItems; i++) {
-                            var alert = [];
-                            selectedAlerts.push(alert);
-                            alert.push(selectedItems.data()[i][0]); /* flow_id */
-                            alert.push(selectedItems.data()[i][2]); /* condition */
-                            alert.push(selectedItems.data()[i][5]); /* action */
+                        var selectedFlowAlertIds = [];
+                        for (i = 0; i < numSelectedItems; i++) {
+                            selectedFlowAlertIds.push(selectedItems.data()[i][0]); /* flow_alert_id */
                         }
                         $.ajax({
                             url: settings.urlSPA
                             , data: $.extend({}
                                 , {
                                     "_program": getSPName('dimonDeleteAlerts')
-                                    , "alerts": JSON.stringify(selectedAlerts)
+                                    , "flow_alert_ids": JSON.stringify(selectedFlowAlertIds)
                                 })
                             , cache: false
                             , timeout: ajaxTimeout
@@ -1266,197 +1285,274 @@ function getAlerts() {
                 }
             });
 
-            $("#btnNewAlert").button()
-                .click(function (event) {
+            function showDialog(type, selectedIndex) {
 
-                    s = '<div id="dialogNewAlert">'
-                        + '<table cellpadding="10"><tr>'
-                        + '<td style="vertical-align:middle"><label>Flow: </label></td>'
-                        + '<td><select id="comboboxFlow">'
-                        + '<option value="">Select one...</option>'
-                        ;
-                    for (var i = 0; i < sasdata.flows.length; i++) {
-                        s += '<option value="' + sasdata.flows[i][0] + '">' + sasdata.flows[i][1] + '</option>'
+                // set dialog title
+                var dialogTitle = (type == "new" ? "New alert" : (type == "edit" ? "Edit alert" : "?"));
+
+                var selectedAlert = {};
+                if (type == "edit") {
+
+                    flow_alert_id = sasdata.alerts[selectedIndex][0];
+
+                    // get selected alert
+                    selectedAlert.flowId = sasdata.alerts[selectedIndex][1];
+                    selectedAlert.flowName = sasdata.alerts[selectedIndex][2];
+                    selectedAlert.condition = sasdata.alerts[selectedIndex][3];
+                    selectedAlert.conditionOperator = sasdata.alerts[selectedIndex][4];
+                    selectedAlert.conditionValue = sasdata.alerts[selectedIndex][5];
+                    selectedAlert.action = sasdata.alerts[selectedIndex][6];
+                    selectedAlert.actionDetails = sasdata.alerts[selectedIndex][7];
+
+                } else {
+                    flow_alert_id = -1; // new row
+                }
+
+                s = '<div id="dialogNewAlert">'
+                    + '<table cellpadding="10"><tr>'
+                    + '<td style="vertical-align:middle"><label>Flow: </label></td>'
+                    + '<td><select id="comboboxFlow">'
+                    + '<option value="">Select one...</option>'
+                    ;
+                for (var i = 0; i < sasdata.flows.length; i++) {
+                    s += '<option value="' + sasdata.flows[i][0] + '"'
+                        + (sasdata.flows[i][0] == selectedAlert.flowId ? ' selected="selected"' : '')
+                        + '>' + sasdata.flows[i][1] + '</option>'
+                }
+                s += '</select></td>'
+                    + '<td></td><td></td></tr>'
+                    + '<tr>'
+                    + '<td style="vertical-align:middle">'
+                    + '<label>Condition: </label>'
+                    + '</td>'
+                    + '<td>'
+                    + '<select id="condition">'
+                    + '<option value="completes_successfully">Completes successfully</option>'
+                    + '<option value="ends_with_any_exit_code">Ends with any exit code</option>'
+                    + '<option value="starts">Starts</option>'
+                    + '<option value="ends_with_exit_code">Ends with exit code</option>'
+                    + '<option value="misses_scheduled_time">Misses scheduled time</option>'
+                    // + '<option value="fails_to_start">Fails to start</option>'
+                    // + '<option value="cannot_run">Cannot run</option>'
+                    + '<option value="runs_more_than">Runs more than</option>'
+                    + '<option value="runs_less_than">Runs less than</option>'
+                    + '</select>'
+                    + '</td>'
+                    + '<td>'
+                    + '<div id="div-condition-operator">'
+                    + '<select id="condition-operator">'
+                    + '<option value="eq">Equal to</option>'
+                    + '<option value="gt">Greater than</option>'
+                    + '<option value="ge">Greater than or equal to</option>'
+                    + '<option value="lt">Less than</option>'
+                    + '<option value="le">Less than or equal to</option>'
+                    + '</select>'
+                    + '</div>'
+                    + '<div id="div-runtime-value">'
+                    + '<input type="text" id="runtime-value">'
+                    + '<span style="margin-left:5px">minutes</span>'
+                    + '</div>'
+                    + '</td>'
+                    + '<td>'
+                    + '<div id="div-condition-value">'
+                    + '<input type="text" id="condition-value">'
+                    + '</div>'
+                    + '</td>'
+                    + '</tr>'
+                    + '<tr>'
+                    + '<td style="vertical-align:middle">'
+                    + '<label>Action: </label>'
+                    + '</td>'
+                    + '<td>'
+                    + '<select id="action">'
+                    + '<option value="email">email</option>'
+                    + '</select>'
+                    + '</td>'
+                    + '<td>'
+                    + '<div id="div-action-details">'
+                    + '<input type="text" id="action-details">'
+                    + '</div>'
+                    + '</td>'
+                    + '<td></td>'
+                    + '<td></td>'
+                    + '</tr>'
+                    + '</table>'
+                    + '</div>'
+                    ;
+
+                var dialogNewAlert = $(s).appendTo('body');
+                dialogNewAlert.dialog({    // add a close listener to prevent adding multiple divs to the document
+                    close: function (event, ui) {
+                        // remove div with all data and events
+                        dialogNewAlert.remove();
                     }
-                    s += '</select></td>'
-                        + '<td></td><td></td></tr>'
-                        + '<tr><td style="vertical-align:middle"><label>Condition: </label></td>'
-                        + '<td><select id="condition">'
-                        + '<option value="completes_successfully">Completes successfully</option>'
-                        + '<option value="ends_with_any_exit_code">Ends with any exit code</option>'
-                        + '<option value="starts">Starts</option>'
-                        + '<option value="ends_with_exit_code">Ends with exit code</option>'
-                        + '<option value="misses_scheduled_time">Misses scheduled time</option>'
-                        // + '<option value="fails_to_start">Fails to start</option>'
-                        // + '<option value="cannot_run">Cannot run</option>'
-                        + '<option value="runs_more_than">Runs more than</option>'
-                        + '<option value="runs_less_than">Runs less than</option>'
-                        + '</select></td>'
-                        + '<td>'
-                        +   '<div id="div-condition-operator">'
-                        +     '<select id="condition-operator">'
-                        +       '<option value="eq">Equal to</option>'
-                        +       '<option value="gt">Greater than</option>'
-                        +       '<option value="ge">Greater than or equal to</option>'
-                        +       '<option value="lt">Less than</option>'
-                        +       '<option value="le">Less than or equal to</option>'
-                        +     '</select>'
-                        +   '</div>'
-                        +   '<div id="div-runtime-value">'
-                        +     '<input type="text" id="runtime-value">'
-                        +     '<span style="margin-left:5px">minutes</span>'
-                        +   '</div>'
-                        + '</td>'
-                        + '<td>'
-                        +   '<div id="div-condition-value">'
-                        +     '<input type="text" id="condition-value">'
-                        +   '</div>'
-                        + '</td>'
-                        + '</tr>'
-                        + '<tr>'
-                        + '<td style="vertical-align:middle"><label>Action: </label></td>'
-                        + '<td><select id="action"><option value="email">email</option></select>'
-                        + '<td><div id="div-action-details"><input type="text" id="action-details" value=' + email_address + '></div></td>'
-                        + '<td></td><td></td></tr>'
-                        + '</table>'
-                        + '</div>'
-                        ;
-                    var dialogNewAlert = $(s).appendTo('body');
-                    dialogNewAlert.dialog({    // add a close listener to prevent adding multiple divs to the document
-                        close: function (event, ui) {
-                            // remove div with all data and events
-                            dialogNewAlert.remove();
-                        }
-                        , title: 'New alert'
-                        , width: 700
-                        , height: 300
-                        , modal: true
-                        , buttons: {
-                            "Cancel": function (event, ui) {
-                                $(this).dialog('close');
-                            },
-                            "Save": function (event, ui) {
+                    , title: dialogTitle
+                    , width: 700
+                    , height: 300
+                    , modal: true
+                    , buttons: {
+                        "Cancel": function (event, ui) {
+                            $(this).dialog('close');
+                        },
+                        "Save": function (event, ui) {
 
-                                var flow_id = $("#comboboxFlow option:selected").val();
-                                var condition = $("#condition option:selected").val();
-                                if (condition == 'ends_with_exit_code') {
-                                    var conditionOperator = $("#condition-operator option:selected").val();
-                                    var conditionValue = $("#condition-value").val();
-                                }
-                                if (condition == 'runs_more_than' || condition == 'runs_less_than') {
-                                    var conditionOperator = '';
-                                    var conditionValue = $("#runtime-value").val();
-                                }
-                                var action = $("#action option:selected").val();
-                                var actionDetails = $("#action-details").val();
-                                $.ajax({
-                                    url: settings.urlSPA
-                                    , data: $.extend({}
-                                        , {
-                                            "_program": getSPName('dimonSaveFlowAlert')
-                                            , "flow_id": flow_id
-                                            , "condition": condition
-                                            , "conditionOperator": conditionOperator
-                                            , "conditionValue": conditionValue
-                                            , "action": action
-                                            , "actionDetails": actionDetails
-                                        })
-                                    , cache: false
-                                    , timeout: ajaxTimeout
-                                    , success: function (response) {
-                                        data = $.parseJSON(response);
-                                        console.log(data);
-                                        if (data.syscc == 0) {
-                                            dialogNewAlert.remove();
-                                            // reopen Alerts dialog
-                                            dialogAlerts.remove();
-                                            getAlerts();
-                                            // $(this).dialog('close');
-                                            //labels(selectedLabel, "Label '" + selectedLabel + "' was saved");
-                                        } else {
-                                            alert('The request completed with errors (syscc=' + data.syscc + ')\n'
-                                                + 'The last known error is:\n\n' + data.sysmsg + '\n\n');
-                                        }
-                                    }
-                                    , error: function (XMLHttpRequest, textStatus, errorThrown) {
-                                        handleAjaxError('dimonSaveLabels', XMLHttpRequest, textStatus, errorThrown);
-                                    }
-                                });
-
+                            var flow_id = $("#comboboxFlow option:selected").val();
+                            var condition = $("#condition option:selected").val();
+                            if (condition == 'ends_with_exit_code') {
+                                var conditionOperator = $("#condition-operator option:selected").val();
+                                var conditionValue = $("#condition-value").val();
                             }
-                        }
-                    });
+                            if (condition == 'runs_more_than' || condition == 'runs_less_than') {
+                                var conditionOperator = '';
+                                var conditionValue = $("#runtime-value").val();
+                            }
+                            var action = $("#action option:selected").val();
+                            var actionDetails = $("#action-details").val();
+                            $.ajax({
+                                url: settings.urlSPA
+                                , data: $.extend({}
+                                    , {
+                                        "_program": getSPName('dimonSaveFlowAlert')
+                                        , "flow_alert_id": flow_alert_id
+                                        , "flow_id": flow_id
+                                        , "alert_condition": condition
+                                        , "alert_condition_operator": conditionOperator
+                                        , "alert_condition_value": conditionValue
+                                        , "alert_action": action
+                                        , "alert_action_details": actionDetails
+                                    })
+                                , cache: false
+                                , timeout: ajaxTimeout
+                                , success: function (response) {
+                                    data = $.parseJSON(response);
+                                    console.log(data);
+                                    if (data.syscc == 0) {
+                                        dialogNewAlert.remove();
+                                        // reopen Alerts dialog
+                                        dialogAlerts.remove();
+                                        getAlerts();
+                                        // $(this).dialog('close');
+                                        //labels(selectedLabel, "Label '" + selectedLabel + "' was saved");
+                                    } else {
+                                        alert('The request completed with errors (syscc=' + data.syscc + ')\n'
+                                            + 'The last known error is:\n\n' + data.sysmsg + '\n\n');
+                                    }
+                                }
+                                , error: function (XMLHttpRequest, textStatus, errorThrown) {
+                                    handleAjaxError('dimonSaveLabels', XMLHttpRequest, textStatus, errorThrown);
+                                }
+                            });
 
-                    $("#comboboxFlow").combobox({
-                        select: function (event, ui) {
-                            updateNewAlertTable();
-                        }
-                    });
-
-                    $("#condition").selectmenu({
-                        change: function (event, ui) {
-                            updateNewAlertTable();
-                        }
-                    });
-                    function updateNewAlertTable() {
-                        // first disable Save button, enable it later if conditions are set
-                        disableButton($(".ui-dialog-buttonpane button:contains('Save')"));
-
-                        if ($("#comboboxFlow option:selected").val() != "") {
-                            enableButton($(".ui-dialog-buttonpane button:contains('Save')"));
-                        }
-                        if ($("#condition").val() == 'ends_with_exit_code') {
-                            $("#div-condition-operator").show();
-                            $("#div-condition-value").show();
-                        } else {
-                            $("#div-condition-operator").hide();
-                            $("#div-condition-value").hide();
-                        }
-                        if ($("#condition").val() == 'runs_more_than' || $("#condition").val() == 'runs_less_than') {
-                            $("#div-runtime-value").show();
-                        } else {
-                            $("#div-runtime-value").hide();
                         }
                     }
-                    updateNewAlertTable();
-
-                    $("#condition-operator").selectmenu();
-                    $("#condition-value").button().css({
-                        'color': 'inherit',
-                        'background-color': 'white',
-                        'text-align': 'left',
-                        'outline': 'none',
-                        'cursor': 'text',
-                        'width': '50%'
-                    });
-                    $("#runtime-value").button().css({
-                        'color': 'inherit',
-                        'background-color': 'white',
-                        'text-align': 'left',
-                        'outline': 'none',
-                        'cursor': 'text',
-                        'width': '50%'
-                    });
-                    $("#action").selectmenu();
-                    $("#action-details").button().css({
-                        'color': 'inherit',
-                        'background-color': 'white',
-                        'text-align': 'left',
-                        'outline': 'none',
-                        'cursor': 'text',
-                        'width': '200px'
-                    });
                 });
 
-            // label select handler
+                $("#comboboxFlow").combobox({
+                    select: function (event, ui) {
+                        updateNewAlertTable();
+                    }
+                });
+                $("#condition").selectmenu({
+                    change: function (event, ui) {
+                        updateNewAlertTable();
+                    }
+                });
+                $("#condition-operator").selectmenu();
+                $("#condition-value").button().css({
+                    'color': 'inherit',
+                    'background-color': 'white',
+                    'text-align': 'left',
+                    'outline': 'none',
+                    'cursor': 'text',
+                    'width': '50%'
+                });
+                $("#runtime-value").button().css({
+                    'color': 'inherit',
+                    'background-color': 'white',
+                    'text-align': 'left',
+                    'outline': 'none',
+                    'cursor': 'text',
+                    'width': '50%'
+                });
+                $("#action").selectmenu();
+                $("#action-details").button().css({
+                    'color': 'inherit',
+                    'background-color': 'white',
+                    'text-align': 'left',
+                    'outline': 'none',
+                    'cursor': 'text',
+                    'width': '200px'
+                });
+
+
+                if (type == 'edit') {
+                    // set initial selections
+                    $("#condition").val(selectedAlert.condition);
+                    $("#condition").selectmenu("refresh");
+                    $("#condition-operator").val(selectedAlert.conditionOperator);
+                    $("#condition-operator").selectmenu("refresh");
+                    $("#condition-value").val(selectedAlert.conditionValue);
+                    if (selectedAlert.condition == "runs_more_than" || selectedAlert.condition == "runs_less_than") {
+                        $("#runtime-value").val(selectedAlert.conditionValue);
+                    }
+                    $("#action").val(selectedAlert.action);
+                    $("#action").selectmenu("refresh");
+                    $("#action-details").val(selectedAlert.actionDetails);
+                } else {
+                    $("#action-details").val(email_address); // default to email_address
+                }
+
+
+
+                function updateNewAlertTable() {
+                    // first disable Save button, enable it later if conditions are set
+                    disableButton($(".ui-dialog-buttonpane button:contains('Save')"));
+
+                    if ($("#comboboxFlow option:selected").val() != "") {
+                        enableButton($(".ui-dialog-buttonpane button:contains('Save')"));
+                    }
+                    if ($("#condition").val() == 'ends_with_exit_code') {
+                        $("#div-condition-operator").show();
+                        $("#div-condition-value").show();
+                    } else {
+                        $("#div-condition-operator").hide();
+                        $("#div-condition-value").hide();
+                    }
+                    if ($("#condition").val() == 'runs_more_than' || $("#condition").val() == 'runs_less_than') {
+                        $("#div-runtime-value").show();
+                    } else {
+                        $("#div-runtime-value").hide();
+                    }
+                }
+                updateNewAlertTable();
+
+            }
+
+            $("#btnNewAlert").button()
+                .click(function (event) {
+                    showDialog('new');
+                });
+
+            $("#btnEditAlert").button()
+                .click(function () {
+                    showDialog('edit', tableAlerts.row({ selected: true }).index());
+                })
+
+            // table select handler
             tableAlerts.on('select.dt', function (e, dt, type, indexes) {
-
-                // reset isDirty
-                isDirty = false;
-                confirmedCancel = false;
-
-                selectedLabel = tableAlerts.row(indexes).data()[0].toString();
+                // selectedLabel = tableAlerts.row(indexes).data()[0].toString();
+                setButtonStatus();
                 // alert(selectedLabel);
+            });
+
+            tableAlerts.on('deselect.dt', function (e, dt, type, indexes) {
+                // selectedLabel = tableAlerts.row(indexes).data()[0].toString();
+                setButtonStatus();
+                // alert(selectedLabel);
+            });
+
+            tableAlerts.on('dblclick', 'tr', function (e, dt, type, indexes) {
+                showDialog("edit", tableAlerts.row(this).index());
             });
 
         }
