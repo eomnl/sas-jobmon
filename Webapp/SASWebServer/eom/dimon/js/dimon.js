@@ -958,6 +958,7 @@ function labels(initialSelectLabel, message) {
                 , success: function (response) {
                     data = $.parseJSON(response);
                     if (data.syscc == 0) {
+                        // reopen labels dialog
                         dialog.remove();
                         labels(selectedLabel, "Label '" + selectedLabel + "' was saved");
                     } else {
@@ -969,7 +970,6 @@ function labels(initialSelectLabel, message) {
                     handleAjaxError('dimonSaveLabels', XMLHttpRequest, textStatus, errorThrown);
                 }
             });
-
         });
 
 
@@ -1113,22 +1113,31 @@ function getAlerts() {
 
     var dialogAlerts = $('<div id="dialogAlerts">'
         + '  <div class="row">'
-        + '    <div class="column" style="width:500px">'
-        + '      <label for="filterAlerts">Filter:&nbsp;</label><input type="text" id="filterAlerts" />'
-        + '      <button id="btnClearFilter">Clear</button>'
-        + '      <button id="btnNewAlert">New</button>'
-        + '      <table id="tableAlerts" style="cursor:default; margin-top:20px;">'
-        + '        <thead>'
-        + '          <tr>'
-        + '            <th>Flow ID</th>'
-        + '            <th>Flow</th>'
-        + '            <th>Condition</th>'
-        + '            <th>Action</th>'
-        + '          </tr>'
-        + '        </thead>'
-        + '        <tbody>'
-        + '        </tbody>'
-        + '      </table>'
+        // + '    <div class="column" style="width:800px">'
+        + '    <div class="column">'
+        + '      <div style="margin-bottom:20px">'
+        + '        <label for="filterAlerts">Filter:&nbsp;</label><input type="text" id="filterAlerts" />'
+        + '        <button id="btnClearFilter">Clear</button>'
+        + '        <button id="btnNewAlert">New</button>'
+        + '        <button id="btnDeleteAlert">Delete</button>'
+        + '      </div>'
+        + '      <div>'
+        + '        <table id="tableAlerts" class="cell-border row-border stripe" style="width:100%"; cursor:default;">'
+        + '          <thead>'
+        + '            <tr>'
+        + '              <th>Flow ID</th>'
+        + '              <th>Flow</th>'
+        + '              <th>Condition</th>'
+        + '              <th>Condition Operator</th>'
+        + '              <th>Condition Value</th>'
+        + '              <th>Action</th>'
+        + '              <th>Action Details</th>'
+        + '            </tr>'
+        + '          </thead>'
+        + '          <tbody>'
+        + '          </tbody>'
+        + '        </table>'
+        + '      </div>'
         + '    </div>'
         + '  </div>'
         + '</div>').appendTo('body');
@@ -1140,17 +1149,10 @@ function getAlerts() {
         }
         , title: 'Alerts'
         , width: 1200
-        , height: 700
+        , height: 600
         , modal: true
         , buttons: {
-            "Apply": function (event, ui) {
-                autorefresh_interval = $("#slider-autorefresh-interval").slider("value");
-                settings.autorefresh_interval = autorefresh_interval;
-                Cookies.set('dimonAutoRefreshInterval', settings.autorefresh_interval, { expires: 365 });
-                $(this).dialog('close');
-                refresh();
-            }
-            , "Close": function (event, ui) {
+            "Close": function (event, ui) {
                 $(this).dialog('close');
             }
         }
@@ -1159,7 +1161,7 @@ function getAlerts() {
     $.ajax({
         type: "GET"
         , url: settings.urlSPA
-        , data: { "_program": getSPName('dimonGetAlerts') }
+        , data: { "_program": getSPName('dimonGetFlowAlerts') }
         , async: true
         , cache: false
         , timeout: ajaxTimeout
@@ -1167,26 +1169,19 @@ function getAlerts() {
         , success: function (response) {
 
             sasdata = $.parseJSON(response).data;
-            console.log(sasdata.alerts);
-            var workAlerts = [];
-            for (i = 0; i < sasdata.alerts.length; i++) {
-                var element = [];
-                workAlerts.push(element);
-                element.push(sasdata.alerts[i][0]);
-                element.push(sasdata.alerts[i][1]);
-                element.push(sasdata.alerts[i][2]);
-                element.push(sasdata.alerts[i][3]);
-            }
-            tableAlerts = $('#tableAlerts').DataTable({
-                //data: sasdata.flows,
-                data: workAlerts,
+            var email_address = sasdata.email_address;
+            
+            // console.log(sasdata.alerts);
+            var tableAlerts = $('#tableAlerts').DataTable({
+                data: sasdata.alerts,
                 paging: false,
                 scrollY: 340,
                 columnDefs: [
                     { targets: 0, visible: false, searchable: false },
                     { targets: 1, className: 'dt-head-left', width: "200px" },
-                    { targets: 2, className: 'dt-center' },
-                    { targets: 3, className: 'dt-head-left', width: "200px" }
+                    // { targets: 2, className: 'dt-center' },
+                    { targets: 3, className: 'dt-center', width: "200px" },
+                    { targets: 4, className: 'dt-center' }
                 ],
                 select: {
                     style: 'os'
@@ -1210,7 +1205,6 @@ function getAlerts() {
 
             // $("#filterAlerts").button().css({
             $(":text").button().css({
-                // 'font': 'inherit',
                 'color': 'inherit',
                 'background-color': 'white',
                 'text-align': 'left',
@@ -1227,6 +1221,50 @@ function getAlerts() {
             });
             setButtonStatus();
 
+            $("#btnDeleteAlert").button().click(function (event) {
+                var selectedItems = tableAlerts.rows({ selected: true });
+                var numSelectedItems = selectedItems.count();
+                if (numSelectedItems > 0) {
+                    var r = confirm("Are you sure you want to delete the selected alert" + (numSelectedItems > 1 ? "s" : "") + "?");
+                    if (r) {
+                        var selectedAlerts = [];
+                        for (i=0; i<numSelectedItems; i++) {
+                            var alert = [];
+                            selectedAlerts.push(alert);
+                            alert.push(selectedItems.data()[i][0]); /* flow_id */
+                            alert.push(selectedItems.data()[i][2]); /* condition */
+                            alert.push(selectedItems.data()[i][5]); /* action */
+                        }
+                        $.ajax({
+                            url: settings.urlSPA
+                            , data: $.extend({}
+                                , {
+                                    "_program": getSPName('dimonDeleteAlerts')
+                                    , "alerts": JSON.stringify(selectedAlerts)
+                                })
+                            , cache: false
+                            , timeout: ajaxTimeout
+                            , success: function (response) {
+                                data = $.parseJSON(response);
+                                console.log(data);
+                                if (data.syscc == 0) {
+                                    // reopen Alerts dialog
+                                    dialogAlerts.remove();
+                                    getAlerts();
+                                    // $(this).dialog('close');
+                                    //labels(selectedLabel, "Label '" + selectedLabel + "' was saved");
+                                } else {
+                                    alert('The request completed with errors (syscc=' + data.syscc + ')\n'
+                                        + 'The last known error is:\n\n' + data.sysmsg + '\n\n');
+                                }
+                            }
+                            , error: function (XMLHttpRequest, textStatus, errorThrown) {
+                                handleAjaxError('dimonSaveLabels', XMLHttpRequest, textStatus, errorThrown);
+                            }
+                        });
+                    }
+                }
+            });
 
             $("#btnNewAlert").button()
                 .click(function (event) {
@@ -1234,7 +1272,7 @@ function getAlerts() {
                     s = '<div id="dialogNewAlert">'
                         + '<table cellpadding="10"><tr>'
                         + '<td style="vertical-align:middle"><label>Flow: </label></td>'
-                        + '<td><select id="combobox">'
+                        + '<td><select id="comboboxFlow">'
                         + '<option value="">Select one...</option>'
                         ;
                     for (var i = 0; i < sasdata.flows.length; i++) {
@@ -1245,26 +1283,40 @@ function getAlerts() {
                         + '<tr><td style="vertical-align:middle"><label>Condition: </label></td>'
                         + '<td><select id="condition">'
                         + '<option value="completes_successfully">Completes successfully</option>'
-                        + '<option value="ends_with_any_exist_code">Ends with any exit code</option>'
+                        + '<option value="ends_with_any_exit_code">Ends with any exit code</option>'
                         + '<option value="starts">Starts</option>'
                         + '<option value="ends_with_exit_code">Ends with exit code</option>'
                         + '<option value="misses_scheduled_time">Misses scheduled time</option>'
-                        + '<option value="fails_to_start">Fails to start</option>'
-                        + '<option value="cannot_run">Cannot run</option>'
+                        // + '<option value="fails_to_start">Fails to start</option>'
+                        // + '<option value="cannot_run">Cannot run</option>'
                         + '<option value="runs_more_than">Runs more than</option>'
+                        + '<option value="runs_less_than">Runs less than</option>'
                         + '</select></td>'
-                        + '<td><div id="div-condition-comparison"><select id="condition-comparison">'
-                        + '<option>Equal to</option>'
-                        + '<option>Greater than</option>'
-                        + '<option>Greater than or equal to</option>'
-                        + '<option>Less than</option>'
-                        + '<option>Less than or equal to</option>'
-                        + '</select></div></td>'
-                        + '<td><div id="div-condition-rc"><input type="text" id="condition-rc"></div></td>'
+                        + '<td>'
+                        +   '<div id="div-condition-operator">'
+                        +     '<select id="condition-operator">'
+                        +       '<option value="eq">Equal to</option>'
+                        +       '<option value="gt">Greater than</option>'
+                        +       '<option value="ge">Greater than or equal to</option>'
+                        +       '<option value="lt">Less than</option>'
+                        +       '<option value="le">Less than or equal to</option>'
+                        +     '</select>'
+                        +   '</div>'
+                        +   '<div id="div-runtime-value">'
+                        +     '<input type="text" id="runtime-value">'
+                        +     '<span style="margin-left:5px">minutes</span>'
+                        +   '</div>'
+                        + '</td>'
+                        + '<td>'
+                        +   '<div id="div-condition-value">'
+                        +     '<input type="text" id="condition-value">'
+                        +   '</div>'
+                        + '</td>'
                         + '</tr>'
                         + '<tr>'
                         + '<td style="vertical-align:middle"><label>Action: </label></td>'
                         + '<td><select id="action"><option value="email">email</option></select>'
+                        + '<td><div id="div-action-details"><input type="text" id="action-details" value=' + email_address + '></div></td>'
                         + '<td></td><td></td></tr>'
                         + '</table>'
                         + '</div>'
@@ -1284,33 +1336,115 @@ function getAlerts() {
                                 $(this).dialog('close');
                             },
                             "Save": function (event, ui) {
-                                $(this).dialog('close');
+
+                                var flow_id = $("#comboboxFlow option:selected").val();
+                                var condition = $("#condition option:selected").val();
+                                if (condition == 'ends_with_exit_code') {
+                                    var conditionOperator = $("#condition-operator option:selected").val();
+                                    var conditionValue = $("#condition-value").val();
+                                }
+                                if (condition == 'runs_more_than' || condition == 'runs_less_than') {
+                                    var conditionOperator = '';
+                                    var conditionValue = $("#runtime-value").val();
+                                }
+                                var action = $("#action option:selected").val();
+                                var actionDetails = $("#action-details").val();
+                                $.ajax({
+                                    url: settings.urlSPA
+                                    , data: $.extend({}
+                                        , {
+                                            "_program": getSPName('dimonSaveFlowAlert')
+                                            , "flow_id": flow_id
+                                            , "condition": condition
+                                            , "conditionOperator": conditionOperator
+                                            , "conditionValue": conditionValue
+                                            , "action": action
+                                            , "actionDetails": actionDetails
+                                        })
+                                    , cache: false
+                                    , timeout: ajaxTimeout
+                                    , success: function (response) {
+                                        data = $.parseJSON(response);
+                                        console.log(data);
+                                        if (data.syscc == 0) {
+                                            dialogNewAlert.remove();
+                                            // reopen Alerts dialog
+                                            dialogAlerts.remove();
+                                            getAlerts();
+                                            // $(this).dialog('close');
+                                            //labels(selectedLabel, "Label '" + selectedLabel + "' was saved");
+                                        } else {
+                                            alert('The request completed with errors (syscc=' + data.syscc + ')\n'
+                                                + 'The last known error is:\n\n' + data.sysmsg + '\n\n');
+                                        }
+                                    }
+                                    , error: function (XMLHttpRequest, textStatus, errorThrown) {
+                                        handleAjaxError('dimonSaveLabels', XMLHttpRequest, textStatus, errorThrown);
+                                    }
+                                });
+
                             }
                         }
                     });
-                    $("#combobox").combobox();
 
-                    $("#condition").selectmenu({change: function( event, ui ) {
-                        if (this.value == 'ends_with_exit_code') {
-                            $("#div-condition-comparison").show();
-                            $("#div-condition-rc").show();
-                        } else {
-                            $("#div-condition-comparison").hide();
-                            $("#div-condition-rc").hide();
+                    $("#comboboxFlow").combobox({
+                        select: function (event, ui) {
+                            updateNewAlertTable();
                         }
-                    }});
-                    $("#div-condition-comparison").hide();
-                    $("#div-condition-rc").hide();
-                    $("#condition-comparison").selectmenu();
-                    $("#action").selectmenu();
-                    $("#condition-rc").button().css({
-                        // 'font': 'inherit',
+                    });
+
+                    $("#condition").selectmenu({
+                        change: function (event, ui) {
+                            updateNewAlertTable();
+                        }
+                    });
+                    function updateNewAlertTable() {
+                        // first disable Save button, enable it later if conditions are set
+                        disableButton($(".ui-dialog-buttonpane button:contains('Save')"));
+
+                        if ($("#comboboxFlow option:selected").val() != "") {
+                            enableButton($(".ui-dialog-buttonpane button:contains('Save')"));
+                        }
+                        if ($("#condition").val() == 'ends_with_exit_code') {
+                            $("#div-condition-operator").show();
+                            $("#div-condition-value").show();
+                        } else {
+                            $("#div-condition-operator").hide();
+                            $("#div-condition-value").hide();
+                        }
+                        if ($("#condition").val() == 'runs_more_than' || $("#condition").val() == 'runs_less_than') {
+                            $("#div-runtime-value").show();
+                        } else {
+                            $("#div-runtime-value").hide();
+                        }
+                    }
+                    updateNewAlertTable();
+
+                    $("#condition-operator").selectmenu();
+                    $("#condition-value").button().css({
                         'color': 'inherit',
                         'background-color': 'white',
                         'text-align': 'left',
                         'outline': 'none',
                         'cursor': 'text',
                         'width': '50%'
+                    });
+                    $("#runtime-value").button().css({
+                        'color': 'inherit',
+                        'background-color': 'white',
+                        'text-align': 'left',
+                        'outline': 'none',
+                        'cursor': 'text',
+                        'width': '50%'
+                    });
+                    $("#action").selectmenu();
+                    $("#action-details").button().css({
+                        'color': 'inherit',
+                        'background-color': 'white',
+                        'text-align': 'left',
+                        'outline': 'none',
+                        'cursor': 'text',
+                        'width': '200px'
                     });
                 });
 
@@ -1972,7 +2106,7 @@ function refreshFlows(run_date) {
                             // get and set initial rundateHistDays
                             $("#inputRundateHistdays").val(settings.rundateHistDays)
                                 .spinner({
-                                    min: 0
+                                    min: -10
                                     , max: 365
                                 });;
 
@@ -2566,7 +2700,7 @@ function plot(parms) {
             dialog.remove();
         }
         , title: 'Elapsed Time History'
-        , width: 1250
+        , width: 1260
         , height: 640
         , modal: true
         , buttons: {
