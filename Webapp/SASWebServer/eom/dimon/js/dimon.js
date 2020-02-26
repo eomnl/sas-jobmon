@@ -1457,7 +1457,7 @@ function getAlerts() {
                 $("#condition-value").jqtext().css({ 'width': '50%' });
                 $("#runtime-value").jqtext().css({ 'width': '50%' });
                 $("#action").selectmenu();
-                $("#action-details").jxtext.css({ 'width': '200px' });
+                $("#action-details").jqtext().css({ 'width': '200px' });
 
 
                 if (type == 'edit') {
