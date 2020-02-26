@@ -296,16 +296,22 @@ $(function () {
         , success: function (data) {
 
             navMenuItems = $.parseJSON(data).items;
-
-            // set navTitle - find http://hostname:port in navMenuItems.url
-            var thisLocation = location.protocol + '//' + location.hostname + (location.port ? ':' + location.port : '');
-            for (i = 0; i < navMenuItems.length; i++) {
-                if (navMenuItems[i].url.indexOf(thisLocation) == 0) {
-                    currentNavigate = navMenuItems[i].value;
-                    $("#navTitle").html(navMenuItems[i].text);
-                    break;
+            if (navMenuItems.length > 0) {
+                // set navTitle - find http://hostname:port in navMenuItems.url
+                var thisLocation = location.protocol + '//' + location.hostname + (location.port ? ':' + location.port : '');
+                for (i = 0; i < navMenuItems.length; i++) {
+                    if (navMenuItems[i].url.indexOf(thisLocation) == 0) {
+                        currentNavigate = navMenuItems[i].value;
+                        $("#navTitle").html(navMenuItems[i].text);
+                        break;
+                    }
                 }
+
+            } else{
+                // hide navTitle
+                $("#navTitle").hide();
             }
+
         }
 
         , error: function (XMLHttpRequest, textStatus, errorThrown) {
@@ -1448,10 +1454,10 @@ function getAlerts() {
                     }
                 });
                 $("#condition-operator").selectmenu();
-                $("#condition-value").jqtext().css({'width': '50%'});
-                $("#runtime-value").jqtext().css({'width': '50%'});
+                $("#condition-value").jqtext().css({ 'width': '50%' });
+                $("#runtime-value").jqtext().css({ 'width': '50%' });
                 $("#action").selectmenu();
-                $("#action-details").jxtext.css({'width': '200px'});
+                $("#action-details").jxtext.css({ 'width': '200px' });
 
 
                 if (type == 'edit') {
