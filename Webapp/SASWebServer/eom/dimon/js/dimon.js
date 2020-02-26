@@ -465,7 +465,6 @@ $(function () {
 
     (function ($) {
         $.fn.jqtext = function () {
-            console.log('jqtext is running');
             this.button().css({
                 'color': 'inherit',
                 'background-color': 'white',
