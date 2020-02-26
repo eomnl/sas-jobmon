@@ -307,7 +307,7 @@ $(function () {
                     }
                 }
 
-            } else{
+            } else {
                 // hide navTitle
                 $("#navTitle").hide();
             }
@@ -984,6 +984,7 @@ function labels(initialSelectLabel, message) {
             data: data,
             paging: false,
             scrollY: 400,
+            order: [[0, "asc"]],
             select: {
                 style: 'single',
             }
@@ -1009,6 +1010,7 @@ function labels(initialSelectLabel, message) {
             columnDefs: [{ targets: 0, visible: false, searchable: false },
             { targets: 1, className: 'dt-head-left', }
             ],
+            order: [[1, "asc"]],
             select: { style: 'os' }
         });
         tableAvailableFlows.search(filterAvailableFlows.value).draw(); // apply filter
@@ -1031,6 +1033,7 @@ function labels(initialSelectLabel, message) {
             columnDefs: [{ targets: 0, visible: false, searchable: false },
             { targets: 1, className: 'dt-head-left' }
             ],
+            order: [[1, "asc"]],
             select: { style: 'os' }
         });
         tableSelectedFlows.search(filterSelectedFlows.value).draw(); // apply filter
