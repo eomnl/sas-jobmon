@@ -16,10 +16,9 @@
 
 
 
-
 /* ----------------------------------------
 Code exported from SAS Enterprise Guide
-DATE: maandag 24 februari 2020     TIME: 00:17:22
+DATE: woensdag 26 februari 2020     TIME: 10:48:23
 PROJECT: DIMonRT3
 PROJECT PATH: C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonRT3.egp
 ---------------------------------------- */
@@ -304,6 +303,7 @@ GOPTIONS ACCESSIBLE;
              set dimon.dimon_flow_alerts(keep=alert_condition alert_action alert_action_details rename=(alert_action_details=alert_email_address));
              length scheduled_run_dts 8;
              length alert_email_message $ 200;
+             length alert_email_message_details $ 1024;
          end;
          stop;
        run;
@@ -812,7 +812,9 @@ PROC SQL;
           t1.alert_action AS alert_action, 
           t1.alert_action_details AS alert_email_address, 
           /* alert_email_message */
-            (strip(t1.flow_name1)!!' ended with exit code '!!strip(put(t1.flow_rc,best.))) AS alert_email_message
+            (strip(t1.flow_name1)!!' ended with exit code '!!strip(put(t1.flow_rc,best.))) AS alert_email_message, 
+          /* alert_email_message_details */
+            ('') AS alert_email_message_details
       FROM WORK.ALERTS_EWEC_EVAL t1
       WHERE t1.alert_action = 'email';
 QUIT;
@@ -881,7 +883,9 @@ PROC SQL;
           t1.alert_action AS alert_action, 
           t1.alert_action_details AS alert_email_address, 
           /* alert_email_message */
-            (strip(t1.flow_name1)!!' completed successfully.') AS alert_email_message
+            (strip(t1.flow_name1)!!' completed successfully.') AS alert_email_message, 
+          /* alert_email_message_details */
+            ('') AS alert_email_message_details
       FROM WORK.ALERTS_CS t1
       WHERE t1.alert_action = 'email';
 QUIT;
@@ -953,7 +957,9 @@ PROC SQL;
           t1.alert_action_details AS alert_email_address, 
           /* alert_email_message */
             (strip(t1.flow_name1)!!' ran less than '!!strip(put(t1.alert_condition_value,best.))!!' minute(s).') AS 
-            alert_email_message
+            alert_email_message, 
+          /* alert_email_message_details */
+            ('') AS alert_email_message_details
       FROM WORK.ALERTS_RUNS_LESS_THAN t1
       WHERE t1.alert_action = 'email';
 QUIT;
@@ -1026,8 +1032,10 @@ PROC SQL;
           t1.alert_action AS alert_action, 
           t1.alert_action_details AS alert_email_address, 
           /* alert_email_message */
-            (strip(t1.flow_name1)!!' started execution ( flow id '!!strip(put(t1.flow_run_id1,8.))!!' )') AS 
-            alert_email_message
+            (strip(t1.flow_name1)!!' started execution (Flow Run ID '!!strip(put(t1.flow_run_id1,8.))!!')') AS 
+            alert_email_message, 
+          /* alert_email_message_details */
+            ('') AS alert_email_message_details
       FROM WORK.ALERTS_STARTS t1
       WHERE t1.alert_action = 'email';
 QUIT;
@@ -1218,6 +1226,8 @@ PROC SQL;
             end
             
             ) AS alert_email_message, 
+          /* alert_email_message_details */
+            ('') AS alert_email_message_details, 
           /* already_notified */
             (not(missing(t2.flow_run_id1))) AS already_notified
       FROM WORK.ALERTS_RUNTIME_EVAL t1
@@ -1330,6 +1340,7 @@ quit;
 data _null_;
   if (_n_ = 1) then
   do;
+      call execute('options nosource;');
       call execute('proc sql;');
       call execute('  create table work.flows_scheduled_on_run_date as');
       call execute('    select flow_id');
@@ -1545,9 +1556,9 @@ PROC SQL;
           /* SCHEDULED_RUN_DTS_RANGE_MAX */
             (calculated SCHEDULED_RUN_DTS + coalesce(input(symget('FLOW_SCHEDULED_DTS_MATCH_SECONDS'),best.),60)) 
             FORMAT=datetime18. AS SCHEDULED_RUN_DTS_RANGE_MAX, 
-          t1.alert_condition, 
-          t1.alert_action, 
-          t1.alert_action_details
+          t1.alert_condition LABEL="alert_condition", 
+          t1.alert_action LABEL="alert_action", 
+          t1.alert_action_details LABEL="alert_action_details"
       FROM WORK.SCHEDULED_FLOWS t1
       WHERE (CALCULATED SCHEDULED_RUN_DTS) > "&sysdate9. &systime."dt AND (CALCULATED SCHEDULED_RUN_DTS_RANGE_MAX) <= 
            datetime();
@@ -1625,6 +1636,8 @@ PROC SQL;
             (strip(t1.flow_name)!!' missed scheduled time of '!!put(t1.SCHEDULED_RUN_DTS,datetime.)) AS 
             alert_email_message, 
           t2.flow_id1 AS flow_id11, 
+          /* alert_email_message_details */
+            ('') AS alert_email_message_details, 
           /* already_notified */
             (not(missing(t2.flow_id1))) AS already_notified
       FROM WORK.FLOWS_NOT_STARTED t1
@@ -1784,6 +1797,7 @@ proc sql;
     ,      alert_email_address
     ,      scheduled_run_dts
     ,      alert_email_message
+    ,      alert_email_message_details
     from   work.alerts_email
   ;
 quit;
@@ -1797,7 +1811,6 @@ GOPTIONS NOACCESSIBLE;
 %LET _CLIENTPROJECTNAME=;
 %LET _SASPROGRAMFILE=;
 %LET _SASPROGRAMFILEHOST=;
-
 
 
 
