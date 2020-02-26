@@ -2207,6 +2207,7 @@ function refreshFlows(run_date) {
                             })
 
                             $("#btnRundateToday").button().click(function () {
+                                $("#inputRundateHistdays").val("0");
                                 $("#inputRundate").val($.datepicker.formatDate('ddMyy', new Date()));
                                 $("#inputRundate").change(); // update the datepicker
                             });
