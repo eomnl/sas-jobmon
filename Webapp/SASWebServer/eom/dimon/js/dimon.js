@@ -301,7 +301,7 @@ $(function () {
                 var thisLocation = location.protocol + '//' + location.hostname + (location.port ? ':' + location.port : '');
                 for (i = 0; i < navMenuItems.length; i++) {
                     if (navMenuItems[i].url.indexOf(thisLocation) == 0) {
-                        currentNavigate = navMenuItems[i].value;
+                        settings.currentNavigate = navMenuItems[i].value;
                         $("#navTitle").html(navMenuItems[i].text);
                         break;
                     }
@@ -1723,7 +1723,7 @@ function createNavigateMenu() {
     if (navMenuItems.length > 0) {
         for (i = 0; i < navMenuItems.length; i++) {
             s += '<li class="li-dropdown-item li-dropdown-navigate-item ui-widget" id="navigate-' + i + '"><div>'
-                + '<span class="ui-icon ui-icon-dropdown-item ' + (currentNavigate == navMenuItems[i].value ? 'ui-icon-check' : 'ui-icon-blank') + '"></span>'
+                + '<span class="ui-icon ui-icon-dropdown-item ' + (settings.currentNavigate == navMenuItems[i].value ? 'ui-icon-check' : 'ui-icon-blank') + '"></span>'
                 + '<span class="text-dropdown-item">' + navMenuItems[i].text + '</span>'
                 + '</div><br></li>'
                 ;
