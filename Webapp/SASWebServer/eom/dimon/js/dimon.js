@@ -20,6 +20,7 @@ var settings = {
     , flowsmode: ''
     , currentViewParms: ''
     , currentPath: ''
+    , currentNavigate: ''
     , autorefresh_interval: 5
     , filterFlows: 'all_flows_excl_hidden'
     , filterJobs: 'all_jobs'
@@ -42,9 +43,9 @@ var svgDotsVertical = '<svg style="width:20px;height:20px" viewBox="0 0 24 24">'
     + ',2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z" />'
     + '</svg>';
 
-var settingsMenuItems = [{ 'value': 'settings', 'text': 'Settings' }
-    , { 'value': 'alerts', 'text': 'Alerts' }
-    , { 'value': 'reports', 'text': 'Reports' }
+var settingsMenuItems = [{ 'value': 'settings', 'text': 'Settings', 'icon': 'ui-icon-gear' }
+    , { 'value': 'alerts', 'text': 'Alerts', 'icon': 'ui-icon-alert' }
+    , { 'value': 'reports', 'text': 'Reports', 'icon': 'ui-icon-document' }
 ];
 
 var filterFlowsMenuItems = [{ 'value': 'running', 'text': 'Running' }
@@ -300,6 +301,7 @@ $(function () {
             var thisLocation = location.protocol + '//' + location.hostname + (location.port ? ':' + location.port : '');
             for (i = 0; i < navMenuItems.length; i++) {
                 if (navMenuItems[i].url.indexOf(thisLocation) == 0) {
+                    currentNavigate = navMenuItems[i].value;
                     $("#navTitle").html(navMenuItems[i].text);
                     break;
                 }
@@ -432,6 +434,9 @@ $(function () {
             });
             // Found a match, nothing to do
             if (valid) {
+                // specific for new alert combobox -- disable the Save button -- BEGIN
+                enableButton($(".ui-dialog-buttonpane button:contains('Save')"));
+                // specific for new alert combobox -- disable the Save button -- END
                 return;
             }
             // Remove invalid value
@@ -444,6 +449,11 @@ $(function () {
                 this.input.tooltip("close").attr("title", "");
             }, 2500);
             this.input.autocomplete("instance").term = "";
+
+            // specific for new alert combobox -- disable the Save button -- BEGIN
+            disableButton($(".ui-dialog-buttonpane button:contains('Save')"));
+            // specific for new alert combobox -- disable the Save button -- END
+
         },
         _destroy: function () {
             this.wrapper.remove();
@@ -452,6 +462,21 @@ $(function () {
     });
     // combobox --END
 
+
+    (function ($) {
+        $.fn.jqtext = function () {
+            console.log('jqtext is running');
+            this.button().css({
+                'color': 'inherit',
+                'background-color': 'white',
+                'text-align': 'left',
+                'outline': 'none',
+                'cursor': 'text',
+                'width': '50%'
+            });
+            return this;
+        };
+    })(jQuery);
 
 });
 
@@ -674,35 +699,9 @@ function labels(initialSelectLabel, message) {
         }
     });
 
-    $("#filterAvailableFlows").button().css({
-        // 'font': 'inherit',
-        'color': 'inherit',
-        'background-color': 'white',
-        'text-align': 'left',
-        'outline': 'none',
-        'cursor': 'text',
-        'width': '50%'
-    });
-
-    $("#filterSelectedFlows").button().css({
-        // 'font': 'inherit',
-        'color': 'inherit',
-        'background-color': 'white',
-        'text-align': 'left',
-        'outline': 'none',
-        'cursor': 'text',
-        'width': '50%'
-    });
-
-    $("#textFilterLabels").button().css({
-        // 'font': 'inherit',
-        'color': 'inherit',
-        'background-color': 'white',
-        'text-align': 'left',
-        'outline': 'none',
-        'cursor': 'text',
-        'width': '30%'
-    });
+    $("#textFilterLabels").jqtext().css({ 'width': '30%' });
+    $("#filterAvailableFlows").jqtext().css({ 'width': '50%' });
+    $("#filterSelectedFlows").jqtext().css({ 'width': '50%' });
 
     $("#btnClearTextFilterLabels").button({
         icons: { primary: 'ui-icon-close' }
@@ -1116,33 +1115,33 @@ function getAlerts() {
 
     var dialogAlerts = $('<div id="dialogAlerts">'
         + '<div class="row">'
-        +   '<div class="column">'
-        +     '<div style="margin-bottom:20px">'
-        +       '<label for="filterAlerts">Filter:&nbsp;</label><input type="text" id="filterAlerts" />'
-        +       '<button id="btnClearFilter">Clear</button>'
-        +       '<button id="btnNewAlert">New</button>'
-        +       '<button id="btnDeleteAlert">Delete</button>'
-        +       '<button id="btnEditAlert">Edit</button>'
-        +     '</div>'
-        +     '<div>'
-        +       '<table id="tableAlerts" class="cell-border row-border stripe" style="cursor:default;">'
-        +         '<thead>'
-        +           '<tr>'
-        +             '<th>flow_alert_id</th>'
-        +             '<th>flow_id</th>'
-        +             '<th>Flow</th>'
-        +             '<th>Condition</th>'
-        +             '<th>Condition Operator</th>'
-        +             '<th>Condition Value</th>'
-        +             '<th>Action</th>'
-        +             '<th>Action Details</th>'
-        +           '</tr>'
-        +         '</thead>'
-        +         '<tbody>'
-        +         '</tbody>'
-        +       '</table>'
-        +     '</div>'
-        +   '</div>'
+        + '<div class="column">'
+        + '<div style="margin-bottom:20px">'
+        + '<label for="filterAlerts">Filter:&nbsp;</label><input type="text" id="filterAlerts" />'
+        + '<button id="btnClearFilter">Clear</button>'
+        + '<button id="btnNewAlert">New</button>'
+        + '<button id="btnDeleteAlert">Delete</button>'
+        + '<button id="btnEditAlert">Edit</button>'
+        + '</div>'
+        + '<div>'
+        + '<table id="tableAlerts" class="cell-border row-border stripe" style="cursor:default;">'
+        + '<thead>'
+        + '<tr>'
+        + '<th>flow_alert_id</th>'
+        + '<th>flow_id</th>'
+        + '<th>Flow</th>'
+        + '<th>Condition</th>'
+        + '<th>Condition Operator</th>'
+        + '<th>Condition Value</th>'
+        + '<th>Action</th>'
+        + '<th>Action Details</th>'
+        + '</tr>'
+        + '</thead>'
+        + '<tbody>'
+        + '</tbody>'
+        + '</table>'
+        + '</div>'
+        + '</div>'
         + '</div>'
         + '</div>').appendTo('body');
 
@@ -1224,15 +1223,7 @@ function getAlerts() {
 
             }
 
-            // $("#filterAlerts").button().css({
-            $(":text").button().css({
-                'color': 'inherit',
-                'background-color': 'white',
-                'text-align': 'left',
-                'outline': 'none',
-                'cursor': 'text',
-                'width': '50%'
-            });
+            $("#filterAlerts").jqtext().css({ 'width': '50%' });
             $("#btnClearFilter").button({
                 icons: { primary: 'ui-icon-close' }
                 , text: false
@@ -1458,31 +1449,10 @@ function getAlerts() {
                     }
                 });
                 $("#condition-operator").selectmenu();
-                $("#condition-value").button().css({
-                    'color': 'inherit',
-                    'background-color': 'white',
-                    'text-align': 'left',
-                    'outline': 'none',
-                    'cursor': 'text',
-                    'width': '50%'
-                });
-                $("#runtime-value").button().css({
-                    'color': 'inherit',
-                    'background-color': 'white',
-                    'text-align': 'left',
-                    'outline': 'none',
-                    'cursor': 'text',
-                    'width': '50%'
-                });
+                $("#condition-value").jqtext().css({'width': '50%'});
+                $("#runtime-value").jqtext().css({'width': '50%'});
                 $("#action").selectmenu();
-                $("#action-details").button().css({
-                    'color': 'inherit',
-                    'background-color': 'white',
-                    'text-align': 'left',
-                    'outline': 'none',
-                    'cursor': 'text',
-                    'width': '200px'
-                });
+                $("#action-details").jxtext.css({'width': '200px'});
 
 
                 if (type == 'edit') {
@@ -1505,12 +1475,13 @@ function getAlerts() {
 
 
                 function updateNewAlertTable() {
+
                     // first disable Save button, enable it later if conditions are set
                     disableButton($(".ui-dialog-buttonpane button:contains('Save')"));
-
                     if ($("#comboboxFlow option:selected").val() != "") {
                         enableButton($(".ui-dialog-buttonpane button:contains('Save')"));
                     }
+
                     if ($("#condition").val() == 'ends_with_exit_code') {
                         $("#div-condition-operator").show();
                         $("#div-condition-value").show();
@@ -1696,10 +1667,12 @@ function createSettingsMenu() {
     var s = '<ul class="dropdown-menu">'
     // Add Filter items
     for (i = 0; i < settingsMenuItems.length; i++) {
-        s += '<li class="li-dropdown-item li-dropdown-filter-item ui-widget" id="setting-' + settingsMenuItems[i].value + '"><div>'
-            + '<span class="ui-icon ui-icon-dropdown-item ui-icon-blank"></span>'
+        s += '<li class="li-dropdown-item li-dropdown-filter-item ui-widget" id="setting-' + settingsMenuItems[i].value + '">'
+            + '<div>'
+            + '<span class="ui-icon ui-icon-dropdown-item ' + settingsMenuItems[i].icon + '"></span>'
             + '<span class="text-dropdown-item">' + settingsMenuItems[i].text + '</span>'
-            + '</div><br></li>'
+            + '</div><br>'
+            + '</li>'
             ;
     }
     s += '</ul>';
@@ -1738,7 +1711,6 @@ function createSettingsMenu() {
 
 function createNavigateMenu() {
 
-    var currentNavigate = '';
     var s = '';
     s += '<ul class="dropdown-menu">';
 
@@ -2019,10 +1991,12 @@ function refresh() {
 function menuNavbar() {
 
     $('#menuNavbar').remove(); // remove filter in case it already exists
-
     var s = '<ul class="dropdown-menu">'
-        + '<li class="li-dropdown-item" id="copyPath">'
-        + '<div><span class="text-dropdown-item  ui-widget">&nbsp;&nbsp;Navigation path</span></div><br>'
+        + '<li class="li-dropdown-item li-dropdown-filter-item ui-widget" id="copyPath">'
+        + '<div>'
+        + '<span class="ui-icon ui-icon-dropdown-item ui-icon-pin-s"></span>'
+        + '<span class="text-dropdown-item">Navigation path</span>'
+        + '</div><br />'
         + '</li>'
         + '</ul>';
     button = $("#btnNavbar");
