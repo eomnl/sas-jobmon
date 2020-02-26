@@ -951,7 +951,8 @@ function labels(initialSelectLabel, message) {
     $("#btnSaveLabels").button().css({ 'width': '100%', 'margin-top': '10px' })
         .click(function () {
             $.ajax({
-                url: settings.urlSPA
+                type: "POST"
+                , url: settings.urlSPA
                 , data: $.extend({}
                     , {
                         "_program": getSPName('dimonSaveLabels')
