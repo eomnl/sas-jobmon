@@ -9,6 +9,10 @@
        options nonotes nomprint;
   %end;
 
+  %global lsf_flow_active_dir lsf_flow_finished_dir;
+  %let init = 1;
+
+
 %do %while(1);
 
 %let loopstartdts = %sysfunc(datetime());
@@ -17,7 +21,7 @@
 
 /* ----------------------------------------
 Code exported from SAS Enterprise Guide
-DATE: woensdag 26 februari 2020     TIME: 16:31:47
+DATE: woensdag 26 februari 2020     TIME: 17:17:55
 PROJECT: DIMonRT3
 PROJECT PATH: C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonRT3.egp
 ---------------------------------------- */
@@ -290,38 +294,34 @@ GOPTIONS NOACCESSIBLE;
 %LET _SASPROGRAMFILEHOST='';
 
 GOPTIONS ACCESSIBLE;
+/*%let lsf_flow_active_dir   = /apps/sas/thirdparty/pm/work/storage/flow_instance_storage/active;*/
+/*%let lsf_flow_finished_dir = /apps/sas/thirdparty/pm/work/storage/flow_instance_storage/finished;*/
+/*%global lsf_flow_active_dir lsf_flow_finished_dir;*/
+/*%let init = 1;*/
 
 %macro x;
 
   /* check existence of lsf active and finished macvars */
   %let abort = 0;
-  %let symexist_lsf_flow_active_dir   = %symexist(lsf_flow_active_dir);
-  %let symexist_lsf_flow_finished_dir = %symexist(lsf_flow_finished_dir);
-  %if (not(&symexist_lsf_flow_active_dir) or not(&symexist_lsf_flow_finished_dir)) %then
+  %if (("&lsf_flow_active_dir" = "") or ("&lsf_flow_finished_dir" = "")) %then
   %do; /* see if they ware passed as os-environment variables */
 
-       %if (not(&symexist_lsf_flow_active_dir)) %then
+       %if (%sysfunc(sysexist(lsf_flow_active_dir))) %then
+          %let lsf_flow_active_dir = %sysget(lsf_flow_active_dir);
+       %else
        %do;
-            %if (%sysfunc(sysexist(lsf_flow_active_dir))) %then
-                %let lsf_flow_active_dir = %sysget(lsf_flow_active_dir);
-            %else
-            %do;
-                 %put ERROR: Macro variable LSF_FLOW_ACTIVE_DIR is not defined.;
-                 %put ERROR: Please define it in file ${DIMON_SCRIPTDIR}/dimon_usermods.sas or specify it as a -set option on the command line.;
-                 %let abort = 1;
-            %end;
+            %put ERROR: Macro variable LSF_FLOW_ACTIVE_DIR is not defined.;
+            %put ERROR: Please define it in file ${DIMON_SCRIPTDIR}/dimon_usermods.sas or specify 'lsf_flow_active_dir' as a -set option on the command line.;
+            %let abort = 1;
        %end;
 
-       %if (not(&symexist_lsf_flow_finished_dir)) %then
+       %if (%sysfunc(sysexist(lsf_flow_finished_dir))) %then
+           %let lsf_flow_finished_dir = %sysget(lsf_flow_finished_dir);
+       %else
        %do;
-            %if (%sysfunc(sysexist(lsf_flow_finished_dir))) %then
-                %let lsf_flow_finished_dir = %sysget(lsf_flow_finished_dir);
-            %else
-            %do;
-                 %put ERROR: Macro variable LSF_FLOW_FINISHED_DIR is not defined.;
-                 %put ERROR: Please define it in file ${DIMON_SCRIPTDIR}/dimon_usermods.sas or specify it as a -set option on the command line.;
-                 %let abort = 1;
-            %end;
+            %put ERROR: Macro variable LSF_FLOW_FINISHED_DIR is not defined.;
+            %put ERROR: Please define it in file ${DIMON_SCRIPTDIR}/dimon_usermods.sas or specify 'lsf_flow_finished_dir' as a -set option on the command line.;
+            %let abort = 1;
        %end;
 
        %if (&abort = 1) %then %abort abend;
@@ -331,18 +331,21 @@ GOPTIONS ACCESSIBLE;
   /* check existence of lsf active and finished directories */
   %let exists_lsf_flow_active_dir   = %sysfunc(fileexist(&lsf_flow_active_dir));
   %let exists_lsf_flow_finished_dir = %sysfunc(fileexist(&lsf_flow_finished_dir));
-  %put &=exists_lsf_flow_active_dir &=exists_lsf_flow_finished_dir;
   %if (not(&exists_lsf_flow_active_dir) or not(&exists_lsf_flow_finished_dir)) %then
   %do;
        %if (not(&exists_lsf_flow_active_dir)) %then 
            %put ERROR: LSF_FLOW_ACTIVE_DIR "&lsf_flow_active_dir" does not exist.;
-       %if (not(&exists_lsf_flow_active_dir)) %then 
+       %if (not(&exists_lsf_flow_finished_dir)) %then 
            %put ERROR: LSF_FLOW_FINISHED_DIR "&lsf_flow_finished_dir" does not exist.;
        %abort abend;
   %end;
 
-  %put DIMONNOTE: LSF_FLOW_ACTIVE_DIR   = &lsf_flow_active_dir;
-  %put DIMONNOTE: LSF_FLOW_FINISHED_DIR = &lsf_flow_finished_dir;
+  %if (&init = 1) %then
+  %do;
+       %put DIMONNOTE: LSF_FLOW_ACTIVE_DIR   = &lsf_flow_active_dir;
+       %put DIMONNOTE: LSF_FLOW_FINISHED_DIR = &lsf_flow_finished_dir;
+       %let init = 0;
+  %end;
 
   %if (not(%sysfunc(exist(work.notified)))) %then
   %do; /* create empty work.notified */
@@ -1863,11 +1866,10 @@ GOPTIONS NOACCESSIBLE;
 
 
 
-
 /* sleep until the next full minute */
 %let loopenddts = %sysfunc(datetime());
 %let wakeuptime = %sysfunc(intnx(seconds10.,%sysfunc(datetime()),1),datetime18.);
-%put DIMONNOTE: %sysfunc(datetime(),B8601DT15.) This alertmon run took %sysevalf(&loopenddts - &loopstartdts) seconds. Sleeping until &wakeuptime;
+%put DIMONNOTE: %sysfunc(datetime(),B8601DT15.) This alertmon run used %sysevalf(&loopenddts - &loopstartdts) seconds. Sleeping until &wakeuptime;
 data _null_;
   sleeptime = "&wakeuptime"dt - datetime();
   slept = sleep(sleeptime,1);
