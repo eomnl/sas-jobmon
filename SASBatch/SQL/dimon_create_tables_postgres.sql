@@ -182,6 +182,24 @@ WITH (
   OIDS=FALSE
 );
 
+CREATE TABLE public.dimon_flow_alerts
+(
+    flow_alert_id integer NOT NULL,
+    flow_id character varying(20) NOT NULL,
+    alert_condition character varying(100) NOT NULL,
+    alert_condition_operator character varying(10),
+    alert_condition_value numeric,
+    alert_action character varying(100) NOT NULL,
+    alert_action_details character varying(200),
+    dimon_user character varying(100) NOT NULL,
+    update_user character varying(32),
+    update_dts time without time zone,
+    CONSTRAINT pk_dimon_flow_alerts PRIMARY KEY (flow_alert_id)
+)
+WITH (
+    OIDS = FALSE
+);
+
 INSERT INTO public.dimon_calendars (calendar_name,calendar_sascode,update_user,update_dts) VALUES
   ('Daily@Sys','1', current_user, current_timestamp),
   ('First_day_of_year@Sys', 'd = intnx(''year'',d,0,''beginning'')', current_user, current_timestamp),
