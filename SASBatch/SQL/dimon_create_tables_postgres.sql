@@ -200,6 +200,19 @@ WITH (
     OIDS = FALSE
 );
 
+CREATE TABLE public.dimon_flow_labels
+(
+    flow_id character varying(20) NOT NULL,
+    label character varying(100) NOT NULL,
+    dimon_user character varying(100) NOT NULL,
+    update_user character varying(32),
+    update_dts timestamp without time zone,
+    CONSTRAINT pk_dimon_flow_tags PRIMARY KEY (flow_id, label, dimon_user)
+)
+WITH (
+    OIDS = FALSE
+);
+
 INSERT INTO public.dimon_calendars (calendar_name,calendar_sascode,update_user,update_dts) VALUES
   ('Daily@Sys','1', current_user, current_timestamp),
   ('First_day_of_year@Sys', 'd = intnx(''year'',d,0,''beginning'')', current_user, current_timestamp),
