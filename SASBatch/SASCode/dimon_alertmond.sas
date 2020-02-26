@@ -15,10 +15,9 @@
 
 
 
-
 /* ----------------------------------------
 Code exported from SAS Enterprise Guide
-DATE: woensdag 26 februari 2020     TIME: 10:48:23
+DATE: woensdag 26 februari 2020     TIME: 16:31:47
 PROJECT: DIMonRT3
 PROJECT PATH: C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonRT3.egp
 ---------------------------------------- */
@@ -291,7 +290,59 @@ GOPTIONS NOACCESSIBLE;
 %LET _SASPROGRAMFILEHOST='';
 
 GOPTIONS ACCESSIBLE;
+
 %macro x;
+
+  /* check existence of lsf active and finished macvars */
+  %let abort = 0;
+  %let symexist_lsf_flow_active_dir   = %symexist(lsf_flow_active_dir);
+  %let symexist_lsf_flow_finished_dir = %symexist(lsf_flow_finished_dir);
+  %if (not(&symexist_lsf_flow_active_dir) or not(&symexist_lsf_flow_finished_dir)) %then
+  %do; /* see if they ware passed as os-environment variables */
+
+       %if (not(&symexist_lsf_flow_active_dir)) %then
+       %do;
+            %if (%sysfunc(sysexist(lsf_flow_active_dir))) %then
+                %let lsf_flow_active_dir = %sysget(lsf_flow_active_dir);
+            %else
+            %do;
+                 %put ERROR: Macro variable LSF_FLOW_ACTIVE_DIR is not defined.;
+                 %put ERROR: Please define it in file ${DIMON_SCRIPTDIR}/dimon_usermods.sas or specify it as a -set option on the command line.;
+                 %let abort = 1;
+            %end;
+       %end;
+
+       %if (not(&symexist_lsf_flow_finished_dir)) %then
+       %do;
+            %if (%sysfunc(sysexist(lsf_flow_finished_dir))) %then
+                %let lsf_flow_finished_dir = %sysget(lsf_flow_finished_dir);
+            %else
+            %do;
+                 %put ERROR: Macro variable LSF_FLOW_FINISHED_DIR is not defined.;
+                 %put ERROR: Please define it in file ${DIMON_SCRIPTDIR}/dimon_usermods.sas or specify it as a -set option on the command line.;
+                 %let abort = 1;
+            %end;
+       %end;
+
+       %if (&abort = 1) %then %abort abend;
+
+  %end;/* see if they ware passed as os-environment variables */
+
+  /* check existence of lsf active and finished directories */
+  %let exists_lsf_flow_active_dir   = %sysfunc(fileexist(&lsf_flow_active_dir));
+  %let exists_lsf_flow_finished_dir = %sysfunc(fileexist(&lsf_flow_finished_dir));
+  %put &=exists_lsf_flow_active_dir &=exists_lsf_flow_finished_dir;
+  %if (not(&exists_lsf_flow_active_dir) or not(&exists_lsf_flow_finished_dir)) %then
+  %do;
+       %if (not(&exists_lsf_flow_active_dir)) %then 
+           %put ERROR: LSF_FLOW_ACTIVE_DIR "&lsf_flow_active_dir" does not exist.;
+       %if (not(&exists_lsf_flow_active_dir)) %then 
+           %put ERROR: LSF_FLOW_FINISHED_DIR "&lsf_flow_finished_dir" does not exist.;
+       %abort abend;
+  %end;
+
+  %put DIMONNOTE: LSF_FLOW_ACTIVE_DIR   = &lsf_flow_active_dir;
+  %put DIMONNOTE: LSF_FLOW_FINISHED_DIR = &lsf_flow_finished_dir;
 
   %if (not(%sysfunc(exist(work.notified)))) %then
   %do; /* create empty work.notified */
@@ -313,7 +364,6 @@ GOPTIONS ACCESSIBLE;
   %do;
 
        /* get active flows */
-       %let lsf_flow_active_dir = /apps/sas/thirdparty/pm/work/storage/flow_instance_storage/active;
        filename _folder_ "%bquote(&lsf_flow_active_dir)";
        data work.active_flows_init(keep=flow_run_id flow_status);
          handle  = dopen('_folder_');
@@ -334,7 +384,6 @@ GOPTIONS ACCESSIBLE;
        filename _folder_ clear;
 
        /* get finished flows */
-       %let lsf_flow_finished_dir  = /apps/sas/thirdparty/pm/work/storage/flow_instance_storage/finished;
        filename _folder_ "%bquote(&lsf_flow_finished_dir)";
        data work.finished_flows_init(keep=flow_run_id flow_status);
          handle  = dopen('_folder_');
@@ -373,51 +422,47 @@ GOPTIONS ACCESSIBLE;
 %mend x;
 %x
 
-%let lsf_flow_active_dir  = /apps/sas/thirdparty/pm/work/storage/flow_instance_storage/active;
-
-  /* get active flows */
-  filename _folder_ "%bquote(&lsf_flow_active_dir)";
-  data work.active_flows(keep=flow_run_id flow_status);
-    handle  = dopen('_folder_');
-    if (handle > 0) then
-    do;
-        count = dnum(handle);
-        do i=1 to count;
-            memname = dread(handle,i);
-            flow_run_id = input(scan(memname,1,'.'),8.);
-            length flow_status $ 8;
-            flow_status = 'ACTIVE';
-            output;
-        end;
-    end;
-    rc = dclose(handle);
-    stop;
-  run;
-  filename _folder_ clear;
-
+/* get active flows */
+filename _folder_ "%bquote(&lsf_flow_active_dir)";
+data work.active_flows(keep=flow_run_id flow_status);
+  handle  = dopen('_folder_');
+  if (handle > 0) then
+  do;
+      count = dnum(handle);
+      do i=1 to count;
+          memname = dread(handle,i);
+          flow_run_id = input(scan(memname,1,'.'),8.);
+          length flow_status $ 8;
+          flow_status = 'ACTIVE';
+          output;
+      end;
+  end;
+  rc = dclose(handle);
+  stop;
+run;
+filename _folder_ clear;
 
 %let lsf_flow_finished_dir  = /apps/sas/thirdparty/pm/work/storage/flow_instance_storage/finished;
-  filename _folder_ "%bquote(&lsf_flow_finished_dir)";
-  data work.finished_flows(keep=flow_run_id flow_status);
-    handle  = dopen('_folder_');
-    if (handle > 0) then
-    do;
-        count = dnum(handle);
-        do i=1 to count;
-            memname = dread(handle,i);
-            flow_run_id = input(scan(memname,1,'.'),8.);
-            length flow_status $ 8;
-            flow_status = 'FINISHED';
-            output;
-        end;
-    end;
-    rc = dclose(handle);
-    stop;
-  run;
-  filename _folder_ clear;
+filename _folder_ "%bquote(&lsf_flow_finished_dir)";
+data work.finished_flows(keep=flow_run_id flow_status);
+  handle  = dopen('_folder_');
+  if (handle > 0) then
+  do;
+      count = dnum(handle);
+      do i=1 to count;
+          memname = dread(handle,i);
+          flow_run_id = input(scan(memname,1,'.'),8.);
+          length flow_status $ 8;
+          flow_status = 'FINISHED';
+          output;
+      end;
+  end;
+  rc = dclose(handle);
+  stop;
+run;
+filename _folder_ clear;
 
 %_eg_conditional_dropds(WORK.FLOWS_NOW);
-
 PROC SQL;
    CREATE TABLE WORK.FLOWS_NOW AS 
    SELECT /* flow_run_id */
@@ -431,7 +476,6 @@ PROC SQL;
 QUIT;
 
 %_eg_conditional_dropds(WORK.CHANGES);
-
 PROC SQL;
    CREATE TABLE WORK.CHANGES AS 
    SELECT t1.flow_run_id, 
@@ -1556,9 +1600,9 @@ PROC SQL;
           /* SCHEDULED_RUN_DTS_RANGE_MAX */
             (calculated SCHEDULED_RUN_DTS + coalesce(input(symget('FLOW_SCHEDULED_DTS_MATCH_SECONDS'),best.),60)) 
             FORMAT=datetime18. AS SCHEDULED_RUN_DTS_RANGE_MAX, 
-          t1.alert_condition LABEL="alert_condition", 
-          t1.alert_action LABEL="alert_action", 
-          t1.alert_action_details LABEL="alert_action_details"
+          t1.alert_condition, 
+          t1.alert_action, 
+          t1.alert_action_details
       FROM WORK.SCHEDULED_FLOWS t1
       WHERE (CALCULATED SCHEDULED_RUN_DTS) > "&sysdate9. &systime."dt AND (CALCULATED SCHEDULED_RUN_DTS_RANGE_MAX) <= 
            datetime();
