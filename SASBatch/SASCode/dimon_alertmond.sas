@@ -20,11 +20,9 @@
 
 
 
-
-
 /* ----------------------------------------
 Code exported from SAS Enterprise Guide
-DATE: donderdag 27 februari 2020     TIME: 14:45:28
+DATE: donderdag 27 februari 2020     TIME: 16:48:26
 PROJECT: DIMonRT3
 PROJECT PATH: C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonRT3.egp
 ---------------------------------------- */
@@ -573,7 +571,7 @@ GOPTIONS ACCESSIBLE;
   %do; /* the lsf file may be found before the flow is found in dimon --> loop until all are found */
 
        %let tries = 0;
-       %do %until((&nobs2 = &nobs1) or (&tries > 10));
+       %do %until((&nobs2 = &nobs1) or (&tries > 2));
 
             %_eg_conditional_dropds(WORK.CHANGES_WITH_FLOW_ID);
 
@@ -595,20 +593,20 @@ GOPTIONS ACCESSIBLE;
             %put NOTE: SQLOBS=&nobs2;
      
             %if (&nobs1 ne &nobs2) %then
-            %do; /* sleep 1 second */
+            %do; /* sleep 5 seconds */
 
                  %let tries = %sysevalf(&tries + 1);
                  data _null_;
-                   rc = sleep(1,1);
+                   rc = sleep(5,1);
                  run;
 
-            %end;/* sleep 1 second */
+            %end;/* sleep 5 seconds */
 
        %end;/* do until */
 
        %if (&tries = 11) %then
-       %do;
-            %put WARNING: Not all flow_id%str(%')s were found.;
+       %do; /* write flow_run_id's not found to the log */
+
             proc sql;
               create table work.warnings as
                 select    t1.flow_run_id  as changes_flow_run_id
@@ -632,9 +630,10 @@ GOPTIONS ACCESSIBLE;
             quit;
             data _null_;
               set work.warnings;
-              put 'WARNING: ' changes_flow_run_id= job_runs_flow_run_id= flow_job_flow_job_id= flows_flow_id=;
+              put 'NOTE: flow_run_id ' changes_flow_run_id1 'not found in dimon, it''s probably not ours.';
             run;
-       %end; 
+
+       %end;/* write flow_run_id's not found to the log */
 
   %end;/* the lsf file may be found before the flow is found in dimon --> loop until all are found */
   %else
