@@ -22,10 +22,9 @@
 
 
 
-
 /* ----------------------------------------
 Code exported from SAS Enterprise Guide
-DATE: donderdag 27 februari 2020     TIME: 14:15:39
+DATE: donderdag 27 februari 2020     TIME: 14:45:28
 PROJECT: DIMonRT3
 PROJECT PATH: C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonRT3.egp
 ---------------------------------------- */
@@ -401,13 +400,17 @@ GOPTIONS ACCESSIBLE;
          handle  = dopen('_folder_');
          if (handle > 0) then
          do;
+             re = prxparse('/\d+\.dat/'); /* only match pattern 99999.dat */
              count = dnum(handle);
              do i=1 to count;
-                 memname = dread(handle,i);
-                 flow_run_id = input(scan(memname,1,'.'),8.);
-                 length flow_status $ 8;
-                 flow_status = 'ACTIVE';
-                 output;
+                 memname = put(dread(handle,i),$200.);
+                 if (prxmatch(re,memname)) then
+                 do;
+                      flow_run_id = input(scan(memname,1,'.'),8.);
+                      length flow_status $ 8;
+                      flow_status = 'ACTIVE';
+                      output;
+                 end;
              end;
          end;
          rc = dclose(handle);
@@ -421,19 +424,22 @@ GOPTIONS ACCESSIBLE;
          handle  = dopen('_folder_');
          if (handle > 0) then
          do;
+             re = prxparse('/\d+\.dat/'); /* only match pattern 99999.dat */
              count = dnum(handle);
              do i=1 to count;
-                 memname = dread(handle,i);
-                 flow_run_id = input(scan(memname,1,'.'),8.);
-                 length flow_status $ 8;
-                 flow_status = 'FINISHED';
-                 output;
+                 memname = put(dread(handle,i),$200.);
+                 if (prxmatch(re,memname)) then
+                 do;
+                      flow_run_id = input(scan(memname,1,'.'),8.);
+                      length flow_status $ 8;
+                      flow_status = 'FINISHED';
+                      output;
+                 end;
              end;
          end;
          rc = dclose(handle);
          stop;
        run;
-       filename _folder_ clear;
 
        /* combine */
        proc sql;
@@ -460,13 +466,17 @@ data work.active_flows(keep=flow_run_id flow_status);
   handle  = dopen('_folder_');
   if (handle > 0) then
   do;
+      re = prxparse('/\d+\.dat/'); /* only match pattern 99999.dat */
       count = dnum(handle);
       do i=1 to count;
-          memname = dread(handle,i);
-          flow_run_id = input(scan(memname,1,'.'),8.);
-          length flow_status $ 8;
-          flow_status = 'ACTIVE';
-          output;
+          memname = put(dread(handle,i),$200.);
+         if (prxmatch(re,memname)) then
+         do;
+               flow_run_id = input(scan(memname,1,'.'),8.);
+               length flow_status $ 8;
+               flow_status = 'ACTIVE';
+              output;
+         end;
       end;
   end;
   rc = dclose(handle);
@@ -474,24 +484,28 @@ data work.active_flows(keep=flow_run_id flow_status);
 run;
 filename _folder_ clear;
 
+/* get finished flows */
 filename _folder_ "%bquote(&lsf_flow_finished_dir)";
 data work.finished_flows(keep=flow_run_id flow_status);
   handle  = dopen('_folder_');
   if (handle > 0) then
   do;
+      re = prxparse('/\d+\.dat/'); /* only match pattern 99999.dat */
       count = dnum(handle);
       do i=1 to count;
-          memname = dread(handle,i);
-          flow_run_id = input(scan(memname,1,'.'),8.);
-          length flow_status $ 8;
-          flow_status = 'FINISHED';
-          output;
+          memname = put(dread(handle,i),$200.);
+         if (prxmatch(re,memname)) then
+         do;
+               flow_run_id = input(scan(memname,1,'.'),8.);
+               length flow_status $ 8;
+               flow_status = 'FINISHED';
+              output;
+         end;
       end;
   end;
   rc = dclose(handle);
   stop;
 run;
-filename _folder_ clear;
 
 %_eg_conditional_dropds(WORK.FLOWS_NOW);
 PROC SQL;
