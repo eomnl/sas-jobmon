@@ -10,8 +10,6 @@
   %end;
 
   %global lsf_flow_active_dir lsf_flow_finished_dir;
-  %let init = 1;
-
 
 %do %while(1);
 
@@ -295,7 +293,6 @@ GOPTIONS NOACCESSIBLE;
 %LET _SASPROGRAMFILEHOST='';
 
 GOPTIONS ACCESSIBLE;
-%let _debug=1;
 %dimon_init
 
 
