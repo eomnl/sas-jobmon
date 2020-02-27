@@ -11,7 +11,9 @@
   /* libname dimon (dimonpos); */
 
   %put NOTE: Including dimon_usermods.sas;
-  %let flow_completion_mode = 5;
-  %let lsf_flow_active_dir  = /apps/sas/thirdparty/pm/work/storage/flow_instance_storage/active;   /* for modes 5 and 6 */
+  %let flow_completion_mode     = 5;
+  %let lsf_flow_active_dir      = /apps/sas/thirdparty/pm/work/storage/flow_instance_storage/active;
+  %let lsf_flow_finished_dir    = /apps/sas/thirdparty/pm/work/storage/flow_instance_storage/finished;
+  %let alert_email_from_address = bheinsius@eom.nl;
 
 %mend dimon_usermods;

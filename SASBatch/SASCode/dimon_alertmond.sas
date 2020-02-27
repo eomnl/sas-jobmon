@@ -19,9 +19,13 @@
 
 
 
+
+
+
+
 /* ----------------------------------------
 Code exported from SAS Enterprise Guide
-DATE: woensdag 26 februari 2020     TIME: 17:17:55
+DATE: donderdag 27 februari 2020     TIME: 14:15:39
 PROJECT: DIMonRT3
 PROJECT PATH: C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonRT3.egp
 ---------------------------------------- */
@@ -284,6 +288,30 @@ GOPTIONS NOACCESSIBLE;
 %LET _SASPROGRAMFILEHOST=;
 
 
+/*   START OF NODE: dimon init   */
+%LET _CLIENTTASKLABEL='dimon init';
+%LET _CLIENTPROCESSFLOWNAME='alertmon';
+%LET _CLIENTPROJECTPATH='C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonRT3.egp';
+%LET _CLIENTPROJECTPATHHOST='BHEINSIUS-PC';
+%LET _CLIENTPROJECTNAME='DIMonRT3.egp';
+%LET _SASPROGRAMFILE='';
+%LET _SASPROGRAMFILEHOST='';
+
+GOPTIONS ACCESSIBLE;
+%let _debug=1;
+%dimon_init
+
+
+GOPTIONS NOACCESSIBLE;
+%LET _CLIENTTASKLABEL=;
+%LET _CLIENTPROCESSFLOWNAME=;
+%LET _CLIENTPROJECTPATH=;
+%LET _CLIENTPROJECTPATHHOST=;
+%LET _CLIENTPROJECTNAME=;
+%LET _SASPROGRAMFILE=;
+%LET _SASPROGRAMFILEHOST=;
+
+
 /*   START OF NODE: get active and finished flows   */
 %LET _CLIENTTASKLABEL='get active and finished flows';
 %LET _CLIENTPROCESSFLOWNAME='alertmon';
@@ -296,10 +324,11 @@ GOPTIONS NOACCESSIBLE;
 GOPTIONS ACCESSIBLE;
 /*%let lsf_flow_active_dir   = /apps/sas/thirdparty/pm/work/storage/flow_instance_storage/active;*/
 /*%let lsf_flow_finished_dir = /apps/sas/thirdparty/pm/work/storage/flow_instance_storage/finished;*/
-/*%global lsf_flow_active_dir lsf_flow_finished_dir;*/
-/*%let init = 1;*/
 
 %macro x;
+
+  %global _init;
+  %if ("&_init" = "") %then %let _init = 1;
 
   /* check existence of lsf active and finished macvars */
   %let abort = 0;
@@ -340,11 +369,11 @@ GOPTIONS ACCESSIBLE;
        %abort abend;
   %end;
 
-  %if (&init = 1) %then
+  %if (&_init = 1) %then
   %do;
        %put DIMONNOTE: LSF_FLOW_ACTIVE_DIR   = &lsf_flow_active_dir;
        %put DIMONNOTE: LSF_FLOW_FINISHED_DIR = &lsf_flow_finished_dir;
-       %let init = 0;
+       %let _init = 0;
   %end;
 
   %if (not(%sysfunc(exist(work.notified)))) %then
@@ -445,7 +474,6 @@ data work.active_flows(keep=flow_run_id flow_status);
 run;
 filename _folder_ clear;
 
-%let lsf_flow_finished_dir  = /apps/sas/thirdparty/pm/work/storage/flow_instance_storage/finished;
 filename _folder_ "%bquote(&lsf_flow_finished_dir)";
 data work.finished_flows(keep=flow_run_id flow_status);
   handle  = dopen('_folder_');
@@ -1761,13 +1789,18 @@ GOPTIONS ACCESSIBLE;
   %if (&nobs > 0) %then
   %do;
 
+       %local alert_email_from_address;
        filename mail email content_type="text/html" attach=("/tmp/eomalerts.png" inlined='eomalertslogo');
        data _null_;
          set WORK.ALERTS_EMAIL end=last;
          putlog 'DIMONNOTE: ' alert_email_message;
          file mail;
          put '!EM_TO!' alert_email_address;
-         put '!EM_FROM!bheinsius@eom.nl';
+         if (symexist('alert_email_from_address')) then
+         do;
+             alert_email_from_address = symget('alert_email_from_address');
+             put '!EM_FROM!' alert_email_from_address;
+         end;
          put '!EM_SUBJECT!' 'EOM Alert - ' flow_name1;
          put '<html>'
                '<head>'
@@ -1858,6 +1891,8 @@ GOPTIONS NOACCESSIBLE;
 %LET _CLIENTPROJECTNAME=;
 %LET _SASPROGRAMFILE=;
 %LET _SASPROGRAMFILEHOST=;
+
+
 
 
 

@@ -24,7 +24,7 @@
 
   /* _debug parameter is passed on the url as &_debug= */
   %global _debug;
-  %if (&_debug. gt 0) %then
+  %if (&_debug gt 0) %then
   %do;
        options notes source source2 mprint;
        %put NOTE: setting debug options because %nrstr(&)_DEBUG = &_DEBUG.;
@@ -49,6 +49,7 @@
   %global urlspa sproot webroot _odsstyle viewlog_maxfilesize gantt_width trend_days
           flow_completion_mode flow_completion_mode_2_idle_time lsf_flow_finished_dir
           lsf_flow_active_dir flow_scheduled_dts_match_seconds
+          alert_email_from_address
           ;
 
   /* ------------------------------------------------------------------------- */
@@ -122,6 +123,7 @@
   %put NOTE: LSF_FLOW_FINISHED_DIR            = &lsf_flow_finished_dir.;
   %put NOTE: LSF_FLOW_ACTIVE_DIR              = &lsf_flow_active_dir.;
   %put NOTE: FLOW_SCHEDULED_DTS_MATCH_SECONDS = &flow_scheduled_dts_match_seconds.;
+  %put NOTE: ALERT_EMAIL_FROM_ADDRESS         = &alert_email_from_address.;
 
   ods path WORK.TAGSETS(UPDATE) SASHELP.TMPLMST(READ);
   proc template;
