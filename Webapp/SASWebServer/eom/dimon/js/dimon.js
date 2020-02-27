@@ -196,6 +196,7 @@ $(function () {
 
     $("#dimon-logo").attr("src", settings.imgroot + '/dimon-logo.png'); // set logo
     $("#linkHome").click(function () {
+        Cookies.set('dimonRundateHistDays', 0, { expires: 365 }); // reset histdays to 0
         window.location.href = settings.urlSPA + '?_program=' + getSPName('dimon');
     });
 
@@ -1803,7 +1804,7 @@ function createFilterLabelMenu() {
             var s = '<ul class="dropdown-menu">';
             for (i = 0; i < labels.length; i++) {
                 if (labels[i][1] == '*') labels[i][0] = labels[i][0] + ' *';
-                s += '<li class="li-dropdown-item li-dropdown-label-item ui-widget" id="label_' + labels[i][0].replace(/ /g, '-') + '"><div>'
+                s += '<li class="li-dropdown-item li-dropdown-label-item ui-widget" id="label_' + i + '" value="' + labels[i][0].replace(/ /g, '-') + '"><div>'
                     + '<span class="ui-icon ui-icon-dropdown-item ui-icon-blank"></span>'
                     + '<span class="text-dropdown-item">' + labels[i][0] + '</span>'
                     + '</div><br></li>'
@@ -1813,7 +1814,7 @@ function createFilterLabelMenu() {
 
             $("#menuLabels").html(s);
             $('.li-dropdown-label-item').click(function () {
-                $("#search").val("label:" + $(this).attr('id').split('_')[1]);
+                $("#search").val("label:" + $(this).attr('value'));
                 refresh();
                 $("#menuLabels").remove(); // remove menu in case it already exists
             });
