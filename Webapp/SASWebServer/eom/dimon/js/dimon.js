@@ -230,7 +230,61 @@ $(function () {
                 $('#menuLabels').remove();
             } else {
                 // create and show the menu
-                createFilterLabelMenu();
+                inputSearch = $("#search");
+                var inputPosition = inputSearch.offset();
+                var inputLeft = inputPosition.left;
+                var inputBottom = inputPosition.top + inputSearch.height() + 13;
+                var inputWidth = inputSearch.width() + 25;
+                $("#menuLabels").remove(); // remove menu in case it already exists
+                var menuLabels = $('<div id="menuLabels" style="display:block;'
+                    + 'position:absolute;'
+                    + 'top:' + inputBottom + 'px;'
+                    + 'left:' + inputLeft + 'px;'
+                    + 'width:' + inputWidth + 'px;'
+                    + 'z-index:1001;'
+                    + '" class="dropdown-menu"></div>').appendTo('body');
+                $("#menuLabels").html('<span style="margin:10px;">Loading...</span>'); // show loading in menu
+                $.ajax({
+                    type: "GET"
+                    , url: settings.urlSPA
+                    , data: { "_program": getSPName('dimonGetFLowLabels') }
+                    , async: true
+                    , cache: false
+                    , timeout: ajaxTimeout
+                    , dataype: 'json'
+                    , success: function (response) {
+
+                        sasdata = $.parseJSON(response).data;
+                        var labels = sasdata.labels;
+
+                        var currentLabel = '';
+
+                        // createdropdown menu
+                        var s = '<ul class="dropdown-menu">';
+                        for (i = 0; i < labels.length; i++) {
+                            if (labels[i][1] == '*') labels[i][0] = labels[i][0] + ' *';
+                            s += '<li class="li-dropdown-item li-dropdown-label-item ui-widget" id="label_' + i + '" value="' + labels[i][0].replace(/ /g, '-') + '"><div>'
+                                + '<span class="ui-icon ui-icon-dropdown-item ui-icon-blank"></span>'
+                                + '<span class="text-dropdown-item">' + labels[i][0] + '</span>'
+                                + '</div><br></li>'
+                                ;
+                        }
+                        s += '</ul>';
+
+                        $("#menuLabels").html(s);
+                        $('.li-dropdown-label-item').click(function () {
+                            $("#search").val("label:" + $(this).attr('value'));
+                            refresh();
+                            $("#menuLabels").remove(); // remove menu in case it already exists
+                        });
+
+                    }
+                    , error: function (XMLHttpRequest, textStatus, errorThrown) {
+                        handleAjaxError('keepAlive', XMLHttpRequest, textStatus, errorThrown);
+                    }
+
+                });
+
                 $("#menuLabels").show();
             }
         });
@@ -247,7 +301,49 @@ $(function () {
                 // remove the menu if it already exists
                 $('#menuNavigate').remove();
             } else {
-                createNavigateMenu();
+                var s = '';
+                s += '<ul class="dropdown-menu">';
+
+                // Add items
+                if (navMenuItems.length > 0) {
+                    for (i = 0; i < navMenuItems.length; i++) {
+                        s += '<li class="li-dropdown-item li-dropdown-navigate-item ui-widget" id="navigate-' + i + '"><div>'
+                            + '<span class="ui-icon ui-icon-dropdown-item ' + (settings.currentNavigate == navMenuItems[i].value ? 'ui-icon-check' : 'ui-icon-blank') + '"></span>'
+                            + '<span class="text-dropdown-item">' + navMenuItems[i].text + '</span>'
+                            + '</div><br></li>'
+                            ;
+                    }
+                } else {
+                    s += '<li class="li-dropdown-item li-dropdown-navigate-item ui-widget" id="navigate-null"><div>'
+                        + '<span class="ui-icon ui-icon-dropdown-item ui-icon-blank"></span>'
+                        + '<span class="text-dropdown-item">&lt;no items&gt;</span>'
+                        + '</div><br></li>'
+                        ;
+                }
+
+                s += '</ul>';
+
+                var menuWidth = 193;
+                button = $("#btnNavigate");
+                var buttonPosition = button.position();
+                var buttonBottom = buttonPosition.top + button.height() + 18;
+                var menuLeft = buttonPosition.left;
+                $("#menuNavigate").remove(); // remove menu in case it already exists
+                var menuNavigate = $('<div id="menuNavigate" style="display:block;'
+                    + 'position:absolute;'
+                    + 'top:' + buttonBottom + 'px;'
+                    + 'left:' + menuLeft + 'px;'
+                    + 'width:' + menuWidth + 'px;'
+                    + 'z-index:1001;'
+                    + '" class="dropdown-menu"></div>').appendTo('body');
+                $("#menuNavigate").html(s);
+                $('.li-dropdown-navigate-item').click(function () {
+                    $("#menuNavigate").remove(); // remove the menu on click
+                    var itemnr = $(this).attr('id').split('-')[1];
+                    if (navMenuItems[itemnr] != undefined) {
+                        window.location.href = navMenuItems[itemnr].url;
+                    }
+                });
             }
         });
 
@@ -259,9 +355,49 @@ $(function () {
             // remove the menu if it already exists
             $('#menuSettings').remove();
         } else {
-            createSettingsMenu();
+            $('.ui-tooltip').remove(); // remove tooltip immediately on menu open
+            var s = '<ul class="dropdown-menu">'
+            // Add Filter items
+            for (i = 0; i < settingsMenuItems.length; i++) {
+                s += '<li class="li-dropdown-item li-dropdown-filter-item ui-widget" id="setting-' + settingsMenuItems[i].value + '">'
+                    + '<div>'
+                    + '<span class="ui-icon ui-icon-dropdown-item ' + settingsMenuItems[i].icon + '"></span>'
+                    + '<span class="text-dropdown-item">' + settingsMenuItems[i].text + '</span>'
+                    + '</div><br>'
+                    + '</li>'
+                    ;
+            }
+            s += '</ul>';
+
+            var menuWidth = 150;
+            button = $("#btnSettings");
+            var buttonPosition = button.position();
+            var buttonLeft = buttonPosition.left;
+            var buttonBottom = buttonPosition.top + button.height() + 18;
+            var menuLeft = buttonLeft + button.width() - menuWidth + 27;
+            $("#menuSettings").remove(); // remove menu in case it already exists
+            var menuSettings = $('<div id="menuSettings" style="display:block;'
+                + 'position:absolute;'
+                + 'top:' + buttonBottom + 'px;'
+                + 'left:' + menuLeft + 'px;'
+                + 'width:' + menuWidth + 'px;'
+                + 'z-index:1001;'
+                + '" class="dropdown-menu"></div>').appendTo('body');
+            $("#menuSettings").html(s);
+            $('.li-dropdown-filter-item').click(function () {
+                $("#menuSettings").remove(); // remove menu
+                var selectedItem = $(this).attr('id').split('-')[1];
+                switch (selectedItem) {
+                    case 'settings':
+                        getSettings();
+                        break;
+                    case 'alerts':
+                        getAlerts();
+                        break;
+                    default:
+                }
+            });
         }
-        // getSettings(); 
     });
 
     $("#btnFilter").button({ icons: { secondary: "ui-icon-triangle-1-s" } })
@@ -270,7 +406,51 @@ $(function () {
                 // remove the menu if it already exists
                 $('#menuFilter').remove();
             } else {
-                createFilterMenu();
+                var filterMenuItems = [];
+                var currentFilter = '';
+                switch (settings.currentView) {
+                    case "Flows":
+                        filterMenuItems = filterFlowsMenuItems;
+                        currentFilter = settings.filterFlows;
+                        break;
+                    case "Jobs":
+                        filterMenuItems = filterJobsMenuItems;
+                        currentFilter = settings.filterJobs;
+                        break;
+                    default:
+                        filterMenuItems = [];
+                        currentFilter = '';
+                }
+                var s = '';
+                s += '<ul class="dropdown-menu">';
+
+                // Add Filter items
+                for (i = 0; i < filterMenuItems.length; i++) {
+                    s += '<li class="li-dropdown-item li-dropdown-filter-item ui-widget" id="filter-' + filterMenuItems[i].value + '"><div>'
+                        + '<span class="ui-icon ui-icon-dropdown-item ' + (currentFilter == filterMenuItems[i].value ? 'ui-icon-check' : 'ui-icon-blank') + '"></span>'
+                        + '<span class="text-dropdown-item">' + filterMenuItems[i].text + '</span>'
+                        + '</div><br></li>'
+                        ;
+                }
+
+                s += '</ul>';
+
+                var menuWidth = 150;
+                button = $("#btnFilter");
+                var buttonPosition = button.position();
+                var buttonLeft = buttonPosition.left;
+                var buttonBottom = buttonPosition.top + button.height() + 18;
+                var menuLeft = buttonLeft + button.width() - menuWidth + 26;
+                $("#menuFilter").remove(); // remove menu in case it already exists
+                var menuFilter = $('<div id="menuFilter" style="display:block;'
+                    + 'position:absolute;'
+                    + 'top:' + buttonBottom + 'px;'
+                    + 'left:' + menuLeft + 'px;'
+                    + 'width:' + menuWidth + 'px;'
+                    + 'z-index:1001;'
+                    + '" class="dropdown-menu"></div>').appendTo('body');
+                $("#menuFilter").html(s);
+                $('.li-dropdown-filter-item').click(function () { filter($(this).attr('id').split('-')[1]); });
             }
         });
 
@@ -280,7 +460,57 @@ $(function () {
                 // remove the menu if it already exists
                 $('#menuSort').remove();
             } else {
-                createSortMenu();
+                var SortMenuItems = [];
+                var currentSort = '';
+                switch (settings.currentView) {
+
+                    case "Flows":
+                        sortMenuItems = sortFlowsMenuItems;
+                        var sortColumn = (settings.sortFlows.split(' ')[0] == null ? 'trigger_time' : settings.sortFlows.split(' ')[0]);
+                        var sortDirection = (settings.sortFlows.split(' ')[1] == null ? 'desc' : settings.sortFlows.split(' ')[1]);
+                        break;
+
+                    case "Jobs":
+                        sortMenuItems = sortJobsMenuItems;
+                        var sortColumn = (settings.sortJobs.split(' ')[0] == null ? 'trigger_time' : settings.sortJobs.split(' ')[0]);
+                        var sortDirection = (settings.sortJobs.split(' ')[1] == null ? 'desc' : settings.sortJobs.split(' ')[1]);
+                        break;
+
+                    default:
+                        sortMenuItems = [];
+                        currentSort = '';
+                }
+
+                var s = '';
+                s += '<ul class="dropdown-menu">';
+
+                // Add Sort items
+                for (i = 0; i < sortMenuItems.length; i++) {
+                    s += '<li class="li-dropdown-item li-dropdown-sort-item ui-widget" id="sort-' + sortMenuItems[i].value + '"><div>'
+                        + '<span class="ui-icon ui-icon-dropdown-item ' + (sortColumn == sortMenuItems[i].value ? 'ui-icon-check' : 'ui-icon-blank') + '"></span>'
+                        + '<span class="text-dropdown-item">' + sortMenuItems[i].text + '</span>';
+                    if (sortColumn == sortMenuItems[i].value) {
+                        s += '<span class="ui-icon ui-icon-dropdown-item sortmenu-sort-direction-item ' + (sortDirection == 'asc' ? "ui-icon-arrowthick-1-s" : "ui-icon-arrowthick-1-n") + '"></span>'
+                    }
+                    s += '</div><br></li>';
+                }
+
+                s += '</ul>';
+                menuWidth = 200;
+                button = $("#btnSort");
+                var buttonPosition = button.position();
+                var menuLeft = buttonPosition.left;
+                var menuTop = buttonPosition.top + button.height() + 18;
+                $("#menuSort").remove(); // remove menu in case it already exists
+                var menuSort = $('<div id="menuSort" style="display:block;'
+                    + 'position:absolute;'
+                    + 'top:' + menuTop + 'px;'
+                    + 'left:' + menuLeft + 'px;'
+                    + 'width:' + menuWidth + 'px;'
+                    + 'z-index:1001;'
+                    + '" class="dropdown-menu"></div>').appendTo('body');
+                $("#menuSort").html(s);
+                $('.li-dropdown-sort-item').click(function () { sort($(this).attr('id').split('-')[1]); });
             }
         });
 
@@ -1616,219 +1846,6 @@ function updateSortButtonLabel() {
 }//updateSortButtonLabel
 
 
-function createFilterMenu() {
-
-    var filterMenuItems = [];
-    var currentFilter = '';
-    switch (settings.currentView) {
-
-        case "Flows":
-            filterMenuItems = filterFlowsMenuItems;
-            currentFilter = settings.filterFlows;
-            break;
-
-        case "Jobs":
-            filterMenuItems = filterJobsMenuItems;
-            currentFilter = settings.filterJobs;
-            break;
-
-        default:
-            filterMenuItems = [];
-            currentFilter = '';
-    }
-
-    var s = '';
-    s += '<ul class="dropdown-menu">';
-
-    // Add Filter items
-    for (i = 0; i < filterMenuItems.length; i++) {
-        s += '<li class="li-dropdown-item li-dropdown-filter-item ui-widget" id="filter-' + filterMenuItems[i].value + '"><div>'
-            + '<span class="ui-icon ui-icon-dropdown-item ' + (currentFilter == filterMenuItems[i].value ? 'ui-icon-check' : 'ui-icon-blank') + '"></span>'
-            + '<span class="text-dropdown-item">' + filterMenuItems[i].text + '</span>'
-            + '</div><br></li>'
-            ;
-    }
-
-    s += '</ul>';
-
-    var menuWidth = 150;
-    button = $("#btnFilter");
-    var buttonPosition = button.position();
-    var buttonLeft = buttonPosition.left;
-    var buttonBottom = buttonPosition.top + button.height() + 18;
-    var menuLeft = buttonLeft + button.width() - menuWidth + 26;
-    $("#menuFilter").remove(); // remove menu in case it already exists
-    var menuFilter = $('<div id="menuFilter" style="display:block;'
-        + 'position:absolute;'
-        + 'top:' + buttonBottom + 'px;'
-        + 'left:' + menuLeft + 'px;'
-        + 'width:' + menuWidth + 'px;'
-        + 'z-index:1001;'
-        + '" class="dropdown-menu"></div>').appendTo('body');
-    $("#menuFilter").html(s);
-    $('.li-dropdown-filter-item').click(function () { filter($(this).attr('id').split('-')[1]); });
-
-}//createFilterMenu
-
-
-function createSettingsMenu() {
-
-    $('.ui-tooltip').remove(); // remove tooltip immediately on menu open
-    var s = '<ul class="dropdown-menu">'
-    // Add Filter items
-    for (i = 0; i < settingsMenuItems.length; i++) {
-        s += '<li class="li-dropdown-item li-dropdown-filter-item ui-widget" id="setting-' + settingsMenuItems[i].value + '">'
-            + '<div>'
-            + '<span class="ui-icon ui-icon-dropdown-item ' + settingsMenuItems[i].icon + '"></span>'
-            + '<span class="text-dropdown-item">' + settingsMenuItems[i].text + '</span>'
-            + '</div><br>'
-            + '</li>'
-            ;
-    }
-    s += '</ul>';
-
-    var menuWidth = 150;
-    button = $("#btnSettings");
-    var buttonPosition = button.position();
-    var buttonLeft = buttonPosition.left;
-    var buttonBottom = buttonPosition.top + button.height() + 18;
-    var menuLeft = buttonLeft + button.width() - menuWidth + 27;
-    $("#menuSettings").remove(); // remove menu in case it already exists
-    var menuSettings = $('<div id="menuSettings" style="display:block;'
-        + 'position:absolute;'
-        + 'top:' + buttonBottom + 'px;'
-        + 'left:' + menuLeft + 'px;'
-        + 'width:' + menuWidth + 'px;'
-        + 'z-index:1001;'
-        + '" class="dropdown-menu"></div>').appendTo('body');
-    $("#menuSettings").html(s);
-    $('.li-dropdown-filter-item').click(function () {
-        $("#menuSettings").remove(); // remove menu
-        var selectedItem = $(this).attr('id').split('-')[1];
-        switch (selectedItem) {
-            case 'settings':
-                getSettings();
-                break;
-            case 'alerts':
-                getAlerts();
-                break;
-            default:
-        }
-    });
-
-}//createSettingsMenu
-
-
-function createNavigateMenu() {
-
-    var s = '';
-    s += '<ul class="dropdown-menu">';
-
-    // Add items
-    if (navMenuItems.length > 0) {
-        for (i = 0; i < navMenuItems.length; i++) {
-            s += '<li class="li-dropdown-item li-dropdown-navigate-item ui-widget" id="navigate-' + i + '"><div>'
-                + '<span class="ui-icon ui-icon-dropdown-item ' + (settings.currentNavigate == navMenuItems[i].value ? 'ui-icon-check' : 'ui-icon-blank') + '"></span>'
-                + '<span class="text-dropdown-item">' + navMenuItems[i].text + '</span>'
-                + '</div><br></li>'
-                ;
-        }
-    } else {
-        s += '<li class="li-dropdown-item li-dropdown-navigate-item ui-widget" id="navigate-null"><div>'
-            + '<span class="ui-icon ui-icon-dropdown-item ui-icon-blank"></span>'
-            + '<span class="text-dropdown-item">&lt;no items&gt;</span>'
-            + '</div><br></li>'
-            ;
-    }
-
-    s += '</ul>';
-
-    var menuWidth = 193;
-    button = $("#btnNavigate");
-    var buttonPosition = button.position();
-    var buttonBottom = buttonPosition.top + button.height() + 18;
-    var menuLeft = buttonPosition.left;
-    $("#menuNavigate").remove(); // remove menu in case it already exists
-    var menuNavigate = $('<div id="menuNavigate" style="display:block;'
-        + 'position:absolute;'
-        + 'top:' + buttonBottom + 'px;'
-        + 'left:' + menuLeft + 'px;'
-        + 'width:' + menuWidth + 'px;'
-        + 'z-index:1001;'
-        + '" class="dropdown-menu"></div>').appendTo('body');
-    $("#menuNavigate").html(s);
-    $('.li-dropdown-navigate-item').click(function () {
-        $("#menuNavigate").remove(); // remove the menu on click
-        var itemnr = $(this).attr('id').split('-')[1];
-        if (navMenuItems[itemnr] != undefined) {
-            window.location.href = navMenuItems[itemnr].url;
-        }
-    });
-
-}//createNavigateMenu
-
-
-function createFilterLabelMenu() {
-
-    inputSearch = $("#search");
-    var inputPosition = inputSearch.offset();
-    var inputLeft = inputPosition.left;
-    var inputBottom = inputPosition.top + inputSearch.height() + 13;
-    var inputWidth = inputSearch.width() + 25;
-    $("#menuLabels").remove(); // remove menu in case it already exists
-    var menuLabels = $('<div id="menuLabels" style="display:block;'
-        + 'position:absolute;'
-        + 'top:' + inputBottom + 'px;'
-        + 'left:' + inputLeft + 'px;'
-        + 'width:' + inputWidth + 'px;'
-        + 'z-index:1001;'
-        + '" class="dropdown-menu"></div>').appendTo('body');
-    $("#menuLabels").html('<span style="margin:10px;">Loading...</span>'); // show loading in menu
-
-    $.ajax({
-        type: "GET"
-        , url: settings.urlSPA
-        , data: { "_program": getSPName('dimonGetFLowLabels') }
-        , async: true
-        , cache: false
-        , timeout: ajaxTimeout
-        , dataype: 'json'
-        , success: function (response) {
-
-            sasdata = $.parseJSON(response).data;
-            var labels = sasdata.labels;
-
-            var currentLabel = '';
-
-            // createdropdown menu
-            var s = '<ul class="dropdown-menu">';
-            for (i = 0; i < labels.length; i++) {
-                if (labels[i][1] == '*') labels[i][0] = labels[i][0] + ' *';
-                s += '<li class="li-dropdown-item li-dropdown-label-item ui-widget" id="label_' + i + '" value="' + labels[i][0].replace(/ /g, '-') + '"><div>'
-                    + '<span class="ui-icon ui-icon-dropdown-item ui-icon-blank"></span>'
-                    + '<span class="text-dropdown-item">' + labels[i][0] + '</span>'
-                    + '</div><br></li>'
-                    ;
-            }
-            s += '</ul>';
-
-            $("#menuLabels").html(s);
-            $('.li-dropdown-label-item').click(function () {
-                $("#search").val("label:" + $(this).attr('value'));
-                refresh();
-                $("#menuLabels").remove(); // remove menu in case it already exists
-            });
-
-        }
-        , error: function (XMLHttpRequest, textStatus, errorThrown) {
-            handleAjaxError('keepAlive', XMLHttpRequest, textStatus, errorThrown);
-        }
-
-    });
-
-}//createFilterLabelMenu
-
-
 function filter(options) {
 
     switch (settings.currentView) {
@@ -1849,63 +1866,6 @@ function filter(options) {
     refresh();
 
 }//filter
-
-
-function createSortMenu() {
-
-    var SortMenuItems = [];
-    var currentSort = '';
-    switch (settings.currentView) {
-
-        case "Flows":
-            sortMenuItems = sortFlowsMenuItems;
-            var sortColumn = (settings.sortFlows.split(' ')[0] == null ? 'trigger_time' : settings.sortFlows.split(' ')[0]);
-            var sortDirection = (settings.sortFlows.split(' ')[1] == null ? 'desc' : settings.sortFlows.split(' ')[1]);
-            break;
-
-        case "Jobs":
-            sortMenuItems = sortJobsMenuItems;
-            var sortColumn = (settings.sortJobs.split(' ')[0] == null ? 'trigger_time' : settings.sortJobs.split(' ')[0]);
-            var sortDirection = (settings.sortJobs.split(' ')[1] == null ? 'desc' : settings.sortJobs.split(' ')[1]);
-            break;
-
-        default:
-            sortMenuItems = [];
-            currentSort = '';
-    }
-
-    var s = '';
-    s += '<ul class="dropdown-menu">';
-
-    // Add Sort items
-    for (i = 0; i < sortMenuItems.length; i++) {
-        s += '<li class="li-dropdown-item li-dropdown-sort-item ui-widget" id="sort-' + sortMenuItems[i].value + '"><div>'
-            + '<span class="ui-icon ui-icon-dropdown-item ' + (sortColumn == sortMenuItems[i].value ? 'ui-icon-check' : 'ui-icon-blank') + '"></span>'
-            + '<span class="text-dropdown-item">' + sortMenuItems[i].text + '</span>';
-        if (sortColumn == sortMenuItems[i].value) {
-            s += '<span class="ui-icon ui-icon-dropdown-item sortmenu-sort-direction-item ' + (sortDirection == 'asc' ? "ui-icon-arrowthick-1-s" : "ui-icon-arrowthick-1-n") + '"></span>'
-        }
-        s += '</div><br></li>';
-    }
-
-    s += '</ul>';
-    menuWidth = 200;
-    button = $("#btnSort");
-    var buttonPosition = button.position();
-    var menuLeft = buttonPosition.left;
-    var menuTop = buttonPosition.top + button.height() + 18;
-    $("#menuSort").remove(); // remove menu in case it already exists
-    var menuSort = $('<div id="menuSort" style="display:block;'
-        + 'position:absolute;'
-        + 'top:' + menuTop + 'px;'
-        + 'left:' + menuLeft + 'px;'
-        + 'width:' + menuWidth + 'px;'
-        + 'z-index:1001;'
-        + '" class="dropdown-menu"></div>').appendTo('body');
-    $("#menuSort").html(s);
-    $('.li-dropdown-sort-item').click(function () { sort($(this).attr('id').split('-')[1]); });
-
-}//createSortMenu
 
 
 function sort(sortColumn) {
@@ -1951,8 +1911,6 @@ function sort(sortColumn) {
 
     }
 
-    $("#menuSort").remove();
-    createSortMenu();
     setTimeout(function () {
         $("#menuSort").remove();
         updateSortButtonLabel();
