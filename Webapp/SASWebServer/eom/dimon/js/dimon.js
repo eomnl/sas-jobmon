@@ -21,6 +21,7 @@ var settings = {
     , currentViewParms: ''
     , currentPath: ''
     , currentNavigate: ''
+    , currentRundate: ''
     , autorefresh_interval: 5
     , filterFlows: 'all_flows_excl_hidden'
     , filterJobs: 'all_jobs'
@@ -562,6 +563,7 @@ $(function () {
     if (path) {
     } else {
         srun_date = $.datepicker.formatDate('ddMyy', new Date());
+        settings.currentRundate = srun_date;
         path = '//_' + srun_date;
     }
     navigate(path);
@@ -1925,7 +1927,7 @@ function navigate(path) {
     switch (path.split('_')[0]) {
 
         case "//":
-            Flows(path.split('_')[1]);  // run_date
+            Flows(path.split('_')[1]);  //_{run_date}
             break;
 
         case "flow":
@@ -1967,50 +1969,49 @@ function menuNavbar() {
     var menuLeft = buttonPosition.left + button.width() - menuWidth;
     var menuTop = buttonPosition.top + button.height() + 8;
     $("#menuNavbar").remove(); // remove menu in case it already exists
-    var menuNavbar = $('<div id="menuNavbar" style="display:block;position:absolute;top:' + menuTop + 'px;left:' + menuLeft + 'px;width:' + menuWidth + 'px;z-index:1001;" class="dropdown-menu"></div>').appendTo('body');
+    $('<div id="menuNavbar" style="display:block;position:absolute;top:'
+        + menuTop + 'px;left:'
+        + menuLeft + 'px;width:'
+        + menuWidth + 'px;z-index:1001;" class="dropdown-menu"></div>').appendTo('body');
     $("#menuNavbar").html(s);
     $("#copyPath").click(function () {
         $("#menuNavbar").remove();
-        dialogNavigationPath();
+        var dialogWidth = $(window).width() * 0.6;
+        var dialogHeight = 175;
+        var dialog = $('<div id="dialogNavigationPath">'
+            + '<p>'
+            + '<input type="text" id="navigationPath">'
+            + '</p>'
+            + '</div>').appendTo('body');
+        dialog.dialog({    // add a close listener to prevent adding multiple divs to the document
+            close: function (event, ui) {
+                // remove div with all data and events
+                dialog.remove();
+            }
+            , title: 'Navigation Path'
+            , width: dialogWidth
+            , height: dialogHeight
+            , modal: true
+            , buttons: {
+                "Copy to clipboard": function (event, ui) {
+                    $("#navigationPath").select();
+                    document.execCommand("copy");
+                }
+                , "Close": function (event, ui) {
+                    $(this).dialog('close');
+                }
+            }
+        });
+
+        // var url = $(location).attr('protocol') + '//' + $(location).attr('host') + settings.webroot + '/?path=' + $('#navpath .navpath-item:last').attr('id');
+        var url = $(location).attr('protocol') + '//' + $(location).attr('host') + settings.webroot + '/?path=' + $('#navpath .navpath-item:last').attr('value');
+        // var url = $(location).attr('protocol') + '//' + $(location).attr('host') + settings.webroot + '/?path=' + settings.currentRundate;
+        $("#navigationPath").css("width", dialogWidth - 55).css("text-align", "left").button().val(url);
+
     });
     $("#menuNavbar").show();
 
 }//menuNavbar
-
-
-function dialogNavigationPath() {
-
-    var dialogWidth = $(window).width() * 0.6;
-    var dialogHeight = 175;
-    var dialog = $('<div id="dialogNavigationPath">'
-        + '<p>'
-        + '<input type="text" id="navigationPath">'
-        + '</p>'
-        + '</div>').appendTo('body');
-    dialog.dialog({    // add a close listener to prevent adding multiple divs to the document
-        close: function (event, ui) {
-            // remove div with all data and events
-            dialog.remove();
-        }
-        , title: 'Navigation Path'
-        , width: dialogWidth
-        , height: dialogHeight
-        , modal: true
-        , buttons: {
-            "Copy to clipboard": function (event, ui) {
-                $("#navigationPath").select();
-                document.execCommand("copy");
-            }
-            , "Close": function (event, ui) {
-                $(this).dialog('close');
-            }
-        }
-    });
-
-    var url = $(location).attr('protocol') + '//' + $(location).attr('host') + settings.webroot + '/?path=' + $('#navpath .navpath-item:last').attr('id');
-    $("#navigationPath").css("width", dialogWidth - 55).css("text-align", "left").button().val(url);
-
-}//dialogNavigationPath
 
 
 function Flows(run_date) {
@@ -2117,7 +2118,7 @@ function refreshFlows(run_date) {
                                 , onSelect: function (date, event) {
                                     $("#inputRundate").val($.datepicker.formatDate('ddMyy', $("#datepicker").datepicker("getDate")));
                                     // stupid was to detect double click but it works
-                                    if ((new Date() -datepickerClickDate) < 300) {
+                                    if ((new Date() - datepickerClickDate) < 300) {
                                         btnRundateApply.click();
                                     }
                                     datepickerClickDate = new Date(); // save date for next click
@@ -2173,6 +2174,7 @@ function refreshFlows(run_date) {
                                 $("#dialogRundate").remove();
                             });
                             $("#btnRundateApply").button().click(function () {
+                                settings.currentRundate = $("#inputRundate").val();
                                 settings.rundateHistDays = $("#inputRundateHistdays").val();
                                 Cookies.set('dimonRundateHistDays', settings.rundateHistDays, { expires: 365 });
                                 navigate('//_' + $("#inputRundate").val());
