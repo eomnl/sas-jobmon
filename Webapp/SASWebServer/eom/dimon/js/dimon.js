@@ -775,7 +775,7 @@ function labels(initialSelectLabel, message) {
         + '      <button id="btnClearTextSelectedFlows">Clear</button>'
         + '      <table id="tableSelectedFlows" style="cursor:default">'
         + '      </table>'
-        + '      <button id="btnSaveLabels">Apply</button>'
+        + '      <button id="btnSaveLabels">Save</button>'
         + '    </div>'
         + '  </div>'
         + '</div>').appendTo('body');
