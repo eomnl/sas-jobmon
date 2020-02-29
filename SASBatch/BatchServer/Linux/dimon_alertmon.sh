@@ -1,6 +1,8 @@
 SAS_COMMAND=/apps/sas/SASConfig/Lev1/SASApp/BatchServer/sasbatch.sh
 SCRIPTDIR=$(echo "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)")
 SYSINFILE="/tmp/dimon_alertmon.sas"
+EOMALERTSLOGOFILE="/tmp/eomalerts.png"
+ALERTEMAILFROMADDRESS="eomalerts@xs4all.nl"
 HOSTNAME=$(hostname -s)
 DTS=$(date +%Y%m%d_%H%M%S)
 LOGFILE="$SCRIPTDIR/Logs/dimon_alertmon_${HOSTNAME}_${DTS}.log"
@@ -66,6 +68,7 @@ alertmon_start() {
   #
 
   include_sascode
+  eomalerts_png
 
   if [ "$(alertmon_status)" == "EOM Alert Monitor is UP" ]; then
     echo "EOM Alert Monitor is already running."
@@ -74,7 +77,11 @@ alertmon_start() {
 
   echo Starting EOM Alert Monitor
   running=false
-  nohup "$SAS_COMMAND" -sysin "$SYSINFILE" -log "$LOGFILE" -print "$LSTFILE" -set lsf_flow_active_dir $LSF_FLOW_ACTIVE_DIR -set lsf_flow_finished_dir $LSF_FLOW_FINISHED_DIR </dev/null &>/dev/null &
+  nohup "$SAS_COMMAND" -sysin "$SYSINFILE" -log "$LOGFILE" -print "$LSTFILE" \
+        -set eomalertslogofile $EOMALERTSLOGOFILE \
+        -set alertemailfromaddress "eomalerts@xs4all.nl" \
+        -set lsf_flow_active_dir $LSF_FLOW_ACTIVE_DIR \
+        -set lsf_flow_finished_dir $LSF_FLOW_FINISHED_DIR </dev/null &>/dev/null &
   rc=$?
   pid=$!
   echo $pid >$PIDFILE
@@ -147,8 +154,11 @@ alertmon_status() {
 
 include_sascode() {
 
-  cat <<EOF >$SYSINFILE
+  cat <<"EOF" >$SYSINFILE
 
+
+
+options errorabend;
 %macro alertmon;
 
   %if (&_debug > 0) %then
@@ -170,10 +180,9 @@ include_sascode() {
 
 
 
-
 /* ----------------------------------------
 Code exported from SAS Enterprise Guide
-DATE: zaterdag 29 februari 2020     TIME: 21:05:16
+DATE: zaterdag 29 februari 2020     TIME: 22:23:22
 PROJECT: DIMonRT3
 PROJECT PATH: C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonRT3.egp
 ---------------------------------------- */
@@ -426,6 +435,12 @@ PROJECT PATH: C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonR
 %LET _SASPROGRAMFILEHOST='';
 
 GOPTIONS ACCESSIBLE;
+/*%let eomalertslogofile = /tmp/eomalerts.png;*/
+/*%let lsf_flow_active_dir = /apps/sas/thirdparty/pm/work/storage/flow_instance_storage/active;*/
+/*%let lsf_flow_finished_dir = /apps/sas/thirdparty/pm/work/storage/flow_instance_storage/finished;*/
+/*%let AlertEmailFromAddress=eomalerts@xs4all.nl;*/
+
+
 GOPTIONS NOACCESSIBLE;
 %LET _CLIENTTASKLABEL=;
 %LET _CLIENTPROCESSFLOWNAME=;
@@ -436,8 +451,69 @@ GOPTIONS NOACCESSIBLE;
 %LET _SASPROGRAMFILEHOST=;
 
 
-/*   START OF NODE: dimon init   */
-%LET _CLIENTTASKLABEL='dimon init';
+/*   START OF NODE: time events   */
+%LET _CLIENTTASKLABEL='time events';
+%LET _CLIENTPROCESSFLOWNAME='alertmon';
+%LET _CLIENTPROJECTPATH='C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonRT3.egp';
+%LET _CLIENTPROJECTPATHHOST='BHEINSIUS-PC';
+%LET _CLIENTPROJECTNAME='DIMonRT3.egp';
+
+GOPTIONS ACCESSIBLE;
+%_eg_conditional_dropds(WORK.FLOWS_WITH_CALENDARS);
+
+PROC SQL;
+   CREATE TABLE WORK.FLOWS_WITH_CALENDARS AS 
+   SELECT t1.FLOW_ID LABEL='', 
+          t2.FLOW_NAME LABEL='', 
+          t1.TRIGGERING_EVENT_TRANSFER_ROLE LABEL='', 
+          t1.TRIGGERING_EVENT_ROLE LABEL='', 
+          t1.TRIGGERING_EVENT_CONDITION LABEL='', 
+          t1.TIMEZONE LABEL='', 
+          /* calendar_name */
+            (case upcase(t1.TRIGGERING_EVENT_ROLE)
+              when 'TIMEEVENT' then scan(t1.TRIGGERING_EVENT_CONDITION,1,':')
+              else ''
+            end) AS calendar_name, 
+          /* calendar_hours */
+            (case upcase(t1.TRIGGERING_EVENT_ROLE)
+              when 'TIMEEVENT' then scan(t1.TRIGGERING_EVENT_CONDITION,2,':')
+              else ''
+            end) AS calendar_hours, 
+          /* calendar_minutes */
+            (case upcase(t1.TRIGGERING_EVENT_ROLE)
+              when 'TIMEEVENT' then scan(t1.TRIGGERING_EVENT_CONDITION,3,':%')
+              else ''
+            end) AS calendar_minutes, 
+          t1.VALID_FROM_DTS LABEL='' AS FLOW_SCHEDULE_VALID_FROM_DTS, 
+          t1.VALID_UNTIL_DTS LABEL='' AS FLOW_SCHEDULE_VALID_UNTIL_DTS, 
+          t2.VALID_FROM_DTS LABEL='' AS FLOW_VALID_FROM_DTS, 
+          t2.VALID_UNTIL_DTS LABEL='' AS FLOW_VALID_UNTIL_DTS, 
+          t3.alert_condition, 
+          t3.alert_action, 
+          t3.alert_action_details
+      FROM DIMON.DIMON_FLOW_SCHEDULES t1, DIMON.DIMON_FLOWS t2, DIMON.DIMON_FLOW_ALERTS t3
+      WHERE (t1.FLOW_ID = t2.FLOW_ID AND t1.flow_id = t3.flow_id) AND (t1.TRIGGERING_EVENT_ROLE IN 
+           (
+           'TimeEvent',
+           'TIMEEVENT'
+           ) AND t3.alert_condition = 'misses_scheduled_time');
+QUIT;
+
+GOPTIONS NOACCESSIBLE;
+
+
+
+
+%LET _CLIENTTASKLABEL=;
+%LET _CLIENTPROCESSFLOWNAME=;
+%LET _CLIENTPROJECTPATH=;
+%LET _CLIENTPROJECTPATHHOST=;
+%LET _CLIENTPROJECTNAME=;
+
+
+/*   START OF NODE: scheduled flows on run_date   */
+%LET SYSLAST=WORK.FLOWS_WITH_CALENDARS;
+%LET _CLIENTTASKLABEL='scheduled flows on run_date';
 %LET _CLIENTPROCESSFLOWNAME='alertmon';
 %LET _CLIENTPROJECTPATH='C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonRT3.egp';
 %LET _CLIENTPROJECTPATHHOST='BHEINSIUS-PC';
@@ -446,7 +522,65 @@ GOPTIONS NOACCESSIBLE;
 %LET _SASPROGRAMFILEHOST='';
 
 GOPTIONS ACCESSIBLE;
-%dimon_init
+%let run_date_from = %sysfunc(date(),date7.);
+%let run_date_until = &run_date_from;
+
+data work.rundates;
+  do d=("&run_date_from"d - 1) to ("&run_date_until"d + 1);
+      output;
+  end;
+  format d date9.;
+  stop;
+run;
+proc sql;
+  create view work.v1 as
+    select t1.*
+    ,      t2.d
+    from   work.flows_with_calendars t1
+    ,      work.rundates t2
+  ;
+quit;
+
+data _null_;
+  if (_n_ = 1) then
+  do;
+      call execute('options nosource;');
+      call execute('proc sql;');
+      call execute('  create table work.flows_scheduled_on_run_date as');
+      call execute('    select flow_id');
+      call execute('    ,      flow_name');
+      call execute('    ,      calendar_name');
+      call execute('    ,      calendar_hours');
+      call execute('    ,      calendar_minutes');
+      call execute('    ,      timezone');
+      call execute('    ,      d');
+      call execute('    ,      case calendar_name');
+  end;
+  set dimon.dimon_calendars end=last;
+      call execute('             when "' !! strip(calendar_name) !! '" then ( ' !! strip(calendar_sascode) !! ' )');
+  if (last) then
+  do;
+      call execute('             else 0');
+      call execute('           end as active');
+      call execute('    ,      flow_schedule_valid_from_dts');
+      call execute('    ,      flow_schedule_valid_until_dts');
+      call execute('    ,      flow_valid_from_dts');
+      call execute('    ,      flow_valid_until_dts');
+      call execute('    ,      alert_condition');
+      call execute('    ,      alert_action');
+      call execute('    ,      alert_action_details');
+      call execute('    from   work.v1');
+      call execute('    where  calculated active = 1');
+      call execute('   ;');
+
+      call execute('  drop view work.v1;');
+
+      call execute('quit;');
+  end;
+run;
+proc sql;
+  drop table work.rundates;
+quit;
 
 
 GOPTIONS NOACCESSIBLE;
@@ -457,6 +591,191 @@ GOPTIONS NOACCESSIBLE;
 %LET _CLIENTPROJECTNAME=;
 %LET _SASPROGRAMFILE=;
 %LET _SASPROGRAMFILEHOST=;
+
+
+/*   START OF NODE: add times   */
+%LET SYSLAST=WORK.FLOWS_SCHEDULED_ON_RUN_DATE;
+%LET _CLIENTTASKLABEL='add times';
+%LET _CLIENTPROCESSFLOWNAME='alertmon';
+%LET _CLIENTPROJECTPATH='C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonRT3.egp';
+%LET _CLIENTPROJECTPATHHOST='BHEINSIUS-PC';
+%LET _CLIENTPROJECTNAME='DIMonRT3.egp';
+%LET _SASPROGRAMFILE='';
+%LET _SASPROGRAMFILEHOST='';
+
+GOPTIONS ACCESSIBLE;
+%let run_date = %sysfunc(date(),date7.);
+data work.t1;
+  set work.flows_scheduled_on_run_date;
+  count = 1;
+  onehour = scan(calendar_hours,count,',');
+  do while(onehour ne '');
+      if (strip(onehour) = '*') then
+      do;
+          do hour = 0 to 23;
+              output;
+          end;/* do hour */
+      end;
+      else if (index(onehour,'-') > 0) then
+      do;
+          hourloopFrom  = input(scan(onehour,1,'-'),best.);
+          hourloopUntil = input(scan(onehour,2,'-'),best.);
+          do hour = hourloopFrom to hourloopUntil;
+              output;
+          end;/* do hour */
+      end;
+      else
+      do;
+          hour = input(onehour,best.);
+          output;
+      end;
+      count + 1;
+      onehour = scan(calendar_hours,count,',');
+  end;/* do while */
+run;
+data work.t1(keep=flow_id flow_name calendar_name d hour minute timezone
+                  flow_schedule_valid_from_dts
+                  flow_schedule_valid_until_dts
+                  flow_valid_from_dts
+                  flow_valid_until_dts
+                  alert_condition alert_action alert_action_details
+                  );
+  set work.t1;
+  count = 1;
+  oneminute = scan(calendar_minutes,count,',');
+  do while(oneminute ne '');
+      if (strip(oneminute) = '*') then
+      do;
+          do minute = 0 to 59;
+              output;
+          end;/* do hour */
+      end;
+      else if (index(oneminute,'-') > 0) then
+      do;
+          minuteloopFrom  = input(scan(oneminute,1,'-'),best.);
+          minuteloopUntil = input(scan(oneminute,2,'-'),best.);
+          do minute = minuteloopFrom to minuteloopUntil;
+              output;
+          end;/* do hour */
+      end;
+      else
+      do;
+          minute = input(oneminute,best.);
+          output;
+      end;
+      count + 1;
+      oneminute = scan(calendar_minutes,count,',');
+  end;/* do while */
+run;
+proc sort data=work.t1 nodupkey;
+  by _all_;
+run;
+
+data _null_;
+
+  call execute('options nosource;');
+  call execute('proc sql;');
+
+  call execute('  create table work.t2 as');
+  call execute('    select *');
+  call execute('    ,      dhms(d,hour,minute,0) as dts format=datetime18.');
+  call execute('    from   work.t1');
+  call execute('  ;');
+
+  call execute('  create table work.scheduled_flows as');
+  call execute('    select flow_id');
+  call execute('    ,      flow_name');
+  call execute('    ,      calendar_name');
+  call execute('    ,      d as d_original');
+  call execute('    ,      hour as hour_original');
+  call execute('    ,      minute as minute_original');
+  call execute('    ,      timezone');
+  call execute('    ,      dts');
+  call execute('    ,      case');
+  call execute('             when 0 then 0 /* dummy clause */');
+
+  do while (not(last));
+      set dimon.dimon_timezones end=last;
+          call execute('             when upcase(timezone) = "' !! upcase(strip(timezone)) !! '" and ( ' !! strip(condition_sascode) !! ' ) then dts + ' !! put(timediff,best.));
+  end;
+
+  call execute('             else dts');
+  call execute('           end as dts_local format=datetime18.');
+  call execute('    ,      datepart(calculated dts_local) as d format=date9.');
+  call execute('    ,      hour(timepart(calculated dts_local)) as hour');
+  call execute('    ,      minute(timepart(calculated dts_local)) as minute');
+  call execute('    ,      alert_condition');
+  call execute('    ,      alert_action');
+  call execute('    ,      alert_action_details');
+  call execute('    from   work.t2');
+  call execute('    where  calculated d >= "&run_date_from"d');
+  call execute('    and    calculated d <= "&run_date_until"d');
+  call execute('    and    flow_schedule_valid_from_dts <= dhms("&run_date"d,hour,minute,0)'); 
+  call execute('    and    flow_schedule_valid_until_dts > dhms("&run_date"d,hour,minute,0)'); 
+  call execute('    and    flow_valid_from_dts <= dhms("&run_date"d,hour,minute,0)'); 
+  call execute('    and    flow_valid_until_dts > dhms("&run_date"d,hour,minute,0)'); 
+  call execute('   ;');
+
+  call execute('quit;');
+  stop;
+
+run;
+
+proc datasets lib=work nolist nowarn mt=(data view);
+  delete t1;
+  delete t2;
+quit;
+
+
+
+GOPTIONS NOACCESSIBLE;
+%LET _CLIENTTASKLABEL=;
+%LET _CLIENTPROCESSFLOWNAME=;
+%LET _CLIENTPROJECTPATH=;
+%LET _CLIENTPROJECTPATHHOST=;
+%LET _CLIENTPROJECTNAME=;
+%LET _SASPROGRAMFILE=;
+%LET _SASPROGRAMFILEHOST=;
+
+
+/*   START OF NODE: add datetimes and filter   */
+%LET _CLIENTTASKLABEL='add datetimes and filter';
+%LET _CLIENTPROCESSFLOWNAME='alertmon';
+%LET _CLIENTPROJECTPATH='C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonRT3.egp';
+%LET _CLIENTPROJECTPATHHOST='BHEINSIUS-PC';
+%LET _CLIENTPROJECTNAME='DIMonRT3.egp';
+
+GOPTIONS ACCESSIBLE;
+%_eg_conditional_dropds(WORK.QUERY_FOR_SCHEDULED_FLOWS1);
+
+PROC SQL;
+   CREATE TABLE WORK.QUERY_FOR_SCHEDULED_FLOWS1(label="scheduled_flows_dts") AS 
+   SELECT t1.FLOW_ID, 
+          t1.FLOW_NAME, 
+          t1.calendar_name AS CALENDAR_NAME, 
+          /* SCHEDULED_RUN_DTS */
+            (dhms(t1.d,t1.hour,t1.minute,0)) FORMAT=datetime18. AS SCHEDULED_RUN_DTS, 
+          /* SCHEDULED_RUN_DTS_RANGE_MIN */
+            (calculated SCHEDULED_RUN_DTS) FORMAT=datetime18. AS SCHEDULED_RUN_DTS_RANGE_MIN, 
+          /* SCHEDULED_RUN_DTS_RANGE_MAX */
+            (calculated SCHEDULED_RUN_DTS + coalesce(input(symget('FLOW_SCHEDULED_DTS_MATCH_SECONDS'),best.),60)) 
+            FORMAT=datetime18. AS SCHEDULED_RUN_DTS_RANGE_MAX, 
+          t1.alert_condition, 
+          t1.alert_action, 
+          t1.alert_action_details
+      FROM WORK.SCHEDULED_FLOWS t1
+      WHERE (CALCULATED SCHEDULED_RUN_DTS) > "&sysdate9. &systime."dt AND (CALCULATED SCHEDULED_RUN_DTS_RANGE_MAX) <= 
+           datetime();
+QUIT;
+
+GOPTIONS NOACCESSIBLE;
+
+
+%LET _CLIENTTASKLABEL=;
+%LET _CLIENTPROCESSFLOWNAME=;
+%LET _CLIENTPROJECTPATH=;
+%LET _CLIENTPROJECTPATHHOST=;
+%LET _CLIENTPROJECTNAME=;
 
 
 /*   START OF NODE: get active and finished flows   */
@@ -474,7 +793,11 @@ GOPTIONS ACCESSIBLE;
 
 %macro x;
 
-  %global _init;
+  %global _init 
+          lsf_flow_active_dir 
+          lsf_flow_finished_dir
+          ;
+
   %if ("&_init" = "") %then %let _init = 1;
 
   /* check existence of lsf active and finished macvars */
@@ -1326,6 +1649,89 @@ GOPTIONS NOACCESSIBLE;
 %LET _CLIENTPROJECTNAME=;
 
 
+/*   START OF NODE: get flows not started   */
+%LET _CLIENTTASKLABEL='get flows not started';
+%LET _CLIENTPROCESSFLOWNAME='alertmon';
+%LET _CLIENTPROJECTPATH='C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonRT3.egp';
+%LET _CLIENTPROJECTPATHHOST='BHEINSIUS-PC';
+%LET _CLIENTPROJECTNAME='DIMonRT3.egp';
+
+GOPTIONS ACCESSIBLE;
+%_eg_conditional_dropds(WORK.FLOWS_NOT_STARTED);
+
+PROC SQL;
+   CREATE TABLE WORK.FLOWS_NOT_STARTED AS 
+   SELECT t1.flow_id, 
+          t1.flow_name, 
+          t1.CALENDAR_NAME, 
+          t1.SCHEDULED_RUN_DTS, 
+          t1.SCHEDULED_RUN_DTS_RANGE_MIN, 
+          t1.SCHEDULED_RUN_DTS_RANGE_MAX, 
+          t1.alert_condition, 
+          t1.alert_action, 
+          t1.alert_action_details
+      FROM WORK.QUERY_FOR_SCHEDULED_FLOWS1 t1
+           LEFT JOIN WORK.FLOWS_NOW_WITH_FLOW_ID t2 ON (t1.flow_id = t2.flow_id) AND (t1.SCHEDULED_RUN_DTS_RANGE_MIN <= 
+          t2.flow_start_dts) AND (t1.SCHEDULED_RUN_DTS_RANGE_MAX >= t2.flow_start_dts)
+      WHERE t2.flow_run_id IS MISSING;
+QUIT;
+
+GOPTIONS NOACCESSIBLE;
+
+
+
+%LET _CLIENTTASKLABEL=;
+%LET _CLIENTPROCESSFLOWNAME=;
+%LET _CLIENTPROJECTPATH=;
+%LET _CLIENTPROJECTPATHHOST=;
+%LET _CLIENTPROJECTNAME=;
+
+
+/*   START OF NODE: filter email alerts   */
+%LET _CLIENTTASKLABEL='filter email alerts';
+%LET _CLIENTPROCESSFLOWNAME='alertmon';
+%LET _CLIENTPROJECTPATH='C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonRT3.egp';
+%LET _CLIENTPROJECTPATHHOST='BHEINSIUS-PC';
+%LET _CLIENTPROJECTNAME='DIMonRT3.egp';
+
+GOPTIONS ACCESSIBLE;
+%_eg_conditional_dropds(WORK.ALERTS_FLOWS_NOT_STARTED_EMAIL);
+
+PROC SQL;
+   CREATE TABLE WORK.ALERTS_FLOWS_NOT_STARTED_EMAIL AS 
+   SELECT /* flow_run_id1 */
+            (.) AS flow_run_id1, 
+          t1.flow_id AS flow_id1, 
+          t1.flow_name AS flow_name1, 
+          t1.alert_condition, 
+          t1.alert_action LABEL='' AS alert_action, 
+          t1.alert_action_details LABEL='' AS alert_email_address, 
+          t1.SCHEDULED_RUN_DTS, 
+          /* alert_email_message */
+            (strip(t1.flow_name)!!' missed scheduled time of '!!put(t1.SCHEDULED_RUN_DTS,datetime.)) AS 
+            alert_email_message, 
+          t2.flow_id1 AS flow_id11, 
+          /* alert_email_message_details */
+            ('') AS alert_email_message_details, 
+          /* already_notified */
+            (not(missing(t2.flow_id1))) AS already_notified
+      FROM WORK.FLOWS_NOT_STARTED t1
+           LEFT JOIN WORK.NOTIFIED t2 ON (t1.flow_id = t2.flow_id1) AND (t1.alert_condition = t2.alert_condition) AND 
+          (t1.SCHEDULED_RUN_DTS = t2.scheduled_run_dts)
+      WHERE (CALCULATED already_notified) NOT = 1;
+QUIT;
+
+GOPTIONS NOACCESSIBLE;
+
+
+
+%LET _CLIENTTASKLABEL=;
+%LET _CLIENTPROCESSFLOWNAME=;
+%LET _CLIENTPROJECTPATH=;
+%LET _CLIENTPROJECTPATHHOST=;
+%LET _CLIENTPROJECTNAME=;
+
+
 /*   START OF NODE: get flow startdts   */
 %LET _CLIENTTASKLABEL='get flow startdts';
 %LET _CLIENTPROCESSFLOWNAME='alertmon';
@@ -1485,416 +1891,6 @@ GOPTIONS NOACCESSIBLE;
 %LET _CLIENTPROJECTNAME=;
 
 
-/*   START OF NODE: time events   */
-%LET _CLIENTTASKLABEL='time events';
-%LET _CLIENTPROCESSFLOWNAME='alertmon';
-%LET _CLIENTPROJECTPATH='C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonRT3.egp';
-%LET _CLIENTPROJECTPATHHOST='BHEINSIUS-PC';
-%LET _CLIENTPROJECTNAME='DIMonRT3.egp';
-
-GOPTIONS ACCESSIBLE;
-%_eg_conditional_dropds(WORK.FLOWS_WITH_CALENDARS);
-
-PROC SQL;
-   CREATE TABLE WORK.FLOWS_WITH_CALENDARS AS 
-   SELECT t1.FLOW_ID LABEL='', 
-          t2.FLOW_NAME LABEL='', 
-          t1.TRIGGERING_EVENT_TRANSFER_ROLE LABEL='', 
-          t1.TRIGGERING_EVENT_ROLE LABEL='', 
-          t1.TRIGGERING_EVENT_CONDITION LABEL='', 
-          t1.TIMEZONE LABEL='', 
-          /* calendar_name */
-            (case upcase(t1.TRIGGERING_EVENT_ROLE)
-              when 'TIMEEVENT' then scan(t1.TRIGGERING_EVENT_CONDITION,1,':')
-              else ''
-            end) AS calendar_name, 
-          /* calendar_hours */
-            (case upcase(t1.TRIGGERING_EVENT_ROLE)
-              when 'TIMEEVENT' then scan(t1.TRIGGERING_EVENT_CONDITION,2,':')
-              else ''
-            end) AS calendar_hours, 
-          /* calendar_minutes */
-            (case upcase(t1.TRIGGERING_EVENT_ROLE)
-              when 'TIMEEVENT' then scan(t1.TRIGGERING_EVENT_CONDITION,3,':%')
-              else ''
-            end) AS calendar_minutes, 
-          t1.VALID_FROM_DTS LABEL='' AS FLOW_SCHEDULE_VALID_FROM_DTS, 
-          t1.VALID_UNTIL_DTS LABEL='' AS FLOW_SCHEDULE_VALID_UNTIL_DTS, 
-          t2.VALID_FROM_DTS LABEL='' AS FLOW_VALID_FROM_DTS, 
-          t2.VALID_UNTIL_DTS LABEL='' AS FLOW_VALID_UNTIL_DTS, 
-          t3.alert_condition, 
-          t3.alert_action, 
-          t3.alert_action_details
-      FROM DIMON.DIMON_FLOW_SCHEDULES t1, DIMON.DIMON_FLOWS t2, DIMON.DIMON_FLOW_ALERTS t3
-      WHERE (t1.FLOW_ID = t2.FLOW_ID AND t1.flow_id = t3.flow_id) AND (t1.TRIGGERING_EVENT_ROLE IN 
-           (
-           'TimeEvent',
-           'TIMEEVENT'
-           ) AND t3.alert_condition = 'misses_scheduled_time');
-QUIT;
-
-GOPTIONS NOACCESSIBLE;
-
-
-
-
-%LET _CLIENTTASKLABEL=;
-%LET _CLIENTPROCESSFLOWNAME=;
-%LET _CLIENTPROJECTPATH=;
-%LET _CLIENTPROJECTPATHHOST=;
-%LET _CLIENTPROJECTNAME=;
-
-
-/*   START OF NODE: scheduled flows on run_date   */
-%LET SYSLAST=WORK.FLOWS_WITH_CALENDARS;
-%LET _CLIENTTASKLABEL='scheduled flows on run_date';
-%LET _CLIENTPROCESSFLOWNAME='alertmon';
-%LET _CLIENTPROJECTPATH='C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonRT3.egp';
-%LET _CLIENTPROJECTPATHHOST='BHEINSIUS-PC';
-%LET _CLIENTPROJECTNAME='DIMonRT3.egp';
-%LET _SASPROGRAMFILE='';
-%LET _SASPROGRAMFILEHOST='';
-
-GOPTIONS ACCESSIBLE;
-%let run_date_from = %sysfunc(date(),date7.);
-%let run_date_until = &run_date_from;
-
-data work.rundates;
-  do d=("&run_date_from"d - 1) to ("&run_date_until"d + 1);
-      output;
-  end;
-  format d date9.;
-  stop;
-run;
-proc sql;
-  create view work.v1 as
-    select t1.*
-    ,      t2.d
-    from   work.flows_with_calendars t1
-    ,      work.rundates t2
-  ;
-quit;
-
-data _null_;
-  if (_n_ = 1) then
-  do;
-      call execute('options nosource;');
-      call execute('proc sql;');
-      call execute('  create table work.flows_scheduled_on_run_date as');
-      call execute('    select flow_id');
-      call execute('    ,      flow_name');
-      call execute('    ,      calendar_name');
-      call execute('    ,      calendar_hours');
-      call execute('    ,      calendar_minutes');
-      call execute('    ,      timezone');
-      call execute('    ,      d');
-      call execute('    ,      case calendar_name');
-  end;
-  set dimon.dimon_calendars end=last;
-      call execute('             when "' !! strip(calendar_name) !! '" then ( ' !! strip(calendar_sascode) !! ' )');
-  if (last) then
-  do;
-      call execute('             else 0');
-      call execute('           end as active');
-      call execute('    ,      flow_schedule_valid_from_dts');
-      call execute('    ,      flow_schedule_valid_until_dts');
-      call execute('    ,      flow_valid_from_dts');
-      call execute('    ,      flow_valid_until_dts');
-      call execute('    ,      alert_condition');
-      call execute('    ,      alert_action');
-      call execute('    ,      alert_action_details');
-      call execute('    from   work.v1');
-      call execute('    where  calculated active = 1');
-      call execute('   ;');
-
-      call execute('  drop view work.v1;');
-
-      call execute('quit;');
-  end;
-run;
-proc sql;
-  drop table work.rundates;
-quit;
-
-
-GOPTIONS NOACCESSIBLE;
-%LET _CLIENTTASKLABEL=;
-%LET _CLIENTPROCESSFLOWNAME=;
-%LET _CLIENTPROJECTPATH=;
-%LET _CLIENTPROJECTPATHHOST=;
-%LET _CLIENTPROJECTNAME=;
-%LET _SASPROGRAMFILE=;
-%LET _SASPROGRAMFILEHOST=;
-
-
-/*   START OF NODE: add times   */
-%LET SYSLAST=WORK.FLOWS_SCHEDULED_ON_RUN_DATE;
-%LET _CLIENTTASKLABEL='add times';
-%LET _CLIENTPROCESSFLOWNAME='alertmon';
-%LET _CLIENTPROJECTPATH='C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonRT3.egp';
-%LET _CLIENTPROJECTPATHHOST='BHEINSIUS-PC';
-%LET _CLIENTPROJECTNAME='DIMonRT3.egp';
-%LET _SASPROGRAMFILE='';
-%LET _SASPROGRAMFILEHOST='';
-
-GOPTIONS ACCESSIBLE;
-%let run_date = %sysfunc(date(),date7.);
-data work.t1;
-  set work.flows_scheduled_on_run_date;
-  count = 1;
-  onehour = scan(calendar_hours,count,',');
-  do while(onehour ne '');
-      if (strip(onehour) = '*') then
-      do;
-          do hour = 0 to 23;
-              output;
-          end;/* do hour */
-      end;
-      else if (index(onehour,'-') > 0) then
-      do;
-          hourloopFrom  = input(scan(onehour,1,'-'),best.);
-          hourloopUntil = input(scan(onehour,2,'-'),best.);
-          do hour = hourloopFrom to hourloopUntil;
-              output;
-          end;/* do hour */
-      end;
-      else
-      do;
-          hour = input(onehour,best.);
-          output;
-      end;
-      count + 1;
-      onehour = scan(calendar_hours,count,',');
-  end;/* do while */
-run;
-data work.t1(keep=flow_id flow_name calendar_name d hour minute timezone
-                  flow_schedule_valid_from_dts
-                  flow_schedule_valid_until_dts
-                  flow_valid_from_dts
-                  flow_valid_until_dts
-                  alert_condition alert_action alert_action_details
-                  );
-  set work.t1;
-  count = 1;
-  oneminute = scan(calendar_minutes,count,',');
-  do while(oneminute ne '');
-      if (strip(oneminute) = '*') then
-      do;
-          do minute = 0 to 59;
-              output;
-          end;/* do hour */
-      end;
-      else if (index(oneminute,'-') > 0) then
-      do;
-          minuteloopFrom  = input(scan(oneminute,1,'-'),best.);
-          minuteloopUntil = input(scan(oneminute,2,'-'),best.);
-          do minute = minuteloopFrom to minuteloopUntil;
-              output;
-          end;/* do hour */
-      end;
-      else
-      do;
-          minute = input(oneminute,best.);
-          output;
-      end;
-      count + 1;
-      oneminute = scan(calendar_minutes,count,',');
-  end;/* do while */
-run;
-proc sort data=work.t1 nodupkey;
-  by _all_;
-run;
-
-data _null_;
-
-  call execute('options nosource;');
-  call execute('proc sql;');
-
-  call execute('  create table work.t2 as');
-  call execute('    select *');
-  call execute('    ,      dhms(d,hour,minute,0) as dts format=datetime18.');
-  call execute('    from   work.t1');
-  call execute('  ;');
-
-  call execute('  create table work.scheduled_flows as');
-  call execute('    select flow_id');
-  call execute('    ,      flow_name');
-  call execute('    ,      calendar_name');
-  call execute('    ,      d as d_original');
-  call execute('    ,      hour as hour_original');
-  call execute('    ,      minute as minute_original');
-  call execute('    ,      timezone');
-  call execute('    ,      dts');
-  call execute('    ,      case');
-  call execute('             when 0 then 0 /* dummy clause */');
-
-  do while (not(last));
-      set dimon.dimon_timezones end=last;
-          call execute('             when upcase(timezone) = "' !! upcase(strip(timezone)) !! '" and ( ' !! strip(condition_sascode) !! ' ) then dts + ' !! put(timediff,best.));
-  end;
-
-  call execute('             else dts');
-  call execute('           end as dts_local format=datetime18.');
-  call execute('    ,      datepart(calculated dts_local) as d format=date9.');
-  call execute('    ,      hour(timepart(calculated dts_local)) as hour');
-  call execute('    ,      minute(timepart(calculated dts_local)) as minute');
-  call execute('    ,      alert_condition');
-  call execute('    ,      alert_action');
-  call execute('    ,      alert_action_details');
-  call execute('    from   work.t2');
-  call execute('    where  calculated d >= "&run_date_from"d');
-  call execute('    and    calculated d <= "&run_date_until"d');
-  call execute('    and    flow_schedule_valid_from_dts <= dhms("&run_date"d,hour,minute,0)'); 
-  call execute('    and    flow_schedule_valid_until_dts > dhms("&run_date"d,hour,minute,0)'); 
-  call execute('    and    flow_valid_from_dts <= dhms("&run_date"d,hour,minute,0)'); 
-  call execute('    and    flow_valid_until_dts > dhms("&run_date"d,hour,minute,0)'); 
-  call execute('   ;');
-
-  call execute('quit;');
-  stop;
-
-run;
-
-proc datasets lib=work nolist nowarn mt=(data view);
-  delete t1;
-  delete t2;
-quit;
-
-
-
-GOPTIONS NOACCESSIBLE;
-%LET _CLIENTTASKLABEL=;
-%LET _CLIENTPROCESSFLOWNAME=;
-%LET _CLIENTPROJECTPATH=;
-%LET _CLIENTPROJECTPATHHOST=;
-%LET _CLIENTPROJECTNAME=;
-%LET _SASPROGRAMFILE=;
-%LET _SASPROGRAMFILEHOST=;
-
-
-/*   START OF NODE: add datetimes and filter   */
-%LET _CLIENTTASKLABEL='add datetimes and filter';
-%LET _CLIENTPROCESSFLOWNAME='alertmon';
-%LET _CLIENTPROJECTPATH='C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonRT3.egp';
-%LET _CLIENTPROJECTPATHHOST='BHEINSIUS-PC';
-%LET _CLIENTPROJECTNAME='DIMonRT3.egp';
-
-GOPTIONS ACCESSIBLE;
-%_eg_conditional_dropds(WORK.QUERY_FOR_SCHEDULED_FLOWS1);
-
-PROC SQL;
-   CREATE TABLE WORK.QUERY_FOR_SCHEDULED_FLOWS1(label="scheduled_flows_dts") AS 
-   SELECT t1.FLOW_ID, 
-          t1.FLOW_NAME, 
-          t1.calendar_name AS CALENDAR_NAME, 
-          /* SCHEDULED_RUN_DTS */
-            (dhms(t1.d,t1.hour,t1.minute,0)) FORMAT=datetime18. AS SCHEDULED_RUN_DTS, 
-          /* SCHEDULED_RUN_DTS_RANGE_MIN */
-            (calculated SCHEDULED_RUN_DTS) FORMAT=datetime18. AS SCHEDULED_RUN_DTS_RANGE_MIN, 
-          /* SCHEDULED_RUN_DTS_RANGE_MAX */
-            (calculated SCHEDULED_RUN_DTS + coalesce(input(symget('FLOW_SCHEDULED_DTS_MATCH_SECONDS'),best.),60)) 
-            FORMAT=datetime18. AS SCHEDULED_RUN_DTS_RANGE_MAX, 
-          t1.alert_condition, 
-          t1.alert_action, 
-          t1.alert_action_details
-      FROM WORK.SCHEDULED_FLOWS t1
-      WHERE (CALCULATED SCHEDULED_RUN_DTS) > "&sysdate9. &systime."dt AND (CALCULATED SCHEDULED_RUN_DTS_RANGE_MAX) <= 
-           datetime();
-QUIT;
-
-GOPTIONS NOACCESSIBLE;
-
-
-%LET _CLIENTTASKLABEL=;
-%LET _CLIENTPROCESSFLOWNAME=;
-%LET _CLIENTPROJECTPATH=;
-%LET _CLIENTPROJECTPATHHOST=;
-%LET _CLIENTPROJECTNAME=;
-
-
-/*   START OF NODE: get flows not started   */
-%LET _CLIENTTASKLABEL='get flows not started';
-%LET _CLIENTPROCESSFLOWNAME='alertmon';
-%LET _CLIENTPROJECTPATH='C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonRT3.egp';
-%LET _CLIENTPROJECTPATHHOST='BHEINSIUS-PC';
-%LET _CLIENTPROJECTNAME='DIMonRT3.egp';
-
-GOPTIONS ACCESSIBLE;
-%_eg_conditional_dropds(WORK.FLOWS_NOT_STARTED);
-
-PROC SQL;
-   CREATE TABLE WORK.FLOWS_NOT_STARTED AS 
-   SELECT t1.flow_id, 
-          t1.flow_name, 
-          t1.CALENDAR_NAME, 
-          t1.SCHEDULED_RUN_DTS, 
-          t1.SCHEDULED_RUN_DTS_RANGE_MIN, 
-          t1.SCHEDULED_RUN_DTS_RANGE_MAX, 
-          t1.alert_condition, 
-          t1.alert_action, 
-          t1.alert_action_details
-      FROM WORK.QUERY_FOR_SCHEDULED_FLOWS1 t1
-           LEFT JOIN WORK.FLOWS_NOW_WITH_FLOW_ID t2 ON (t1.flow_id = t2.flow_id) AND (t1.SCHEDULED_RUN_DTS_RANGE_MIN <= 
-          t2.flow_start_dts) AND (t1.SCHEDULED_RUN_DTS_RANGE_MAX >= t2.flow_start_dts)
-      WHERE t2.flow_run_id IS MISSING;
-QUIT;
-
-GOPTIONS NOACCESSIBLE;
-
-
-
-%LET _CLIENTTASKLABEL=;
-%LET _CLIENTPROCESSFLOWNAME=;
-%LET _CLIENTPROJECTPATH=;
-%LET _CLIENTPROJECTPATHHOST=;
-%LET _CLIENTPROJECTNAME=;
-
-
-/*   START OF NODE: filter email alerts   */
-%LET _CLIENTTASKLABEL='filter email alerts';
-%LET _CLIENTPROCESSFLOWNAME='alertmon';
-%LET _CLIENTPROJECTPATH='C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonRT3.egp';
-%LET _CLIENTPROJECTPATHHOST='BHEINSIUS-PC';
-%LET _CLIENTPROJECTNAME='DIMonRT3.egp';
-
-GOPTIONS ACCESSIBLE;
-%_eg_conditional_dropds(WORK.ALERTS_FLOWS_NOT_STARTED_EMAIL);
-
-PROC SQL;
-   CREATE TABLE WORK.ALERTS_FLOWS_NOT_STARTED_EMAIL AS 
-   SELECT /* flow_run_id1 */
-            (.) AS flow_run_id1, 
-          t1.flow_id AS flow_id1, 
-          t1.flow_name AS flow_name1, 
-          t1.alert_condition, 
-          t1.alert_action LABEL='' AS alert_action, 
-          t1.alert_action_details LABEL='' AS alert_email_address, 
-          t1.SCHEDULED_RUN_DTS, 
-          /* alert_email_message */
-            (strip(t1.flow_name)!!' missed scheduled time of '!!put(t1.SCHEDULED_RUN_DTS,datetime.)) AS 
-            alert_email_message, 
-          t2.flow_id1 AS flow_id11, 
-          /* alert_email_message_details */
-            ('') AS alert_email_message_details, 
-          /* already_notified */
-            (not(missing(t2.flow_id1))) AS already_notified
-      FROM WORK.FLOWS_NOT_STARTED t1
-           LEFT JOIN WORK.NOTIFIED t2 ON (t1.flow_id = t2.flow_id1) AND (t1.alert_condition = t2.alert_condition) AND 
-          (t1.SCHEDULED_RUN_DTS = t2.scheduled_run_dts)
-      WHERE (CALCULATED already_notified) NOT = 1;
-QUIT;
-
-GOPTIONS NOACCESSIBLE;
-
-
-
-%LET _CLIENTTASKLABEL=;
-%LET _CLIENTPROCESSFLOWNAME=;
-%LET _CLIENTPROJECTPATH=;
-%LET _CLIENTPROJECTPATHHOST=;
-%LET _CLIENTPROJECTNAME=;
-
-
 /*   START OF NODE: Append Table   */
 %LET _CLIENTTASKLABEL='Append Table';
 %LET _CLIENTPROCESSFLOWNAME='alertmon';
@@ -1952,18 +1948,33 @@ GOPTIONS ACCESSIBLE;
   %if (&nobs > 0) %then
   %do;
 
-/*       %local alert_email_from_address;*/
-       filename mail email content_type="text/html" attach=("/tmp/eomalerts.png" inlined='eomalertslogo');
+       %global eomalertslogofile;
+       %if ("&eomalertslogofile" = "") %then
+       %do; /* try to get it from os-environment var */
+
+            %if (%sysfunc(sysexist(eomalertslogofile))) %then
+                %let eomalertslogofile = %sysget(eomalertslogofile);
+
+       %end;/* try to get it from os-environment var */
+       filename mail email content_type="text/html" 
+                %if ("&eomalertslogofile" ne "") %then attach=("&eomalertslogofile" inlined='EOMAlertsLogo');
+                ;
+
+       %global AlertEmailFromAddress;
+       %if ("&AlertEmailFromAddress" = "") %then
+       %do; /* try to get it from os-environment var */
+
+            %if (%sysfunc(sysexist(alertemailfromaddress))) %then
+                %let AlertEmailFromAddress = %sysget(alertemailfromaddress);
+
+       %end;/* try to get it from os-environment var */
+
        data _null_;
          set WORK.ALERTS_EMAIL end=last;
          putlog 'DIMONNOTE: ' alert_email_message;
          file mail;
          put '!EM_TO!' alert_email_address;
-         if (symexist('alert_email_from_address')) then
-         do;
-             alert_email_from_address = symget('alert_email_from_address');
-             put '!EM_FROM!' alert_email_from_address;
-         end;
+         %if ("&AlertEmailFromAddress" ne "") %then put '!EM_FROM!' "&AlertEmailFromAddress";;
          put '!EM_SUBJECT!' 'EOM Alert - ' flow_name1;
          put '<html>'
                '<head>'
@@ -1977,7 +1988,7 @@ GOPTIONS ACCESSIBLE;
                        '<td style="background-color:#f8f8f8;padding-left:1px;border-bottom:1px solid #e4e4e4;border-top:1px solid #e4e4e4"></td>'
                        '<td valign="middle" style="padding:13px 10px 8px 0px;background-color:#f8f8f8;border-top:1px solid #e4e4e4;border-bottom:1px solid #e4e4e4">'
                          '<a href="" style="text-decoration:none" target="_blank" alt="EOM" border="0" height="25">'
-                         '<img src=cid:eomalertslogo></a></td>'
+                         '<img src=cid:EOMAlertsLogo></a></td>'
                        '<td style="background-color:#f8f8f8;padding-left:18px;border-top:1px solid #e4e4e4;border-bottom:1px solid #e4e4e4"></td>'
                      '</tr>'
                      '<tr>'
@@ -2077,9 +2088,113 @@ run;
 
 %mend alertmon;
 
-%let _debug=1;
+%let _debug=0;
 %alertmon
 
+
+
+
+"EOF"
+
+}
+
+eomalerts_png() {
+
+openssl base64 -d <<EOF > $EOMALERTSLOGOFILE
+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
+Avg/vkWba/MHX+YAAAAASUVORK5CYII=
 EOF
 
 }
