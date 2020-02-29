@@ -1,3 +1,154 @@
+SAS_COMMAND=/apps/sas/SASConfig/Lev1/SASApp/BatchServer/sasbatch.sh
+SCRIPTDIR=$(echo "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)")
+SYSINFILE="/tmp/dimon_alertmon.sas"
+HOSTNAME=$(hostname -s)
+DTS=$(date +%Y%m%d_%H%M%S)
+LOGFILE="$SCRIPTDIR/Logs/dimon_alertmon_${HOSTNAME}_${DTS}.log"
+LSTFILE="$SCRIPTDIR/Lst/dimon_alertmon_${HOSTNAME}_${DTS}.lst"
+LSF_FLOW_ACTIVE_DIR="/apps/sas/thirdparty/pm/work/storage/flow_instance_storage/active"
+LSF_FLOW_FINISHED_DIR="/apps/sas/thirdparty/pm/work/storage/flow_instance_storage/finished"
+PIDFILE=~/.alertmon.pid
+
+# The Alert Monitor is a SAS script that needs a SAS metadata identity
+RUNAS=sasdemo
+
+main() {
+
+  #
+  # Main processing routine
+  #
+
+  if [ "$(whoami)" != "$RUNAS" ]; then
+    # This script must be run as user $RUNAS. Attempting to run as $RUNAS through passwordless ssh
+    thisscript=$(echo "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")")
+    ssh -oLogLevel=QUIET -oBatchMode=YES -t $RUNAS@${HOSTNAME} "$thisscript ${@}"
+    rc=$?
+    if [ $rc -eq 255 ]; then
+      echo "This script must be run as user $RUNAS. The attempt to run it as $RUNAS through passwordless ssh failed with RC=$rc."
+    fi
+    exit $rc
+  fi
+
+  case "$1" in
+  start)
+    alertmon_start
+    exit $?
+    ;;
+
+  stop)
+    alertmon_stop
+    ;;
+
+  restart)
+    alertmon_stop
+    sleep 5 # let everything quiesce
+    alertmon_start
+    exit $?
+    ;;
+
+  status)
+    alertmon_status
+    exit $?
+    ;;
+
+  *)
+    echo "Usage $0 {start|stop|status|restart}"
+    exit 1
+    ;;
+
+  esac
+
+}
+
+alertmon_start() {
+  #
+  # Start alertmon
+  #
+
+  include_sascode
+
+  if [ "$(alertmon_status)" == "EOM Alert Monitor is UP" ]; then
+    echo "EOM Alert Monitor is already running."
+    return
+  fi
+
+  echo Starting EOM Alert Monitor
+  running=false
+  nohup "$SAS_COMMAND" -sysin "$SYSINFILE" -log "$LOGFILE" -print "$LSTFILE" -set lsf_flow_active_dir $LSF_FLOW_ACTIVE_DIR -set lsf_flow_finished_dir $LSF_FLOW_FINISHED_DIR </dev/null &>/dev/null &
+  rc=$?
+  pid=$!
+  echo $pid >$PIDFILE
+  if [ $rc -le 4 ]; then
+
+    # wait for server to be up
+    count=1
+    while [ $count -le 5 ] && ! $running; do
+      if [ "$(alertmon_status)" == "EOM Alert Monitor is UP" ]; then
+        running=true
+        echo $pid >$PIDFILE
+      else
+        echo waiting 5 ...
+        sleep 5
+        count=$(($count + 1))
+      fi
+    done
+
+  fi
+
+  if [ ! $running ]; then
+    echo "EOM Alert Monitor failed to start (rc=$rc)."
+    exit $rc
+  fi
+
+  echo EOM Alert Monitor is UP.
+
+}
+
+alertmon_stop() {
+  #
+  # Stop EOM Alert Monitor
+  #
+
+  if [ "$(alertmon_status)" == "EOM Alert Monitor is NOT up" ]; then
+    echo "EOM Alert Monitor is not up"
+    exit 0
+  fi
+
+  echo Stopping EOM Alert Monitor
+  pid=$(cat $PIDFILE)
+  kill $pid
+  echo Sleeping 5 before checking status ...
+  sleep 5
+  alertmon_status
+}
+
+alertmon_status() {
+  if [ -f $PIDFILE ]; then
+
+    # check if this process is EOM Alert Monitor. returns >= 1 if found, returns 0 if not found
+    pid=$(cat $PIDFILE)
+    cmd=$(ps -o cmd= --ppid $pid)
+    pidfound=$(ps -o cmd= --ppid $pid | wc -l)
+    isalertmon=$(ps -o cmd= --ppid $pid | grep alertmon | wc -l)
+
+    if [ $pidfound -eq 1 ]; then
+      if [ $isalertmon -eq 1 ]; then
+        echo EOM Alert Monitor is UP
+      else
+        echo "Another process (not dimon_alertmon) is running with pid $pid"
+      fi
+    else
+      echo EOM Alert Monitor is NOT up
+    fi
+  else
+    echo EOM Alert Monitor is NOT up
+  fi
+}
+
+include_sascode() {
+
+  cat <<EOF >$SYSINFILE
+
 %macro alertmon;
 
   %if (&_debug > 0) %then
@@ -18,9 +169,11 @@
 
 
 
+
+
 /* ----------------------------------------
 Code exported from SAS Enterprise Guide
-DATE: donderdag 27 februari 2020     TIME: 16:48:26
+DATE: zaterdag 29 februari 2020     TIME: 21:05:16
 PROJECT: DIMonRT3
 PROJECT PATH: C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonRT3.egp
 ---------------------------------------- */
@@ -1799,7 +1952,7 @@ GOPTIONS ACCESSIBLE;
   %if (&nobs > 0) %then
   %do;
 
-       %local alert_email_from_address;
+/*       %local alert_email_from_address;*/
        filename mail email content_type="text/html" attach=("/tmp/eomalerts.png" inlined='eomalertslogo');
        data _null_;
          set WORK.ALERTS_EMAIL end=last;
@@ -1914,7 +2067,7 @@ GOPTIONS NOACCESSIBLE;
 /* sleep until the next full minute */
 %let loopenddts = %sysfunc(datetime());
 %let wakeuptime = %sysfunc(intnx(seconds10.,%sysfunc(datetime()),1),datetime18.);
-%put DIMONNOTE: %sysfunc(datetime(),B8601DT15.) This alertmon run used %sysevalf(&loopenddts - &loopstartdts) seconds. Sleeping until &wakeuptime;
+%put DIMONNOTE: %sysfunc(datetime(),B8601DT15.) This alertmon run used %trim(%left(%sysfunc(putn(%sysevalf(&loopenddts - &loopstartdts),8.1)))) seconds. Sleeping until &wakeuptime;
 data _null_;
   sleeptime = "&wakeuptime"dt - datetime();
   slept = sleep(sleeptime,1);
@@ -1924,5 +2077,11 @@ run;
 
 %mend alertmon;
 
-%let _debug=0;
+%let _debug=1;
 %alertmon
+
+EOF
+
+}
+
+main "$@"; exit
