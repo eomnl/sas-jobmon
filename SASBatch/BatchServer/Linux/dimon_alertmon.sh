@@ -71,7 +71,7 @@ alertmon_start() {
   eomalerts_png
 
   if [ "$(alertmon_status)" == "EOM Alert Monitor is UP" ]; then
-    echo "EOM Alert Monitor is already running."
+    echo "EOM Alert Monitor is already running"
     return
   fi
 
@@ -79,7 +79,7 @@ alertmon_start() {
   running=false
   nohup "$SAS_COMMAND" -sysin "$SYSINFILE" -log "$LOGFILE" -print "$LSTFILE" \
         -set eomalertslogofile $EOMALERTSLOGOFILE \
-        -set alertemailfromaddress "eomalerts@xs4all.nl" \
+        -set alertemailfromaddress $ALERTEMAILFROMADDRESS \
         -set lsf_flow_active_dir $LSF_FLOW_ACTIVE_DIR \
         -set lsf_flow_finished_dir $LSF_FLOW_FINISHED_DIR </dev/null &>/dev/null &
   rc=$?
@@ -105,7 +105,7 @@ alertmon_start() {
   fi
 
   if [ ! $running ]; then
-    echo "EOM Alert Monitor failed to start (rc=$rc)."
+    echo "EOM Alert Monitor failed to start (rc=$rc)"
     exit $rc
   fi
 
