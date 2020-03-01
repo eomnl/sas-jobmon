@@ -83,7 +83,9 @@ alertmon_start() {
         -set lsf_flow_active_dir $LSF_FLOW_ACTIVE_DIR \
         -set lsf_flow_finished_dir $LSF_FLOW_FINISHED_DIR </dev/null &>/dev/null &
   rc=$?
-  pid=$!
+  ppid=$!
+  sleep 1
+  pid=$(ps -o pid= --ppid $ppid)
   echo $pid >$PIDFILE
   if [ $rc -le 4 ]; then
 
@@ -134,9 +136,8 @@ alertmon_status() {
 
     # check if this process is EOM Alert Monitor. returns >= 1 if found, returns 0 if not found
     pid=$(cat $PIDFILE)
-    cmd=$(ps -o cmd= --ppid $pid)
-    pidfound=$(ps -o cmd= --ppid $pid | wc -l)
-    isalertmon=$(ps -o cmd= --ppid $pid | grep alertmon | wc -l)
+    pidfound=$(ps -o cmd= --pid $pid | wc -l)
+    isalertmon=$(ps -o cmd= --pid $pid | grep alertmon | wc -l)
 
     if [ $pidfound -eq 1 ]; then
       if [ $isalertmon -eq 1 ]; then
