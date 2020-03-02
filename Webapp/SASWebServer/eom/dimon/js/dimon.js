@@ -416,6 +416,7 @@ $(function () {
                 // remove the menu if it already exists
                 $('#menuFilter').remove();
             } else {
+
                 var filterMenuItems = [];
                 var currentFilter = '';
                 switch (settings.currentView) {
@@ -465,21 +466,37 @@ $(function () {
                     + '" class="dropdown-menu"></div>').appendTo('body');
                 $("#menuFilter").html(s);
                 $('.li-dropdown-filter-item').click(function () {
+
                     // remove any filters from the search bar
                     var search = $("#search").val();
                     for (i = 0; i < filterMenuItems.length; i++) {
                         search = search.replace(filterMenuItems[i].value.trim(), "");
                     }
-                    if (search != "") search += " ";
+
+                    // add the filter to the search bar text
+                    if (search != "") search = search.trim() + " ";
                     search += ($(this).attr('value') != 'all' ? $(this).attr('value') : "");
                     $("#search").val(search.trim());
+                    
+                    // set the filter on the Show button
+                    var filterLabel = '';
+                    for (i = 0; i < filterMenuItems.length; i++) {
+                        if (filterMenuItems[i].value == $(this).attr('value')) {
+                            filterLabel = filterMenuItems[i].text;
+                        }
+                    }
+                    $("#btnFilter").button({ label: 'Show: ' + filterLabel });
+                                    
                     // remove the menu
                     setTimeout(function () {
-                        updateFilterButtonLabel();
+                        //updateFilterButtonLabel();
                         $("#menuFilter").remove();
                     }, 100);
+
                     refresh();
+
                     // filter($(this).attr('id').split('-')[1]);
+
                 });
             }
         });
@@ -1726,7 +1743,7 @@ function dialogAlerts() {
             tableAlerts = $('#tableAlerts').DataTable({
                 data: sasdata.alerts,
                 paging: false,
-                scrollY: 340,
+                scrollY: 320,
                 columnDefs: [
                     { targets: 0, visible: false, searchable: false },
                     { targets: 1, visible: false, searchable: false },
@@ -1864,31 +1881,31 @@ function dialogReports() {
 
 function updateFilterButtonLabel() {
 
-    var filterLabel = '';
+    // var filterLabel = '';
 
-    switch (settings.currentView) {
-        case "Flows":
-            var menuItems = filterFlowsMenuItems;
-            var filter = settings.filterFlows;
-            break;
-        case "Jobs":
-            var menuItems = filterJobsMenuItems;
-            var filter = settings.filterJobs;
-            break;
-        case "Steps":
-            var menuItems = [];
-            var filter = '';
-            break;
-        default:
-    }
+    // switch (settings.currentView) {
+    //     case "Flows":
+    //         var menuItems = filterFlowsMenuItems;
+    //         var filter = settings.filterFlows;
+    //         break;
+    //     case "Jobs":
+    //         var menuItems = filterJobsMenuItems;
+    //         var filter = settings.filterJobs;
+    //         break;
+    //     case "Steps":
+    //         var menuItems = [];
+    //         var filter = '';
+    //         break;
+    //     default:
+    // }
 
-    var filterLabel = '';
-    for (i = 0; i < menuItems.length; i++) {
-        if (menuItems[i].value == filter) {
-            filterLabel = menuItems[i].text;
-        }
-    }
-    $("#btnFilter").button({ label: 'Show: ' + filterLabel });
+    // var filterLabel = '';
+    // for (i = 0; i < menuItems.length; i++) {
+    //     if (menuItems[i].value == filter) {
+    //         filterLabel = menuItems[i].text;
+    //     }
+    // }
+   // $("#btnFilter").button({ label: 'Show: ' + filterLabel });
 
 }//updateFilterButtonLabel
 
