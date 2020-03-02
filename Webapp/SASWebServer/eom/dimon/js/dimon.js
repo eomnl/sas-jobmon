@@ -396,13 +396,13 @@ $(function () {
                 var selectedItem = $(this).attr('id').split('-')[1];
                 switch (selectedItem) {
                     case 'settings':
-                        dialogSettings();
+                        editSettings();
                         break;
                     case 'alerts':
-                        dialogAlerts();
+                        editAlerts();
                         break;
                     case 'reports':
-                        dialogReports();
+                        reports();
                         break;
                     default:
                 }
@@ -485,7 +485,7 @@ $(function () {
                             filterLabel = filterMenuItems[i].text;
                         }
                     }
-                    $("#btnFilter").button({ label: 'Show: ' + filterLabel });
+                    //$("#btnFilter").button({ label: 'Show: ' + filterLabel });
                                     
                     // remove the menu
                     setTimeout(function () {
@@ -1329,7 +1329,7 @@ function labels(initialSelectLabel, message) {
 }// flowGroups
 
 
-function dialogSettings() {
+function editSettings() {
 
     var dialogSettings =
         $('<div id="dialogSettings">'
@@ -1389,7 +1389,7 @@ function dialogSettings() {
 }
 
 
-function dialogAlerts() {
+function editAlerts() {
 
     var email_address;
     var tableAlerts;
@@ -1481,11 +1481,10 @@ function dialogAlerts() {
                     , timeout: ajaxTimeout
                     , success: function (response) {
                         data = $.parseJSON(response);
-                        console.log(data);
                         if (data.syscc == 0) {
                             // reopen Alerts dialog
                             dialogAlerts.remove();
-                            alerts();
+                            editAlerts();
                             // $(this).dialog('close');
                             //labels(selectedLabel, "Label '" + selectedLabel + "' was saved");
                         } else {
@@ -1644,14 +1643,11 @@ function dialogAlerts() {
                         , timeout: ajaxTimeout
                         , success: function (response) {
                             data = $.parseJSON(response);
-                            console.log(data);
                             if (data.syscc == 0) {
                                 dialogAlert.remove();
                                 // reopen Alerts dialog
                                 dialogAlerts.remove();
-                                alerts();
-                                // $(this).dialog('close');
-                                //labels(selectedLabel, "Label '" + selectedLabel + "' was saved");
+                                editAlerts();
                             } else {
                                 alert('The request completed with errors (syscc=' + data.syscc + ')\n'
                                     + 'The last known error is:\n\n' + data.sysmsg + '\n\n');
@@ -1739,7 +1735,6 @@ function dialogAlerts() {
             sasdata = $.parseJSON(response).data;
             email_address = sasdata.email_address;
 
-            console.log(sasdata);
             tableAlerts = $('#tableAlerts').DataTable({
                 data: sasdata.alerts,
                 paging: false,
@@ -1819,7 +1814,7 @@ function dialogAlerts() {
 }//alerts
 
 
-function dialogReports() {
+function reports() {
 
     var urlBase = location.protocol + '//' + location.hostname + (location.port ? ':' + location.port : '') + settings.urlSPA + '?_program=';
     var urlReport1 = urlBase + getSPName('dimonReportFlowSchedules') + '&report_period=day';
