@@ -28,6 +28,7 @@ var settings = {
     , sortFlows: ''
     , sortJobs: ''
     , search: ''
+    , autorefresh_interval_min: ''
     // , rundateHistDays: 0
 };
 
@@ -40,6 +41,7 @@ var refreshStepsRunning = false;
 var ajaxTimeout = 60000; // timeout value for Ajax calls
 var ajaxTimedOut = false;
 var autorefresh_intervals = [1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 90, 105, 120, 180, 240, 300, 600, 900, 1200, 1500, 1800, 2700, 3600, 7200, 9999999];
+
 var svgDotsVertical = '<svg style="width:20px;height:20px" viewBox="0 0 24 24">'
     + '<path fill="#454545" d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10'
     + ',18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2'
@@ -1363,10 +1365,16 @@ function editSettings() {
         }
     });
 
+    // find index of minimal value for slider
+    for (var i=0; i<autorefresh_intervals.length; i++) {
+        if (autorefresh_intervals[i] >= settings.autorefresh_interval_min) break;
+    }
+    var minSliderValue = i;
+    
     $("#slider-autorefresh-interval").slider({
         range: "min",
         value: settings.autorefresh_interval,
-        min: 0,
+        min: minSliderValue,
         max: autorefresh_intervals.length - 1,
         step: 1,
         animate: true,

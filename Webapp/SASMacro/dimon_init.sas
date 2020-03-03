@@ -46,7 +46,7 @@
     CREATE %if (&engine = SAS) %then TABLE; %else VIEW;
   %mend create_table_or_view;
 
-  %global urlspa sproot webroot _odsstyle viewlog_maxfilesize gantt_width trend_days
+  %global urlspa sproot webroot _odsstyle viewlog_maxfilesize gantt_width trend_days autorefresh_interval_min
           flow_completion_mode flow_completion_mode_2_idle_time lsf_flow_finished_dir
           lsf_flow_active_dir flow_scheduled_dts_match_seconds
           alert_email_from_address
@@ -78,6 +78,9 @@
 
   /* Default numer of days to show elapsed time trend for */
   %let trend_days           = 90;
+
+  /* Minumum value for autorefresh_interval */
+  %let autorefresh_interval_min = 10;
 
   /* Flow completion mode - When is a flow marked as completed? */
   /* 1 : when #jobs_completed = #jobs_in_flow (default) */
