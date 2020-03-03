@@ -182,6 +182,15 @@
     end;
   run;
 
+data work.dimon_flows /view=work.dimon_flows;
+  set dimon.dimon_flows;
+  length mdid $20 type $256;
+  drop mdid type rcresolve;
+  call missing(mdid, type);
+  rcresolve = metadata_resolve(flow_id, type, mdid);
+  if rcresolve=1;
+run;
+
   %let dts2 = %sysfunc(datetime());
   %let elapsed = %sysfunc(putn(%sysevalf(&dts2. - &dts1.),8.2));
   %put NOTE: dimon_init macro completed execution in &elapsed. seconds.;
