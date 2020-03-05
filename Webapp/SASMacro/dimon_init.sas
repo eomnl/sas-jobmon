@@ -97,6 +97,9 @@
   /* The maximum time between scheduled start and actual start of a flow to be matched */
   %let flow_scheduled_dts_match_seconds = 60;
 
+  /* Whether to apply metadata security to webapp results. yes or no */
+  %let apply_metadata_security = no;
+
   /* Include dimon_usermods */
   %dimon_usermods
 
@@ -185,15 +188,51 @@
     end;
   run;
 
-data work.dimon_flows /view=work.dimon_flows;
-  set dimon.dimon_flows;
-  length mdid $20 type $256;
-  drop mdid type rcresolve;
-  call missing(mdid, type);
-  rcresolve = metadata_resolve(flow_id, type, mdid);
-  if rcresolve=1;
-run;
 
+  
+
+  %if ("&apply_metadata_security" = "yes") %then
+  %do; /* apply metadata security to dimon.dimon_flows */
+  
+       data work.dimon_flows(keep=flow_id flow_name flow_desc valid_from_dts valid_until_dts current_ind update_user update_dts)
+           /view=work.dimon_flows;
+         length uri1 $ 256 flow_id $20;
+         /* Get rid of compile time messages */
+         uri1=uri1; flow_id=flow_id;
+         if (_n_ = 1) then
+         do; /* store flows in hash */
+             declare hash h();
+             h.defineKey('flow_id');
+             h.defineData('flow_id');
+             h.defineDone();
+             num1=metadata_getnobj("omsobj:JFJob?@TransformRole='SCHEDULER_FLOW'",1,uri1);
+             do i=1 to num1;
+                 num1 = metadata_getnobj("omsobj:JFJob?@TransformRole='SCHEDULER_FLOW'",i,uri1);
+                 rc = metadata_getattr(uri1,'Id',flow_id);
+                 if (h.find() ne 0) then h.add();
+             end;/* do i */
+         end;/* store flows in hash */
+         last = 0;
+         do while(not(last));
+             set dimon.dimon_flows end=last;
+             if (h.find() = 0) then output;
+         end;/* do while */
+         stop;
+       run;
+  
+  %end;/* apply metadata security to dimon.dimon_flows */
+  %else
+  %do; /* don't apply metadata security to dimon.dimon_flows */
+  
+       proc sql;
+	       create view work.dimon_flows as
+		     select *
+		     from   dimon.dimon_flows
+		   ;
+	   quit;
+	   
+  %end;/* don't apply metadata security to dimon.dimon_flows */
+  
   %let dts2 = %sysfunc(datetime());
   %let elapsed = %sysfunc(putn(%sysevalf(&dts2. - &dts1.),8.2));
   %put NOTE: dimon_init macro completed execution in &elapsed. seconds.;
