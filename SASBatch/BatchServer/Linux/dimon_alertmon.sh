@@ -10,7 +10,7 @@ LOGFILE="$SCRIPTDIR/Logs/dimon_alertmon_${HOSTNAME}_${DTS}.log"
 LSTFILE="$SCRIPTDIR/Lst/dimon_alertmon_${HOSTNAME}_${DTS}.lst"
 LSF_FLOW_ACTIVE_DIR="/apps/sas/thirdparty/pm/work/storage/flow_instance_storage/active"
 LSF_FLOW_FINISHED_DIR="/apps/sas/thirdparty/pm/work/storage/flow_instance_storage/finished"
-PIDFILE=~/.alertmon.pid
+PIDFILE=~/.dimon_alertmon.pid
 #set -x
 
 # The Alert Monitor is a SAS script that needs a SAS metadata identity
