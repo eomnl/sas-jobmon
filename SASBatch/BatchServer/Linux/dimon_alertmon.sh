@@ -1,3 +1,4 @@
+#!/bin/bash
 SAS_COMMAND=/apps/sas/SASConfig/Lev1/SASApp/BatchServer/sasbatch.sh
 SCRIPTDIR=$(echo "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)")
 SYSINFILE="/tmp/dimon_alertmon.sas"
@@ -10,6 +11,7 @@ LSTFILE="$SCRIPTDIR/Lst/dimon_alertmon_${HOSTNAME}_${DTS}.lst"
 LSF_FLOW_ACTIVE_DIR="/apps/sas/thirdparty/pm/work/storage/flow_instance_storage/active"
 LSF_FLOW_FINISHED_DIR="/apps/sas/thirdparty/pm/work/storage/flow_instance_storage/finished"
 PIDFILE=~/.alertmon.pid
+#set -x
 
 # The Alert Monitor is a SAS script that needs a SAS metadata identity
 RUNAS=sasdemo
@@ -79,7 +81,6 @@ alertmon_start() {
   running=false
   nohup "$SAS_COMMAND" -sysin "$SYSINFILE" -log "$LOGFILE" -print "$LSTFILE" \
         -set eomalertslogofile $EOMALERTSLOGOFILE \
-        -set alertemailfromaddress $ALERTEMAILFROMADDRESS \
         -set lsf_flow_active_dir $LSF_FLOW_ACTIVE_DIR \
         -set lsf_flow_finished_dir $LSF_FLOW_FINISHED_DIR </dev/null &>/dev/null &
   rc=$?
@@ -91,7 +92,7 @@ alertmon_start() {
 
     # wait for server to be up
     count=1
-    while [ $count -le 5 ] && ! $running; do
+    while [ $count -le 5 ] && [ "$running" != true ] ; do
       if [ "$(alertmon_status)" == "EOM Alert Monitor is UP" ]; then
         running=true
         echo $pid >$PIDFILE
@@ -104,12 +105,12 @@ alertmon_start() {
 
   fi
 
-  if [ ! $running ]; then
+  if [ "$running" != true ]; then
     echo "EOM Alert Monitor failed to start (rc=$rc)"
     exit $rc
+  else
+    echo EOM Alert Monitor is UP.
   fi
-
-  echo EOM Alert Monitor is UP.
 
 }
 
@@ -133,17 +134,20 @@ alertmon_stop() {
 
 alertmon_status() {
   if [ -f $PIDFILE ]; then
-
     # check if this process is EOM Alert Monitor. returns >= 1 if found, returns 0 if not found
     pid=$(cat $PIDFILE)
-    pidfound=$(ps -o cmd= --pid $pid | wc -l)
-    isalertmon=$(ps -o cmd= --pid $pid | grep alertmon | wc -l)
+    if [ ! -z "$pid" ]; then
+      pidfound=$(ps -o cmd= --pid $pid | wc -l)
+      isalertmon=$(ps -o cmd= --pid $pid | grep alertmon | wc -l)
 
-    if [ $pidfound -eq 1 ]; then
-      if [ $isalertmon -eq 1 ]; then
-        echo EOM Alert Monitor is UP
+      if [ $pidfound -eq 1 ]; then
+        if [ $isalertmon -eq 1 ]; then
+          echo EOM Alert Monitor is UP
+        else
+          echo "Another process (not dimon_alertmon) is running with pid $pid"
+        fi
       else
-        echo "Another process (not dimon_alertmon) is running with pid $pid"
+        echo EOM Alert Monitor is NOT up
       fi
     else
       echo EOM Alert Monitor is NOT up
