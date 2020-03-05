@@ -479,7 +479,7 @@ $(function () {
                     if (search != "") search = search.trim() + " ";
                     search += ($(this).attr('value') != 'all' ? $(this).attr('value') : "");
                     $("#search").val(search.trim());
-                    
+
                     // set the filter on the Show button
                     var filterLabel = '';
                     for (i = 0; i < filterMenuItems.length; i++) {
@@ -488,7 +488,7 @@ $(function () {
                         }
                     }
                     //$("#btnFilter").button({ label: 'Show: ' + filterLabel });
-                                    
+
                     // remove the menu
                     setTimeout(function () {
                         //updateFilterButtonLabel();
@@ -761,7 +761,7 @@ $(function () {
                 'text-align': 'left',
                 'outline': 'none',
                 'cursor': 'text',
-                'width': '50%'
+                // 'width': '50%'
             });
             return this;
         };
@@ -1366,11 +1366,11 @@ function editSettings() {
     });
 
     // find index of minimal value for slider
-    for (var i=0; i<autorefresh_intervals.length; i++) {
+    for (var i = 0; i < autorefresh_intervals.length; i++) {
         if (autorefresh_intervals[i] >= settings.autorefresh_interval_min) break;
     }
     var minSliderValue = i;
-    
+
     $("#slider-autorefresh-interval").slider({
         range: "min",
         value: settings.autorefresh_interval,
@@ -1835,17 +1835,7 @@ function reports() {
             + '<tbody>'
             + '<tr>'
             + '<td>'
-            + '<a href="' + urlReport1 + '" target="_blank">1. Scheduled flows report (day)</a>'
-            + '</td>'
-            + '</tr>'
-            + '<tr>'
-            + '<td>'
-            + '<a href="' + urlReport2 + '" target="_blank">2. Scheduled flows report (week)</a>'
-            + '</td>'
-            + '</tr>'
-            + '<tr>'
-            + '<td>'
-            + '<a href="' + urlReport3 + '" target="_blank">3. Scheduled flows report (month)</a>'
+            + '<a href="#" id="reportScheduledFlows">1. Scheduled flows report</a>'
             + '</td>'
             + '</tr>'
             + '</tbody>'
@@ -1867,7 +1857,7 @@ function reports() {
             }
         }
     });
-    $("#report1-select").selectmenu();
+    //$("#report1-select").selectmenu();
 
     $("#tableReports").DataTable({
         paging: false,
@@ -1877,10 +1867,110 @@ function reports() {
         select: { style: 'api' }
     });
 
+    $("#reportScheduledFlows").click(function () {
+        reportScheduledFlows();
+    })
     $(":button:contains('Close')").focus(); // Set focus to the [Close] button
 
 }//reports
 
+
+
+function reportScheduledFlows() {
+
+    var dialogReportScheduledFlows = $('<div id="dialogReportScheduledFlows">'
+        + '<div class="row">'
+        + '<label for="inputDateFrom">Date from:</label><input id="inputDateFrom" type="text" readonly>'
+        + '<label for="inputDateUntil">Date util:</label><input id="inputDateUntil" type="text" readonly>'
+        + '<label for="inputDateUntil">Search:</label><input id="inputSearch" type="text">'
+        + '<button id="btnRunReport">Run</button>'
+        + '<button id="btnExcel">Excel</button>'
+        + '</div>'
+        + '<div class="row">'
+        + '<div id="report" style="margin-top:10px;"></div>'
+        + '</div>'
+        + '</div>').appendTo('body');
+
+    dialogReportScheduledFlows.dialog({    // add a close listener to prevent adding multiple divs to the document
+        close: function (event, ui) {
+            // remove div with all data and events
+            dialogReportScheduledFlows.remove();
+        }
+        , title: 'Scheduled Flows Report'
+        , width: $(window).width() - 20
+        , height: $(window).height() - 20
+        , modal: true
+        , buttons: {
+            "Close": function (event, ui) {
+                $(this).dialog('close');
+            }
+        }
+    });
+
+    $("#inputDateFrom").jqtext().css({
+        'width': '80px',
+        'margin-left': '5px',
+        'margin-right': '20px'
+    }).datepicker({
+        dateFormat: "ddMyy"
+    , onSelect: function (date, event) {
+        refreshReportLabels();
+    }});
+
+    $("#inputDateUntil").jqtext().css({
+        'width': '80px',
+        'margin-left': '5px',
+        'margin-right': '20px'
+    }).datepicker({
+        dateFormat: "ddMyy"
+    , onSelect: function (date, event) {
+        refreshReportLabels();
+    }});
+
+    $("#inputSearch").jqtext().css({ 'width': '300px', 'margin-left': '5px', 'margin-right': '20px' });
+    $("#btnRunReport").button().click(function () {
+
+        $("#report").html('<img src="' + settings.imgroot + '/dimon-ajax-loader.gif" />');
+
+        $.ajax({
+            type: "GET"
+            , url: settings.urlSPA
+            , data: {
+                "_program": getSPName('dimonReportFlowSchedules')
+                , "report_date_from": $("#inputDateFrom").val()
+                , "report_date_until": $("#inputDateUntil").val()
+                , "search": $("#inputSearch").val()
+            }
+            , async: true
+            , cache: false
+            , timeout: ajaxTimeout
+            , dataype: 'json'
+            , success: function (response) {
+                $("#report").html(response);
+
+            }
+
+            , error: function (XMLHttpRequest, textStatus, errorThrown) {
+                handleAjaxError('keepAlive', XMLHttpRequest, textStatus, errorThrown);
+            }
+        });
+    })
+
+    $("#btnExcel").button().click(function () { });
+    $(":button:contains('Close')").focus(); // Set focus to the [Close] button
+    refreshReportLabels();
+
+    function refreshReportLabels () {
+        if ( ($("#inputDateFrom").val() == "") || ($("#inputDateUntil").val() == "") ) {
+            disableButton($("#btnRunReport"));
+            disableButton($("#btnExcel"));
+        } else {
+            enableButton($("#btnRunReport"));
+            enableButton($("#btnExcel"));
+        }
+    }
+
+}//reportScheduledFlows
 
 function updateFilterButtonLabel() {
 
@@ -1908,7 +1998,7 @@ function updateFilterButtonLabel() {
     //         filterLabel = menuItems[i].text;
     //     }
     // }
-   // $("#btnFilter").button({ label: 'Show: ' + filterLabel });
+    // $("#btnFilter").button({ label: 'Show: ' + filterLabel });
 
 }//updateFilterButtonLabel
 
@@ -2234,7 +2324,7 @@ function refreshFlows(run_date) {
                                 dateFormat: "ddMyy"
                                 , onSelect: function (date, event) {
                                     $("#inputRundate").val($.datepicker.formatDate('ddMyy', $("#datepicker").datepicker("getDate")));
-                                    // stupid was to detect double click but it works
+                                    // stupid way to detect double click but it works
                                     if ((new Date() - datepickerClickDate) < 300) {
                                         btnRundateApply.click();
                                     }
@@ -2968,9 +3058,9 @@ function viewNotesWarningsErrors(parms) {
         }
     });
 
-    if (rc == 0)  $( "#flowDetailsNotes" ).prop( "checked", true ).checkboxradio("refresh");
-    if (rc == 1)  $( "#flowDetailsWarnings" ).prop( "checked", true ).checkboxradio("refresh");
-    if (rc >= 2)  $( "#flowDetailsErrors" ).prop( "checked", true ).checkboxradio("refresh");
+    if (rc == 0) $("#flowDetailsNotes").prop("checked", true).checkboxradio("refresh");
+    if (rc == 1) $("#flowDetailsWarnings").prop("checked", true).checkboxradio("refresh");
+    if (rc >= 2) $("#flowDetailsErrors").prop("checked", true).checkboxradio("refresh");
 
     loadNotesWarningsErrorsContent(dialog, parms);
     $(":button:contains('Close')").focus(); // Set focus to the [Close] button
