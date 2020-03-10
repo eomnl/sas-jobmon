@@ -207,7 +207,7 @@ CREATE TABLE public.dimon_flow_labels
     dimon_user character varying(100) NOT NULL,
     update_user character varying(32),
     update_dts timestamp without time zone,
-    CONSTRAINT pk_dimon_flow_tags PRIMARY KEY (flow_id, label, dimon_user)
+    CONSTRAINT pk_dimon_flow_labels PRIMARY KEY (flow_id, label, dimon_user)
 )
 WITH (
     OIDS = FALSE
