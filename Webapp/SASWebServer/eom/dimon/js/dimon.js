@@ -491,7 +491,6 @@ $(function () {
 
                     // remove the menu
                     setTimeout(function () {
-                        //updateFilterButtonLabel();
                         $("#menuFilter").remove();
                     }, 100);
 
@@ -1992,36 +1991,6 @@ function reportScheduledFlows() {
 
 }//reportScheduledFlows
 
-function updateFilterButtonLabel() {
-
-    // var filterLabel = '';
-
-    // switch (settings.currentView) {
-    //     case "Flows":
-    //         var menuItems = filterFlowsMenuItems;
-    //         var filter = settings.filterFlows;
-    //         break;
-    //     case "Jobs":
-    //         var menuItems = filterJobsMenuItems;
-    //         var filter = settings.filterJobs;
-    //         break;
-    //     case "Steps":
-    //         var menuItems = [];
-    //         var filter = '';
-    //         break;
-    //     default:
-    // }
-
-    // var filterLabel = '';
-    // for (i = 0; i < menuItems.length; i++) {
-    //     if (menuItems[i].value == filter) {
-    //         filterLabel = menuItems[i].text;
-    //     }
-    // }
-    // $("#btnFilter").button({ label: 'Show: ' + filterLabel });
-
-}//updateFilterButtonLabel
-
 
 function updateSortButtonLabel() {
 
@@ -2074,7 +2043,6 @@ function filter(options) {
         default:
     }
     setTimeout(function () {
-        updateFilterButtonLabel();
         $("#menuFilter").remove();
     }, 500);
     refresh();
@@ -2236,7 +2204,6 @@ function Flows(run_date) {
 
     clearInterval(interval);
     settings.currentView = 'Flows';
-    updateFilterButtonLabel();
     updateSortButtonLabel();
     $("#btnFilter").button("enable");
     $("#btnSort").button("enable");
@@ -2507,7 +2474,6 @@ function Jobs(path) {
 
     clearInterval(interval);
     settings.currentView = 'Jobs';
-    updateFilterButtonLabel();
     updateSortButtonLabel();
     $("#btnFilter").button("enable");
     $("#btnSort").button("enable");
@@ -2656,7 +2622,6 @@ function Steps(path) {
 
     clearInterval(interval);
     settings.currentView = 'Steps';
-    updateFilterButtonLabel();
     updateSortButtonLabel();
     $("#btnFilter").button("disable");
     $("#btnSort").button("disable");
