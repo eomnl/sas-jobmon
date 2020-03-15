@@ -105,9 +105,6 @@ $(document).click(function (event) {
         if ((target.id != 'btnSettings') && ($(target).closest("#menuSettings").attr('id') != 'menuSettings')) {
             $('#menuSettings').remove();
         }
-        if ((target.id != 'btnNavbar') && ($(target).closest("#menuNavbar").attr('id') != 'menuNavbar')) {
-            $('#menuNavbar').remove();
-        }
         if ((target.id != 'viewlogOptionsButton') && ($(target).closest("#viewlogOptionsMenu").attr('id') != 'viewlogOptionsMenu')) {
             $('#viewlogOptionsMenu').remove();
         }
@@ -173,13 +170,12 @@ $(function () {
 
     $("#app").html('<div id="dimon-menubar">'
         + '<a href="#" id="linkHome"><img id="dimon-logo"></a>'
-        + '<span id="navTitle" class="dimon-menuitem left"></span>'
+        + '<button id="btnNavigate" class="dimon-menuitem left" style="margin-left:20px; font-weight: bold; background-color: white;">Navigate</button>'
         + '<button id="btnClearSearch" class="dimon-menuitem left">Clear search</button>'
         + '<input type="text" id="search" class="dimon-menuitem left" placeholder="Search" />'
         + '<button id="btnSettings" class="dimon-menuitem right">Settings</button>'
         + '<button id="btnFilter" class="dimon-menuitem right">Filter</button>'
         + '<button id="btnSort" class="dimon-menuitem right">Sort</button>'
-        + '<button id="btnNavigate" class="dimon-menuitem right">Navigate</button>'
         + '<button id="btnFilterLabel" class="dimon-menuitem left">Filter on label</button>'
         + '<button id="btnLabels" class="dimon-menuitem left">Labels</button>'
         + '</div>'
@@ -302,7 +298,7 @@ $(function () {
     })
         .click(function () { labels(); });
 
-    $("#btnNavigate").button({ icons: { secondary: "ui-icon-arrowthick-1-e" } })
+    $("#btnNavigate").button()
         .click(function (event) {
             if ($('#menuNavigate').length) {
                 // remove the menu if it already exists
@@ -334,7 +330,7 @@ $(function () {
                 button = $("#btnNavigate");
                 var buttonPosition = button.position();
                 var buttonBottom = buttonPosition.top + button.height() + 18;
-                var menuLeft = buttonPosition.left;
+                var menuLeft = buttonPosition.left + 20; /* margin-left is 20px */
                 $("#menuNavigate").remove(); // remove menu in case it already exists
                 var menuNavigate = $('<div id="menuNavigate" style="display:block;'
                     + 'position:absolute;'
@@ -582,6 +578,8 @@ $(function () {
                     if (navMenuItems[i].url.indexOf(thisLocation) == 0) {
                         settings.currentNavigate = navMenuItems[i].value;
                         $("#navTitle").html(navMenuItems[i].text);
+                        // $("#btnNavigate").prop('value', navMenuItems[i].text);
+                        $("#btnNavigate").html(navMenuItems[i].text);
                         break;
                     }
                 }
@@ -833,6 +831,7 @@ function labels(initialSelectLabel, message) {
         close: function (event, ui) {
             // remove div with all data and events
             dialog.remove();
+            $("#btnLabels").blur(); // get the focus off of btnLabels
             refresh();
         }
         , title: 'Labels'
@@ -842,6 +841,7 @@ function labels(initialSelectLabel, message) {
         , buttons: {
             "Close": function (event, ui) {
                 $(this).dialog('close');
+                $("#btnLabels").blur(); // get the focus off of btnLabels
             }
         }
     });
@@ -2138,23 +2138,24 @@ function navigate(path) {
 }//navigate
 
 
-function menuNavbar() {
+function pin() {
 
-    var dialogWidth = $(window).width() * 0.6;
-    var dialogHeight = 175;
-    var dialog = $('<div id="dialogNavigationPath">'
+    var dialogPinWidth = $(window).width() * 0.6;
+    var dialogPinHeight = 175;
+    var dialogPin = $('<div id="dialogPin">'
         + '<p>'
         + '<input type="text" id="navigationPath">'
         + '</p>'
         + '</div>').appendTo('body');
-    dialog.dialog({    // add a close listener to prevent adding multiple divs to the document
+        dialogPin.dialog({    // add a close listener to prevent adding multiple divs to the document
         close: function (event, ui) {
             // remove div with all data and events
-            dialog.remove();
+            dialogPin.remove();
+            $("#btnPin").blur(); // get the focus off of btnPin
         }
-        , title: 'Navigation Path'
-        , width: dialogWidth
-        , height: dialogHeight
+        , title: 'Pin navigation path'
+        , width: dialogPinWidth
+        , height: dialogPinHeight
         , modal: true
         , buttons: {
             "Copy to clipboard": function (event, ui) {
@@ -2163,14 +2164,15 @@ function menuNavbar() {
             }
             , "Close": function (event, ui) {
                 $(this).dialog('close');
+                $("#btnPin").blur(); // get the focus off of btnPin
             }
         }
     });
 
     var url = $(location).attr('protocol') + '//' + $(location).attr('host') + settings.webroot + '/?path=' + $('#navpath .navpath-item:last').attr('value');
-    $("#navigationPath").css("width", dialogWidth - 55).css("text-align", "left").button().val(url);
+    $("#navigationPath").css("width", dialogPinWidth - 55).css("text-align", "left").button().val(url);
 
-}//menuNavbar
+}//pin
 
 
 function Flows(run_date) {
@@ -2233,7 +2235,7 @@ function refreshFlows(run_date) {
                         $("#dimon-navbar").html('<div id="navpath"></div><span id="btnNavbar"><button id="btnPin" style="margin-top:3px;">Pin</button></span>');
                         $("#btnPin").button({ icons: { primary: 'ui-icon-pin-s' }, text: false })
                             .click(function () {
-                                menuNavbar();
+                                pin();
                             });
 
                         $("#results1 .systitleandfootercontainer").appendTo("#navpath");
@@ -2498,7 +2500,7 @@ function refreshJobs(path) {
                         $("#dimon-navbar").html('<div id="navpath"></div><span id="btnNavbar"><button id="btnPin" style="margin-top:3px;">Pin</button></span>');
                         $("#btnPin").button({ icons: { primary: 'ui-icon-pin-s' }, text: false })
                             .click(function () {
-                                menuNavbar();
+                                pin();
                             });
 
                         $("#results1 .systitleandfootercontainer").appendTo("#navpath");
@@ -2641,7 +2643,7 @@ function refreshSteps(path) {
                         $("#dimon-navbar").html('<div id="navpath"></div><span id="btnNavbar"><button id="btnPin" style="margin-top:3px;">Pin</button></span>');
                         $("#btnPin").button({ icons: { primary: 'ui-icon-pin-s' }, text: false })
                             .click(function () {
-                                menuNavbar();
+                                pin();
                             });
                         $("#results1 .systitleandfootercontainer").appendTo("#navpath");
                         $("#results1").find('br:first').remove();
