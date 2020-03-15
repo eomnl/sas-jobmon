@@ -49,7 +49,6 @@
   %global urlspa sproot webroot _odsstyle viewlog_maxfilesize gantt_width trend_days autorefresh_interval_min
           flow_completion_mode flow_completion_mode_2_idle_time lsf_flow_finished_dir
           lsf_flow_active_dir flow_scheduled_dts_match_seconds
-          alert_email_from_address
           ;
 
   /* ------------------------------------------------------------------------- */
@@ -129,7 +128,6 @@
   %put NOTE: LSF_FLOW_FINISHED_DIR            = &lsf_flow_finished_dir.;
   %put NOTE: LSF_FLOW_ACTIVE_DIR              = &lsf_flow_active_dir.;
   %put NOTE: FLOW_SCHEDULED_DTS_MATCH_SECONDS = &flow_scheduled_dts_match_seconds.;
-  %put NOTE: ALERT_EMAIL_FROM_ADDRESS         = &alert_email_from_address.;
 
   ods path WORK.TAGSETS(UPDATE) SASHELP.TMPLMST(READ);
   proc template;
