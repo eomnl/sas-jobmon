@@ -170,7 +170,7 @@ $(function () {
 
     $("#app").html('<div id="dimon-menubar">'
         + '<a href="#" id="linkHome"><img id="dimon-logo"></a>'
-        + '<button id="btnNavigate" class="dimon-menuitem left" style="margin-left:20px; font-weight: bold; background-color: white;">Navigate</button>'
+        + '<button id="btnNavigate" class="dimon-menuitem left" title="Navigate" style="margin-left:20px; font-weight: bold; background-color: white;">...</button>'
         + '<button id="btnClearSearch" class="dimon-menuitem left">Clear search</button>'
         + '<input type="text" id="search" class="dimon-menuitem left" placeholder="Search" />'
         + '<button id="btnSettings" class="dimon-menuitem right">Settings</button>'
@@ -225,72 +225,71 @@ $(function () {
     $("#btnFilterLabel").button({
         icons: { primary: 'ui-icon-triangle-1-s' }
         , text: false
-    })
-        .click(function (event) {
-            if ($('#menuLabels').length) {
-                // remove the menu if it already exists
-                $('#menuLabels').remove();
-            } else {
-                // create and show the menu, position it relative to the search input field
-                inputSearch = $("#search");
-                var inputPosition = inputSearch.offset();
-                var inputLeft = inputPosition.left;
-                var inputBottom = inputPosition.top + inputSearch.height() + 13;
-                var inputWidth = inputSearch.width() + 25;
-                $("#menuLabels").remove(); // remove menu in case it already exists
-                var menuLabels = $('<div id="menuLabels" style="display:block;'
-                    + 'position:absolute;'
-                    + 'top:' + inputBottom + 'px;'
-                    + 'left:' + inputLeft + 'px;'
-                    + 'width:' + inputWidth + 'px;'
-                    + 'z-index:1001;'
-                    + '" class="dropdown-menu"></div>').appendTo('body');
-                $("#menuLabels").html('<span style="margin:10px;">Loading...</span>'); // show loading in menu
-                $.ajax({
-                    type: "GET"
-                    , url: settings.urlSPA
-                    , data: { "_program": getSPName('dimonGetFLowLabels') }
-                    , async: true
-                    , cache: false
-                    , timeout: ajaxTimeout
-                    , dataype: 'json'
-                    , success: function (response) {
+    }).click(function (event) {
+        if ($('#menuLabels').length) {
+            // remove the menu if it already exists
+            $('#menuLabels').remove();
+        } else {
+            // create and show the menu, position it relative to the search input field
+            inputSearch = $("#search");
+            var inputPosition = inputSearch.offset();
+            var inputLeft = inputPosition.left;
+            var inputBottom = inputPosition.top + inputSearch.height() + 13;
+            var inputWidth = inputSearch.width() + 25;
+            $("#menuLabels").remove(); // remove menu in case it already exists
+            var menuLabels = $('<div id="menuLabels" style="display:block;'
+                + 'position:absolute;'
+                + 'top:' + inputBottom + 'px;'
+                + 'left:' + inputLeft + 'px;'
+                + 'width:' + inputWidth + 'px;'
+                + 'z-index:1001;'
+                + '" class="dropdown-menu"></div>').appendTo('body');
+            $("#menuLabels").html('<span style="margin:10px;">Loading...</span>'); // show loading in menu
+            $.ajax({
+                type: "GET"
+                , url: settings.urlSPA
+                , data: { "_program": getSPName('dimonGetFLowLabels') }
+                , async: true
+                , cache: false
+                , timeout: ajaxTimeout
+                , dataype: 'json'
+                , success: function (response) {
 
-                        sasdata = $.parseJSON(response).data;
-                        var labels = sasdata.labels;
+                    sasdata = $.parseJSON(response).data;
+                    var labels = sasdata.labels;
 
-                        var currentLabel = '';
+                    var currentLabel = '';
 
-                        // createdropdown menu
-                        var s = '<ul class="dropdown-menu">';
-                        for (i = 0; i < labels.length; i++) {
-                            if (labels[i][1] == '*') labels[i][0] = labels[i][0] + ' *';
-                            s += '<li class="li-dropdown-item li-dropdown-label-item ui-widget" id="label_' + i + '" value="' + labels[i][0].replace(/ /g, '-') + '"><div>'
-                                + '<span class="ui-icon ui-icon-dropdown-item ui-icon-blank"></span>'
-                                + '<span class="text-dropdown-item">' + labels[i][0] + '</span>'
-                                + '</div><br></li>'
-                                ;
-                        }
-                        s += '</ul>';
-
-                        $("#menuLabels").html(s);
-                        $('.li-dropdown-label-item').click(function () {
-                            var search = $("#search").val().replace(/label\:\S+/g, "").trim();
-                            $("#search").val(search + " label:" + $(this).attr('value'));
-                            refresh();
-                            $("#menuLabels").remove(); // remove menu in case it already exists
-                        });
-
+                    // createdropdown menu
+                    var s = '<ul class="dropdown-menu">';
+                    for (i = 0; i < labels.length; i++) {
+                        if (labels[i][1] == '*') labels[i][0] = labels[i][0] + ' *';
+                        s += '<li class="li-dropdown-item li-dropdown-label-item ui-widget" id="label_' + i + '" value="' + labels[i][0].replace(/ /g, '-') + '"><div>'
+                            + '<span class="ui-icon ui-icon-dropdown-item ui-icon-blank"></span>'
+                            + '<span class="text-dropdown-item">' + labels[i][0] + '</span>'
+                            + '</div><br></li>'
+                            ;
                     }
-                    , error: function (XMLHttpRequest, textStatus, errorThrown) {
-                        handleAjaxError('keepAlive', XMLHttpRequest, textStatus, errorThrown);
-                    }
+                    s += '</ul>';
 
-                });
+                    $("#menuLabels").html(s);
+                    $('.li-dropdown-label-item').click(function () {
+                        var search = $("#search").val().replace(/label\:\S+/g, "").trim();
+                        $("#search").val(search + " label:" + $(this).attr('value'));
+                        refresh();
+                        $("#menuLabels").remove(); // remove menu in case it already exists
+                    });
 
-                $("#menuLabels").show();
-            }
-        });
+                }
+                , error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    handleAjaxError('keepAlive', XMLHttpRequest, textStatus, errorThrown);
+                }
+
+            });
+
+            $("#menuLabels").show();
+        }
+    });
 
     $("#btnLabels").button({
         icons: { primary: 'ui-icon-tag' }
@@ -326,7 +325,7 @@ $(function () {
 
                 s += '</ul>';
 
-                var menuWidth = 193;
+                var menuWidth = 250;
                 button = $("#btnNavigate");
                 var buttonPosition = button.position();
                 var buttonBottom = buttonPosition.top + button.height() + 18;
@@ -572,21 +571,18 @@ $(function () {
 
             navMenuItems = $.parseJSON(data).items;
             if (navMenuItems.length > 0) {
-                // set navTitle - find http://hostname:port in navMenuItems.url
+                // set btnNavigate - find http://hostname:port in navMenuItems.url
                 var thisLocation = location.protocol + '//' + location.hostname + (location.port ? ':' + location.port : '');
                 for (i = 0; i < navMenuItems.length; i++) {
                     if (navMenuItems[i].url.indexOf(thisLocation) == 0) {
                         settings.currentNavigate = navMenuItems[i].value;
-                        $("#navTitle").html(navMenuItems[i].text);
-                        // $("#btnNavigate").prop('value', navMenuItems[i].text);
                         $("#btnNavigate").html(navMenuItems[i].text);
                         break;
                     }
                 }
-
             } else {
-                // hide navTitle
-                $("#navTitle").hide();
+                // hide btnNavigate
+                $("#btnNavigate").hide();
             }
 
         }
@@ -595,7 +591,6 @@ $(function () {
             handleAjaxError('refreshFlows', XMLHttpRequest, textStatus, errorThrown);
         }
     });
-
 
     // set #dimon-navbar height
     $("#dimon-navbar").html('<div style="margin:1.15em;"><span class="l systemtitle">&nbsp;</span><div>');
@@ -618,7 +613,6 @@ $(function () {
 
     // Keep the Stored Process Server session alive by running the keepAlive Stored Process once every 5 minutes
     window.setInterval("keepAlive()", 300000);
-
 
 
     // combobox --BEGIN
@@ -780,7 +774,7 @@ function labels(initialSelectLabel, message) {
     var selectedLabel;
     var isDirty = false;
 
-    var dialog = $('<div id="dialogFlowTags">'
+    var dialogLabels = $('<div id="dialogFlowTags">'
         + '  <div id="labelsStatusMessage"><div id="labelsStatusMessageInner"></div></div>'
         + '  <div style="width:100%">'
         + '    <div style="width:35%; float:left">'
@@ -827,10 +821,10 @@ function labels(initialSelectLabel, message) {
         + '  </div>'
         + '</div>').appendTo('body');
 
-    dialog.dialog({    // add a close listener to prevent adding multiple divs to the document
+        dialogLabels.dialog({    // add a close listener to prevent adding multiple divs to the document
         close: function (event, ui) {
             // remove div with all data and events
-            dialog.remove();
+            dialogLabels.remove();
             $("#btnLabels").blur(); // get the focus off of btnLabels
             refresh();
         }
@@ -1013,7 +1007,7 @@ function labels(initialSelectLabel, message) {
                 , success: function (response) {
                     data = $.parseJSON(response);
                     if (data.syscc == 0) {
-                        dialog.remove();
+                        dialogLabels.remove();
                         labels(selectedLabel, "Label '" + selectedLabel + "' was deleted");
                     } else {
                         alert('The request completed with errors (syscc=' + data.syscc + ')\n'
@@ -1048,8 +1042,10 @@ function labels(initialSelectLabel, message) {
         var textFilterLabels = $('#textFilterLabels').val();
         var exists = false;
         for (i = 0; i < workLabels.length; i++) {
-            if (String(workLabels[i]).toUpperCase() == String(textFilterLabels).toUpperCase()) exists = true;
+
+            if (workLabels[i][0].toUpperCase() == textFilterLabels.toUpperCase()) exists = true;
         }
+
         if ((textFilterLabels != '') && (!exists)) {
             // enable New button
             enableButton($("#btnNewLabel"));
@@ -1236,7 +1232,7 @@ function labels(initialSelectLabel, message) {
                     data = $.parseJSON(response);
                     if (data.syscc == 0) {
                         // reopen labels dialog
-                        dialog.remove();
+                        dialogLabels.remove();
                         labels(selectedLabel, "Label '" + selectedLabel + "' was saved");
                     } else {
                         alert('The request completed with errors (syscc=' + data.syscc + ')\n'
@@ -2147,7 +2143,7 @@ function pin() {
         + '<input type="text" id="navigationPath">'
         + '</p>'
         + '</div>').appendTo('body');
-        dialogPin.dialog({    // add a close listener to prevent adding multiple divs to the document
+    dialogPin.dialog({    // add a close listener to prevent adding multiple divs to the document
         close: function (event, ui) {
             // remove div with all data and events
             dialogPin.remove();
