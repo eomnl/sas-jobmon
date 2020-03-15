@@ -78,7 +78,7 @@
   /* Default numer of days to show elapsed time trend for */
   %let trend_days           = 90;
 
-  /* Minumum value for autorefresh_interval */
+  /* Minimum value for autorefresh_interval */
   %let autorefresh_interval_min = 10;
 
   /* Flow completion mode - When is a flow marked as completed? */
