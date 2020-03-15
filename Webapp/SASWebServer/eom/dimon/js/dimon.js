@@ -1876,7 +1876,7 @@ function reportScheduledFlows() {
     var dialogReportScheduledFlows = $('<div id="dialogReportScheduledFlows">'
         + '<div class="row" style="padding-bottom: 5px; border-bottom: 1px solid #e0e0e0;">'
         + '<label for="inputDateFrom">Date from:</label><input id="inputDateFrom" type="text" readonly>'
-        + '<label for="inputDateUntil">Date util:</label><input id="inputDateUntil" type="text" readonly>'
+        + '<label for="inputDateUntil">Date until:</label><input id="inputDateUntil" type="text" readonly>'
         + '<button id="btnFlowsReportClearSearch">Clear search</button>'
         + '<input type="text" id="inputFlowsReportSearch" placeholder="Search" />'
         + '<button id="btnRunReport">Run</button>'
