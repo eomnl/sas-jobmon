@@ -1973,7 +1973,7 @@ function reportScheduledFlows() {
             + "&report_date_until=" + $("#inputDateUntil").val()
             + "&search=" + $("#inputFlowsReportSearch").val()
             + "&dest=excel"
-            window.open(url,"_blank");
+        window.open(url, "_blank");
     })
 
     $(":button:contains('Close')").focus(); // Set focus to the [Close] button
@@ -2140,62 +2140,35 @@ function navigate(path) {
 
 function menuNavbar() {
 
-    $('#menuNavbar').remove(); // remove filter in case it already exists
-    var s = '<ul class="dropdown-menu">'
-        + '<li class="li-dropdown-item li-dropdown-filter-item ui-widget" id="copyPath">'
-        + '<div>'
-        + '<span class="ui-icon ui-icon-dropdown-item ui-icon-pin-s"></span>'
-        + '<span class="text-dropdown-item">Navigation path</span>'
-        + '</div><br />'
-        + '</li>'
-        + '</ul>';
-    button = $("#btnNavbar");
-    var menuWidth = 240;
-    var buttonPosition = button.position();
-    var menuLeft = buttonPosition.left + button.width() - menuWidth;
-    var menuTop = buttonPosition.top + button.height() + 8;
-    $("#menuNavbar").remove(); // remove menu in case it already exists
-    $('<div id="menuNavbar" style="display:block;position:absolute;top:'
-        + menuTop + 'px;left:'
-        + menuLeft + 'px;width:'
-        + menuWidth + 'px;z-index:1001;" class="dropdown-menu"></div>').appendTo('body');
-    $("#menuNavbar").html(s);
-    $("#copyPath").click(function () {
-        $("#menuNavbar").remove();
-        var dialogWidth = $(window).width() * 0.6;
-        var dialogHeight = 175;
-        var dialog = $('<div id="dialogNavigationPath">'
-            + '<p>'
-            + '<input type="text" id="navigationPath">'
-            + '</p>'
-            + '</div>').appendTo('body');
-        dialog.dialog({    // add a close listener to prevent adding multiple divs to the document
-            close: function (event, ui) {
-                // remove div with all data and events
-                dialog.remove();
+    var dialogWidth = $(window).width() * 0.6;
+    var dialogHeight = 175;
+    var dialog = $('<div id="dialogNavigationPath">'
+        + '<p>'
+        + '<input type="text" id="navigationPath">'
+        + '</p>'
+        + '</div>').appendTo('body');
+    dialog.dialog({    // add a close listener to prevent adding multiple divs to the document
+        close: function (event, ui) {
+            // remove div with all data and events
+            dialog.remove();
+        }
+        , title: 'Navigation Path'
+        , width: dialogWidth
+        , height: dialogHeight
+        , modal: true
+        , buttons: {
+            "Copy to clipboard": function (event, ui) {
+                $("#navigationPath").select();
+                document.execCommand("copy");
             }
-            , title: 'Navigation Path'
-            , width: dialogWidth
-            , height: dialogHeight
-            , modal: true
-            , buttons: {
-                "Copy to clipboard": function (event, ui) {
-                    $("#navigationPath").select();
-                    document.execCommand("copy");
-                }
-                , "Close": function (event, ui) {
-                    $(this).dialog('close');
-                }
+            , "Close": function (event, ui) {
+                $(this).dialog('close');
             }
-        });
-
-        // var url = $(location).attr('protocol') + '//' + $(location).attr('host') + settings.webroot + '/?path=' + $('#navpath .navpath-item:last').attr('id');
-        var url = $(location).attr('protocol') + '//' + $(location).attr('host') + settings.webroot + '/?path=' + $('#navpath .navpath-item:last').attr('value');
-        // var url = $(location).attr('protocol') + '//' + $(location).attr('host') + settings.webroot + '/?path=' + settings.currentRundate;
-        $("#navigationPath").css("width", dialogWidth - 55).css("text-align", "left").button().val(url);
-
+        }
     });
-    $("#menuNavbar").show();
+
+    var url = $(location).attr('protocol') + '//' + $(location).attr('host') + settings.webroot + '/?path=' + $('#navpath .navpath-item:last').attr('value');
+    $("#navigationPath").css("width", dialogWidth - 55).css("text-align", "left").button().val(url);
 
 }//menuNavbar
 
@@ -2257,10 +2230,12 @@ function refreshFlows(run_date) {
                         $("#results1").html(data);
 
                         // move SAS-generated report title to #dimon-navbar
-                        $("#dimon-navbar").html('<div id="navpath"></div><span id="btnNavbar"></span>');
-                        $("#btnNavbar").html(svgDotsVertical).button().click(function () {
-                            menuNavbar();
-                        });
+                        $("#dimon-navbar").html('<div id="navpath"></div><span id="btnNavbar"><button id="btnPin" style="margin-top:3px;">Pin</button></span>');
+                        $("#btnPin").button({ icons: { primary: 'ui-icon-pin-s' }, text: false })
+                            .click(function () {
+                                menuNavbar();
+                            });
+
                         $("#results1 .systitleandfootercontainer").appendTo("#navpath");
                         $("#results1").find('br:first').remove();
 
@@ -2520,10 +2495,12 @@ function refreshJobs(path) {
                         $("#results1").html(data);
 
                         // move SAS-generated report title to #dimon-navbar
-                        $("#dimon-navbar").html('<div id="navpath"></div><span id="btnNavbar"></span>');
-                        $("#btnNavbar").html(svgDotsVertical).button().click(function () {
-                            menuNavbar();
-                        });
+                        $("#dimon-navbar").html('<div id="navpath"></div><span id="btnNavbar"><button id="btnPin" style="margin-top:3px;">Pin</button></span>');
+                        $("#btnPin").button({ icons: { primary: 'ui-icon-pin-s' }, text: false })
+                            .click(function () {
+                                menuNavbar();
+                            });
+
                         $("#results1 .systitleandfootercontainer").appendTo("#navpath");
                         $("#results1").find('br:first').remove();
 
@@ -2661,10 +2638,11 @@ function refreshSteps(path) {
                         $("#results1").html(data);
 
                         // move SAS-generated report title to #dimon-navbar
-                        $("#dimon-navbar").html('<div id="navpath"></div><span id="btnNavbar"></span>');
-                        $("#btnNavbar").html(svgDotsVertical).button().click(function () {
-                            menuNavbar();
-                        });
+                        $("#dimon-navbar").html('<div id="navpath"></div><span id="btnNavbar"><button id="btnPin" style="margin-top:3px;">Pin</button></span>');
+                        $("#btnPin").button({ icons: { primary: 'ui-icon-pin-s' }, text: false })
+                            .click(function () {
+                                menuNavbar();
+                            });
                         $("#results1 .systitleandfootercontainer").appendTo("#navpath");
                         $("#results1").find('br:first').remove();
 
