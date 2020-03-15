@@ -1824,10 +1824,6 @@ function editAlerts() {
 
 function reports() {
 
-    var urlBase = location.protocol + '//' + location.hostname + (location.port ? ':' + location.port : '') + settings.urlSPA + '?_program=';
-    var urlReport1 = urlBase + getSPName('dimonReportFlowSchedules') + '&report_period=day';
-    var urlReport2 = urlBase + getSPName('dimonReportFlowSchedules') + '&report_period=week';
-    var urlReport3 = urlBase + getSPName('dimonReportFlowSchedules') + '&report_period=month';
     var dialogReports =
         $('<div id="dialogReports">'
             + '<table id="tableReports" style="cursor:default">'
@@ -1857,7 +1853,6 @@ function reports() {
             }
         }
     });
-    //$("#report1-select").selectmenu();
 
     $("#tableReports").DataTable({
         paging: false,
@@ -1879,10 +1874,11 @@ function reports() {
 function reportScheduledFlows() {
 
     var dialogReportScheduledFlows = $('<div id="dialogReportScheduledFlows">'
-        + '<div class="row">'
+        + '<div class="row" style="padding-bottom: 5px; border-bottom: 1px solid #e0e0e0;">'
         + '<label for="inputDateFrom">Date from:</label><input id="inputDateFrom" type="text" readonly>'
         + '<label for="inputDateUntil">Date util:</label><input id="inputDateUntil" type="text" readonly>'
-        + '<label for="inputDateUntil">Search:</label><input id="inputSearch" type="text">'
+        + '<button id="btnFlowsReportClearSearch">Clear search</button>'
+        + '<input type="text" id="inputFlowsReportSearch" placeholder="Search" />'
         + '<button id="btnRunReport">Run</button>'
         + '<button id="btnExcel">Excel</button>'
         + '</div>'
@@ -1913,9 +1909,12 @@ function reportScheduledFlows() {
         'margin-right': '20px'
     }).datepicker({
         dateFormat: "ddMyy"
-    , onSelect: function (date, event) {
-        refreshReportLabels();
-    }});
+        , onSelect: function (date, event) {
+            refreshReportLabels();
+        }
+    });
+    // set date to today
+    $("#inputDateFrom").val($.datepicker.formatDate('ddMyy', new Date()));
 
     $("#inputDateUntil").jqtext().css({
         'width': '80px',
@@ -1923,11 +1922,23 @@ function reportScheduledFlows() {
         'margin-right': '20px'
     }).datepicker({
         dateFormat: "ddMyy"
-    , onSelect: function (date, event) {
-        refreshReportLabels();
-    }});
+        , onSelect: function (date, event) {
+            refreshReportLabels();
+        }
+    });
+    // set date to today
+    $("#inputDateUntil").val($.datepicker.formatDate('ddMyy', new Date()));
 
-    $("#inputSearch").jqtext().css({ 'width': '300px', 'margin-left': '5px', 'margin-right': '20px' });
+    $("#btnFlowsReportClearSearch").button({
+        icons: { primary: 'ui-icon-close' }
+        , text: false
+    })
+        .click(function () {
+            $("#inputFlowsReportSearch").val("");
+        });
+
+    $("#inputFlowsReportSearch").jqtext().css({ 'width': '300px', 'margin-left': '0px', 'margin-right': '20px' });
+
     $("#btnRunReport").button().click(function () {
 
         $("#report").html('<img src="' + settings.imgroot + '/dimon-ajax-loader.gif" />');
@@ -1939,7 +1950,8 @@ function reportScheduledFlows() {
                 "_program": getSPName('dimonReportFlowSchedules')
                 , "report_date_from": $("#inputDateFrom").val()
                 , "report_date_until": $("#inputDateUntil").val()
-                , "search": $("#inputSearch").val()
+                , "search": $("#inputFlowsReportSearch").val()
+                , "dest": "html"
             }
             , async: true
             , cache: false
@@ -1947,21 +1959,29 @@ function reportScheduledFlows() {
             , dataype: 'json'
             , success: function (response) {
                 $("#report").html(response);
-
             }
-
             , error: function (XMLHttpRequest, textStatus, errorThrown) {
                 handleAjaxError('keepAlive', XMLHttpRequest, textStatus, errorThrown);
             }
         });
     })
 
-    $("#btnExcel").button().click(function () { });
+    $("#btnExcel").button().click(function () {
+
+        var url = location.protocol + '//' + location.hostname + (location.port ? ':' + location.port : '') + settings.urlSPA
+            + '?_program=' + getSPName('dimonReportFlowSchedules')
+            + "&report_date_from=" + $("#inputDateFrom").val()
+            + "&report_date_until=" + $("#inputDateUntil").val()
+            + "&search=" + $("#inputFlowsReportSearch").val()
+            + "&dest=excel"
+            window.open(url,"_blank");
+    })
+
     $(":button:contains('Close')").focus(); // Set focus to the [Close] button
     refreshReportLabels();
 
-    function refreshReportLabels () {
-        if ( ($("#inputDateFrom").val() == "") || ($("#inputDateUntil").val() == "") ) {
+    function refreshReportLabels() {
+        if (($("#inputDateFrom").val() == "") || ($("#inputDateUntil").val() == "")) {
             disableButton($("#btnRunReport"));
             disableButton($("#btnExcel"));
         } else {
