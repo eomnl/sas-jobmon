@@ -1,20 +1,20 @@
 #!/bin/bash
 SAS_COMMAND=/apps/sas/SASConfig/Lev1/SASApp/BatchServer/sasbatch.sh
 SCRIPTDIR=$(echo "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)")
-SYSINFILE="/tmp/dimon_alertmon.sas"
-EOMALERTSLOGOFILE="/tmp/eomalerts.png"
-ALERTEMAILFROMADDRESS="eomalerts@xs4all.nl"
 HOSTNAME=$(hostname -s)
 DTS=$(date +%Y%m%d_%H%M%S)
 LOGFILE="$SCRIPTDIR/Logs/dimon_alertmon_${HOSTNAME}_${DTS}.log"
 LSTFILE="$SCRIPTDIR/Lst/dimon_alertmon_${HOSTNAME}_${DTS}.lst"
 LSF_FLOW_ACTIVE_DIR="/apps/sas/thirdparty/pm/work/storage/flow_instance_storage/active"
 LSF_FLOW_FINISHED_DIR="/apps/sas/thirdparty/pm/work/storage/flow_instance_storage/finished"
-PIDFILE=~/.dimon_alertmon.pid
-#set -x
 
 # The Alert Monitor is a SAS script that needs a SAS metadata identity
 RUNAS=sasdemo
+
+# You should not have to change anything below this line
+SYSINFILE="/tmp/dimon_alertmon.sas"
+EOMALERTSLOGOFILE="/tmp/eomalerts.png"
+PIDFILE=~/.dimon_alertmon.pid
 
 main() {
 
@@ -139,7 +139,6 @@ alertmon_status() {
     if [ ! -z "$pid" ]; then
       pidfound=$(ps -o cmd= --pid $pid | wc -l)
       isalertmon=$(ps -o cmd= --pid $pid | grep alertmon | wc -l)
-
       if [ $pidfound -eq 1 ]; then
         if [ $isalertmon -eq 1 ]; then
           echo EOM Alert Monitor is UP
