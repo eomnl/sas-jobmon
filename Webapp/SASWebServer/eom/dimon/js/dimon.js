@@ -303,6 +303,9 @@ $(function () {
                 // remove the menu if it already exists
                 $('#menuNavigate').remove();
             } else {
+                
+                $('.ui-tooltip').remove(); // remove the tooltip immediately on menu open
+
                 var s = '';
                 s += '<ul class="dropdown-menu">';
 
