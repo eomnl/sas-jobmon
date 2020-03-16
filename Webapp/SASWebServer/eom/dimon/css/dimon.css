@@ -318,9 +318,7 @@ div #viewlogHeader {
 
 div #viewlogTitle {
 	padding: 10px;
-	font-size: 1em;
 	overflow: auto;
-	/*float:left;*/
 }
 
 #viewlogTitle-filename {
@@ -328,6 +326,7 @@ div #viewlogTitle {
 	margin-top: 6px;
 	margin-bottom: 5px;
 	margin-left: 5px;
+	font-size: 0.8em;
 }
 
 #viewlogOptionsButton {
@@ -581,4 +580,9 @@ a:active {
 table.dataTable.cell-border tbody td {
 	border-top: none;
 	border-bottom: 1px solid #ddd;
+}
+
+
+#btnDownloadLog {
+	font-size: 0.8em;
 }

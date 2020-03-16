@@ -105,9 +105,6 @@ $(document).click(function (event) {
         if ((target.id != 'btnSettings') && ($(target).closest("#menuSettings").attr('id') != 'menuSettings')) {
             $('#menuSettings').remove();
         }
-        if ((target.id != 'viewlogOptionsButton') && ($(target).closest("#viewlogOptionsMenu").attr('id') != 'viewlogOptionsMenu')) {
-            $('#viewlogOptionsMenu').remove();
-        }
         if ((target.id != 'btnFilterLabel')
             && ($(target).closest("#menuLabels").attr('id') != 'menuLabels')
             && (target.id != 'menuLabels')) {
@@ -213,8 +210,7 @@ $(function () {
     $("#btnClearSearch").button({
         icons: { primary: 'ui-icon-close' }
         , text: false
-    })
-        .click(function () { clearSearch(); });
+    }).click(function () { clearSearch(); });
 
 
     function clearSearch() {
@@ -303,7 +299,7 @@ $(function () {
                 // remove the menu if it already exists
                 $('#menuNavigate').remove();
             } else {
-                
+
                 $('.ui-tooltip').remove(); // remove the tooltip immediately on menu open
 
                 var s = '';
@@ -824,7 +820,7 @@ function labels(initialSelectLabel, message) {
         + '  </div>'
         + '</div>').appendTo('body');
 
-        dialogLabels.dialog({    // add a close listener to prevent adding multiple divs to the document
+    dialogLabels.dialog({    // add a close listener to prevent adding multiple divs to the document
         close: function (event, ui) {
             // remove div with all data and events
             dialogLabels.remove();
@@ -2653,6 +2649,7 @@ function refreshSteps(path) {
 
                         $(".navpath-item").button().click(function () { navigate($(this).attr('id')); });
                         $(".view-log-link").click(function () {
+                            $('.ui-tooltip').remove(); // remove all tooltips
                             viewLog($(this).attr('id').split('_')[1]
                                 , $(this).attr('id').split('_')[2]);
                         });
@@ -2741,7 +2738,7 @@ function viewLogInDimon(job_run_id, anchor) {
 
     dialog = $('<div id="dialogViewLog" style="display:none">'
         + '<div id="viewlogHeader">'
-        + '<div id="viewlogTitle" class="l systemtitle SystemTitle"></div>'
+        + '<div id="viewlogTitle" class="l systemtitle"></div>'
         + '</div>'
         + '<div id="viewlogContent"></div>'
         + '</div>').appendTo('body');
@@ -2790,13 +2787,14 @@ function getLog(job_run_id, anchor) {
         , dataType: 'json'
         , timeout: ajaxTimeout
         , success: function (data) {
-            var s = '<div id="viewlogTitle-filename">File: ' + data.job_log_file + '</div>'
-                + '<span id="viewlogOptionsButton" title="Options"></span>'
-                ;
-            //$("#viewlogTitle").html("File: " + data.job_log_file);
-            $("#viewlogTitle").html(s);
-            $("#viewlogOptionsButton").html(svgDotsVertical).button().click(function () {
-                viewlogOptionsMenu(job_run_id);
+            $("#viewlogTitle").html('<div id="viewlogTitle-filename">File: ' + data.job_log_file + '</div>'
+                + '<button id="btnDownloadLog" title="Download" style="float:right">Download</button>');
+            $("#btnDownloadLog").button({
+                icons: { primary: 'ui-icon-arrowthickstop-1-s' }
+                , text: false
+            }).click(function () {
+                window.location.href = settings.urlSPA + '?_program=' + getSPName('dimonViewLogExternally') + '&job_run_id=' + job_run_id;
+                $("#btnDownloadLog").blur(); // get focus off of btnDownloadLog
             });
         }
         , error: function (XMLHttpRequest, textStatus, errorThrown) {
@@ -2836,33 +2834,6 @@ function getLog(job_run_id, anchor) {
     });
 
 }//getLog
-
-
-function viewlogOptionsMenu(job_run_id) {
-
-    $('#viewlogOptionsMenu').remove(); // remove filter in case it already exists
-    $('.ui-tooltip').fadeOut(300, function () { $(this).remove(); }); // fade-out and remove tooltip
-    var s = '<ul class="dropdown-menu">'
-        + '<li class="li-dropdown-item" id="viewlogDownload">'
-        + '<div><span class="text-dropdown-item ui-widget">&nbsp;&nbsp;Download</span></div><br>'
-        + '</li>'
-        + '</ul>';
-    button = $("#viewlogOptionsButton");
-    var menuWidth = 160;
-    var buttonPosition = button.position();
-    var menuLeft = buttonPosition.left + button.width() - menuWidth;
-    var menuTop = buttonPosition.top + button.height() + 8;
-    $("#viewlogOptionsMenu").remove(); // remove menu in case it already exists
-    var viewlogOptionsMenu = $('<div id="viewlogOptionsMenu" style="display:block;z-index:1001;width:' + menuWidth + 'px;" class="dropdown-menu"></div>').appendTo('body');
-    $("#viewlogOptionsMenu").html(s)
-        .position({ my: "right top", at: "center+10px bottom", of: button, collision: "fit" });
-    $("#viewlogDownload").click(function () {
-        $("#viewlogOptionsMenu").remove();
-        window.location.href = settings.urlSPA + '?_program=' + getSPName('dimonViewLogExternally') + '&job_run_id=' + job_run_id;;
-    });
-    $("#viewlogOptionsMenu").show();
-
-}//viewlogOptionsMenu
 
 
 function plot(parms) {
