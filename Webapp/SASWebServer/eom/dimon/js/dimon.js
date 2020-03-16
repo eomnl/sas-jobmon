@@ -170,7 +170,7 @@ $(function () {
 
     $("#app").html('<div id="dimon-menubar">'
         + '<a href="#" id="linkHome"><img id="dimon-logo"></a>'
-        + '<button id="btnNavigate" class="dimon-menuitem left" title="Navigate" style="margin-left:20px; font-weight: bold; background-color: white;">...</button>'
+        + '<button id="btnNavigate" class="dimon-menuitem left" title="Navigate" style="margin-left:20px; font-weight: bold;">...</button>'
         + '<button id="btnClearSearch" class="dimon-menuitem left">Clear search</button>'
         + '<input type="text" id="search" class="dimon-menuitem left" placeholder="Search" />'
         + '<button id="btnSettings" class="dimon-menuitem right">Settings</button>'
