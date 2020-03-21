@@ -102,7 +102,7 @@ $(document).click(function (event) {
         if ((target.id != 'btnFilter') && ($(target).closest("#menuFilter").attr('id') != 'menuFilter')) {
             $('#menuFilter').remove();
         }
-        if ((target.id != 'btnSettings') && ($(target).closest("#menuSettings").attr('id') != 'menuSettings')) {
+        if ((target.id != 'btnMore') && ($(target).closest("#menuSettings").attr('id') != 'menuSettings')) {
             $('#menuSettings').remove();
         }
         if ((target.id != 'btnFilterLabel')
@@ -170,7 +170,7 @@ $(function () {
         + '<button id="btnNavigate" class="dimon-menuitem left" title="Navigate" style="margin-left:20px; font-weight: bold;">...</button>'
         + '<button id="btnClearSearch" class="dimon-menuitem left">Clear search</button>'
         + '<input type="text" id="search" class="dimon-menuitem left" placeholder="Search" />'
-        + '<button id="btnSettings" class="dimon-menuitem right">Settings</button>'
+        + '<button id="btnMore" class="dimon-menuitem right">More</button>'
         + '<button id="btnFilter" class="dimon-menuitem right">Filter</button>'
         + '<button id="btnSort" class="dimon-menuitem right">Sort</button>'
         + '<button id="btnFilterLabel" class="dimon-menuitem left">Filter on label</button>'
@@ -348,8 +348,8 @@ $(function () {
             }
         });
 
-    $("#btnSettings").button({
-        icons: { primary: 'ui-icon-gear' }
+    $("#btnMore").button({
+        icons: { primary: 'ui-icon-triangle-1-s' }
         , text: false
     }).click(function () {
 
@@ -373,7 +373,7 @@ $(function () {
             s += '</ul>';
 
             var menuWidth = 150;
-            button = $("#btnSettings");
+            button = $("#btnMore");
             var buttonPosition = button.position();
             var buttonLeft = buttonPosition.left;
             var buttonBottom = buttonPosition.top + button.height() + 18;
