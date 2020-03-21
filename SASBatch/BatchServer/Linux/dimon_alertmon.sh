@@ -69,15 +69,14 @@ alertmon_start() {
   # Start alertmon
   #
 
-  include_sascode
-  eomalerts_png
-
   if [ "$(alertmon_status)" == "EOM Alert Monitor is UP" ]; then
     echo "EOM Alert Monitor is already running"
     return
   fi
 
   echo Starting EOM Alert Monitor
+  include_sascode
+  eomalerts_png
   running=false
   nohup "$SAS_COMMAND" -sysin "$SYSINFILE" -log "$LOGFILE" -print "$LSTFILE" \
         -set eomalertslogofile $EOMALERTSLOGOFILE \
