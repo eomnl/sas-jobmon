@@ -76,7 +76,7 @@ var sortFlowsMenuItems = [{ 'value': 'trigger_time', 'text': 'Trigger time' }
     , { 'value': 'elapsed_time', 'text': 'Elapsed time' }
 ];
 
-var sortJobsMenuItems = [{ 'value': 'job_seq_nr', 'text': 'Flow/Job sequence number' }
+var sortJobsMenuItems = [{ 'value': 'job_seq_nr', 'text': 'Flow/Job seqnr' }
     , { 'value': 'flow_job_name', 'text': 'Flow/Job' }
     , { 'value': 'job_run_id', 'text': 'Job Run ID' }
     , { 'value': 'start_dts', 'text': 'Start time' }
@@ -838,7 +838,7 @@ function labels(initialSelectLabel, message) {
         }
     });
 
-    $("#labelsStatus").html('Loading labels ... <img src="' + settings.imgroot + '/dimon-ajax-loader.gif" />');
+    $("#labelsStatus").html('Labels loading ... <img src="' + settings.imgroot + '/dimon-ajax-loader.gif" />');
     $.ajax({
         type: "GET"
         , url: settings.urlSPA
