@@ -2505,7 +2505,7 @@ function refreshJobs(path) {
                         $("#dimon-footer").html("");
                         $("#results1 .reportfooter").appendTo("#dimon-footer");
 
-                        $(".navpath-item").button().click(function () { navigate($(this).attr('id')); });
+                        $(".navpath-item").button().click(function () { navigate($(this).attr('value')); });
 
                         $(".flow-status-link").click(function () {
                             viewNotesWarningsErrors({
