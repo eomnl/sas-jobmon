@@ -8,6 +8,9 @@ LSTFILE="$SCRIPTDIR/Lst/dimon_alertmon_${HOSTNAME}_${DTS}.lst"
 LSF_FLOW_ACTIVE_DIR="/apps/sas/thirdparty/pm/work/storage/flow_instance_storage/active"
 LSF_FLOW_FINISHED_DIR="/apps/sas/thirdparty/pm/work/storage/flow_instance_storage/finished"
 
+# check every 60 seconds
+ALERT_CHECK_INTERVAL=60
+
 # The Alert Monitor is a SAS script that needs a SAS metadata identity
 RUNAS=sasdemo
 
@@ -81,7 +84,10 @@ alertmon_start() {
   nohup "$SAS_COMMAND" -sysin "$SYSINFILE" -log "$LOGFILE" -print "$LSTFILE" \
         -set eomalertslogofile $EOMALERTSLOGOFILE \
         -set lsf_flow_active_dir $LSF_FLOW_ACTIVE_DIR \
-        -set lsf_flow_finished_dir $LSF_FLOW_FINISHED_DIR </dev/null &>/dev/null &
+        -set lsf_flow_finished_dir $LSF_FLOW_FINISHED_DIR \
+        -set alert_check_interval $ALERT_CHECK_INTERVAL \
+        -logparm 'write=immediate' \
+        </dev/null &>/dev/null &
   rc=$?
   ppid=$!
   sleep 1
@@ -160,7 +166,6 @@ include_sascode() {
   cat <<"EOF" >$SYSINFILE
 
 
-
 options errorabend;
 %macro alertmon;
 
@@ -173,7 +178,13 @@ options errorabend;
        options nonotes nomprint;
   %end;
 
-  %global lsf_flow_active_dir lsf_flow_finished_dir;
+  %global alert_check_interval lsf_flow_active_dir lsf_flow_finished_dir;
+
+  %if (%sysfunc(sysexist(alert_check_interval))) %then
+      %let alert_check_interval = %sysget(alert_check_interval);
+  %else
+      %let alert_check_interval = 60; /* every minute */
+  %put DIMONNOTE: &=alert_check_interval;
 
 %do %while(1);
 
@@ -193,45 +204,45 @@ PROJECT PATH: C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonR
 /* Conditionally delete set of tables or views, if they exists          */
 /* If the member does not exist, then no action is performed   */
 %macro _eg_conditional_dropds /parmbuff;
-	
-   	%local num;
-   	%local stepneeded;
-   	%local stepstarted;
-   	%local dsname;
-	%local name;
+    
+       %local num;
+       %local stepneeded;
+       %local stepstarted;
+       %local dsname;
+    %local name;
 
-   	%let num=1;
-	/* flags to determine whether a PROC SQL step is needed */
-	/* or even started yet                                  */
-	%let stepneeded=0;
-	%let stepstarted=0;
-   	%let dsname= %qscan(&syspbuff,&num,',()');
-	%do %while(&dsname ne);	
-		%let name = %sysfunc(left(&dsname));
-		%if %qsysfunc(exist(&name)) %then %do;
-			%let stepneeded=1;
-			%if (&stepstarted eq 0) %then %do;
-				proc sql;
-				%let stepstarted=1;
+       %let num=1;
+    /* flags to determine whether a PROC SQL step is needed */
+    /* or even started yet                                  */
+    %let stepneeded=0;
+    %let stepstarted=0;
+       %let dsname= %qscan(&syspbuff,&num,',()');
+    %do %while(&dsname ne);    
+        %let name = %sysfunc(left(&dsname));
+        %if %qsysfunc(exist(&name)) %then %do;
+            %let stepneeded=1;
+            %if (&stepstarted eq 0) %then %do;
+                proc sql;
+                %let stepstarted=1;
 
-			%end;
-				drop table &name;
-		%end;
+            %end;
+                drop table &name;
+        %end;
 
-		%if %sysfunc(exist(&name,view)) %then %do;
-			%let stepneeded=1;
-			%if (&stepstarted eq 0) %then %do;
-				proc sql;
-				%let stepstarted=1;
-			%end;
-				drop view &name;
-		%end;
-		%let num=%eval(&num+1);
-      	%let dsname=%qscan(&syspbuff,&num,',()');
-	%end;
-	%if &stepstarted %then %do;
-		quit;
-	%end;
+        %if %sysfunc(exist(&name,view)) %then %do;
+            %let stepneeded=1;
+            %if (&stepstarted eq 0) %then %do;
+                proc sql;
+                %let stepstarted=1;
+            %end;
+                drop view &name;
+        %end;
+        %let num=%eval(&num+1);
+          %let dsname=%qscan(&syspbuff,&num,',()');
+    %end;
+    %if &stepstarted %then %do;
+        quit;
+    %end;
 %mend _eg_conditional_dropds;
 
 
@@ -252,40 +263,40 @@ PROJECT PATH: C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonR
   %let isString = (%QUPCASE(&TYPE) eq S or %QUPCASE(&TYPE) eq STRING );
   %if &isString %then
   %do;
-	%if "&MATCH_CASE" eq "0" %then %do;
-		%let COLUMN = %str(UPPER%(&COLUMN%));
-	%end;
-	%let q1=%str(%");
-	%let q2=%str(%");
-	%let sq1=%str(%'); 
-	%let sq2=%str(%'); 
+    %if "&MATCH_CASE" eq "0" %then %do;
+        %let COLUMN = %str(UPPER%(&COLUMN%));
+    %end;
+    %let q1=%str(%");
+    %let q2=%str(%");
+    %let sq1=%str(%'); 
+    %let sq2=%str(%'); 
   %end;
   %else %if %QUPCASE(&TYPE) eq D or %QUPCASE(&TYPE) eq DATE %then 
   %do;
     %let q1=%str(%");
     %let q2=%str(%"d);
-	%let sq1=%str(%'); 
+    %let sq1=%str(%'); 
     %let sq2=%str(%'); 
   %end;
   %else %if %QUPCASE(&TYPE) eq T or %QUPCASE(&TYPE) eq TIME %then
   %do;
     %let q1=%str(%");
     %let q2=%str(%"t);
-	%let sq1=%str(%'); 
+    %let sq1=%str(%'); 
     %let sq2=%str(%'); 
   %end;
   %else %if %QUPCASE(&TYPE) eq DT or %QUPCASE(&TYPE) eq DATETIME %then
   %do;
     %let q1=%str(%");
     %let q2=%str(%"dt);
-	%let sq1=%str(%'); 
+    %let sq1=%str(%'); 
     %let sq2=%str(%'); 
   %end;
   %else
   %do;
     %let q1=;
     %let q2=;
-	%let sq1=;
+    %let sq1=;
     %let sq2=;
   %end;
   
@@ -300,19 +311,19 @@ PROJECT PATH: C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonR
 
   %if not %symexist(&PARM) or (&isBetween and not %symexist(&MAX)) %then %do;
     %if &IS_EXPLICIT=0 %then %do;
-		not &MATCHALL_CLAUSE
-	%end;
-	%else %do;
-	    not 1=1
-	%end;
+        not &MATCHALL_CLAUSE
+    %end;
+    %else %do;
+        not 1=1
+    %end;
   %end;
   %else %if "%qupcase(&&&PARM)" = "%qupcase(&MATCHALL)" %then %do;
     %if &IS_EXPLICIT=0 %then %do;
-	    &MATCHALL_CLAUSE
-	%end;
-	%else %do;
-	    1=1
-	%end;	
+        &MATCHALL_CLAUSE
+    %end;
+    %else %do;
+        1=1
+    %end;    
   %end;
   %else %if (not %symexist(&PARM._count)) or &isBetween %then %do;
     %let isEmpty = ("&&&PARM" = "");
@@ -321,41 +332,41 @@ PROJECT PATH: C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonR
     %else %if (&isNotEqual AND &isEmpty AND &isString) %then
        &COLUMN is not null;
     %else %do;
-	   %if &IS_EXPLICIT=0 %then %do;
+       %if &IS_EXPLICIT=0 %then %do;
            &COLUMN &OPERATOR 
-			%if "&MATCH_CASE" eq "0" %then %do;
-				%unquote(&q1)%QUPCASE(&&&PARM)%unquote(&q2)
-			%end;
-			%else %do;
-				%unquote(&q1)&&&PARM%unquote(&q2)
-			%end;
-	   %end;
-	   %else %do;
-	       &COLUMN &OPERATOR 
-			%if "&MATCH_CASE" eq "0" %then %do;
-				%unquote(%nrstr(&sq1))%QUPCASE(&&&PARM)%unquote(%nrstr(&sq2))
-			%end;
-			%else %do;
-				%unquote(%nrstr(&sq1))&&&PARM%unquote(%nrstr(&sq2))
-			%end;
-	   %end;
+            %if "&MATCH_CASE" eq "0" %then %do;
+                %unquote(&q1)%QUPCASE(&&&PARM)%unquote(&q2)
+            %end;
+            %else %do;
+                %unquote(&q1)&&&PARM%unquote(&q2)
+            %end;
+       %end;
+       %else %do;
+           &COLUMN &OPERATOR 
+            %if "&MATCH_CASE" eq "0" %then %do;
+                %unquote(%nrstr(&sq1))%QUPCASE(&&&PARM)%unquote(%nrstr(&sq2))
+            %end;
+            %else %do;
+                %unquote(%nrstr(&sq1))&&&PARM%unquote(%nrstr(&sq2))
+            %end;
+       %end;
        %if &isBetween %then 
           AND %unquote(&q1)&&&MAX%unquote(&q2);
     %end;
   %end;
   %else 
   %do;
-	%local emptyList;
-  	%let emptyList = %symexist(&PARM._count);
-  	%if &emptyList %then %let emptyList = &&&PARM._count = 0;
-	%if (&emptyList) %then
-	%do;
-		%if (&isNotin) %then
-		   1;
-		%else
-			0;
-	%end;
-	%else %if (&&&PARM._count = 1) %then 
+    %local emptyList;
+      %let emptyList = %symexist(&PARM._count);
+      %if &emptyList %then %let emptyList = &&&PARM._count = 0;
+    %if (&emptyList) %then
+    %do;
+        %if (&isNotin) %then
+           1;
+        %else
+            0;
+    %end;
+    %else %if (&&&PARM._count = 1) %then 
     %do;
       %let isEmpty = ("&&&PARM" = "");
       %if (&isIn AND &isEmpty AND &isString) %then
@@ -363,24 +374,24 @@ PROJECT PATH: C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonR
       %else %if (&isNotin AND &isEmpty AND &isString) %then
         &COLUMN is not null;
       %else %do;
-	    %if &IS_EXPLICIT=0 %then %do;
-			%if "&MATCH_CASE" eq "0" %then %do;
-				&COLUMN &OPERATOR (%unquote(&q1)%QUPCASE(&&&PARM)%unquote(&q2))
-			%end;
-			%else %do;
-				&COLUMN &OPERATOR (%unquote(&q1)&&&PARM%unquote(&q2))
-			%end;
-	    %end;
-		%else %do;
-		    &COLUMN &OPERATOR (
-			%if "&MATCH_CASE" eq "0" %then %do;
-				%unquote(%nrstr(&sq1))%QUPCASE(&&&PARM)%unquote(%nrstr(&sq2)))
-			%end;
-			%else %do;
-				%unquote(%nrstr(&sq1))&&&PARM%unquote(%nrstr(&sq2)))
-			%end;
-		%end;
-	  %end;
+        %if &IS_EXPLICIT=0 %then %do;
+            %if "&MATCH_CASE" eq "0" %then %do;
+                &COLUMN &OPERATOR (%unquote(&q1)%QUPCASE(&&&PARM)%unquote(&q2))
+            %end;
+            %else %do;
+                &COLUMN &OPERATOR (%unquote(&q1)&&&PARM%unquote(&q2))
+            %end;
+        %end;
+        %else %do;
+            &COLUMN &OPERATOR (
+            %if "&MATCH_CASE" eq "0" %then %do;
+                %unquote(%nrstr(&sq1))%QUPCASE(&&&PARM)%unquote(%nrstr(&sq2)))
+            %end;
+            %else %do;
+                %unquote(%nrstr(&sq1))&&&PARM%unquote(%nrstr(&sq2)))
+            %end;
+        %end;
+      %end;
     %end;
     %else 
     %do;
@@ -397,24 +408,24 @@ PROJECT PATH: C:\Users\bheinsius\Documents\GitHub\eom-sas-dimon\Webapp\EG\DIMonR
              %else %let addIsNotNull = 1;
           %end;
           %else
-          %do;		     
+          %do;             
             %if &addComma %then %do;,%end;
-			%if &IS_EXPLICIT=0 %then %do;
-				%if "&MATCH_CASE" eq "0" %then %do;
-					%unquote(&q1)%QUPCASE(&&&PARM&i)%unquote(&q2)
-				%end;
-				%else %do;
-					%unquote(&q1)&&&PARM&i%unquote(&q2)
-				%end;
-			%end;
-			%else %do;
-				%if "&MATCH_CASE" eq "0" %then %do;
-					%unquote(%nrstr(&sq1))%QUPCASE(&&&PARM&i)%unquote(%nrstr(&sq2))
-				%end;
-				%else %do;
-					%unquote(%nrstr(&sq1))&&&PARM&i%unquote(%nrstr(&sq2))
-				%end; 
-			%end;
+            %if &IS_EXPLICIT=0 %then %do;
+                %if "&MATCH_CASE" eq "0" %then %do;
+                    %unquote(&q1)%QUPCASE(&&&PARM&i)%unquote(&q2)
+                %end;
+                %else %do;
+                    %unquote(&q1)&&&PARM&i%unquote(&q2)
+                %end;
+            %end;
+            %else %do;
+                %if "&MATCH_CASE" eq "0" %then %do;
+                    %unquote(%nrstr(&sq1))%QUPCASE(&&&PARM&i)%unquote(%nrstr(&sq2))
+                %end;
+                %else %do;
+                    %unquote(%nrstr(&sq1))&&&PARM&i%unquote(%nrstr(&sq2))
+                %end; 
+            %end;
             %let addComma = %eval(1);
           %end;
        %end;) 
@@ -2078,9 +2089,9 @@ GOPTIONS NOACCESSIBLE;
 
 
 
-/* sleep until the next full minute */
+/* sleep until the next check */
 %let loopenddts = %sysfunc(datetime());
-%let wakeuptime = %sysfunc(intnx(seconds10.,%sysfunc(datetime()),1),datetime18.);
+%let wakeuptime = %sysfunc(intnx(seconds&alert_check_interval.,%sysfunc(datetime()),1),datetime18.);
 %put DIMONNOTE: %sysfunc(datetime(),B8601DT15.) This alertmon run used %trim(%left(%sysfunc(putn(%sysevalf(&loopenddts - &loopstartdts),8.1)))) seconds. Sleeping until &wakeuptime;
 data _null_;
   sleeptime = "&wakeuptime"dt - datetime();
@@ -2093,7 +2104,6 @@ run;
 
 %let _debug=0;
 %alertmon
-
 
 
 
