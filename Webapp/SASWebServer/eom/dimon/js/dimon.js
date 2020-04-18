@@ -776,7 +776,7 @@ function labels(initialSelectLabel, message) {
         + '  <div id="labelsStatusMessage"><div id="labelsStatusMessageInner"></div></div>'
         + '  <div style="width:100%">'
         + '    <div style="width:35%; float:left">'
-        + '      <h3>Label</h3>'
+        + '      <h3><div id="labelsStatus"></div></h3>'
         + '      Filter: <input type="text" id="textFilterLabels" />'
         + '      <button id="btnClearTextFilterLabels">Clear</button>'
         + '      <button id="btnNewLabel">New</button>'
@@ -838,6 +838,7 @@ function labels(initialSelectLabel, message) {
         }
     });
 
+    $("#labelsStatus").html('Loading labels ... <img src="' + settings.imgroot + '/dimon-ajax-loader.gif" />');
     $.ajax({
         type: "GET"
         , url: settings.urlSPA
@@ -847,6 +848,8 @@ function labels(initialSelectLabel, message) {
         , timeout: ajaxTimeout
         , dataype: 'json'
         , success: function (response) {
+
+            $("#labelsStatus").html('Label'); // remove spinner
 
             sasdata = $.parseJSON(response).data;
             selections = sasdata.selections;
