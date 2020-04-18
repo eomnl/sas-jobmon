@@ -204,8 +204,7 @@ $(function () {
             if (event.keyCode == 13) { // on enter
                 refresh();
             }
-        })
-        ;
+        });
 
     $("#btnClearSearch").button({
         icons: { primary: 'ui-icon-close' }
@@ -1931,7 +1930,12 @@ function reportScheduledFlows() {
             $("#inputFlowsReportSearch").val("");
         });
 
-    $("#inputFlowsReportSearch").jqtext().css({ 'width': '300px', 'margin-left': '0px', 'margin-right': '20px' });
+    $("#inputFlowsReportSearch").jqtext().css({ 'width': '300px', 'margin-left': '0px', 'margin-right': '20px' })
+        .keydown(function (event) {
+            if (event.keyCode == 13) { // on enter
+                $("#btnRunReport").click();
+            }
+        });
 
     $("#btnRunReport").button().click(function () {
 
