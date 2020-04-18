@@ -48,9 +48,9 @@ var svgDotsVertical = '<svg style="width:20px;height:20px" viewBox="0 0 24 24">'
     + ',2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z" />'
     + '</svg>';
 
-var settingsMenuItems = [{ 'value': 'settings', 'text': 'Settings', 'icon': 'ui-icon-gear' }
+var settingsMenuItems = [{ 'value': 'reports', 'text': 'Reports', 'icon': 'ui-icon-document' }
     , { 'value': 'alerts', 'text': 'Alerts', 'icon': 'ui-icon-alert' }
-    , { 'value': 'reports', 'text': 'Reports', 'icon': 'ui-icon-document' }
+    , { 'value': 'settings', 'text': 'Settings', 'icon': 'ui-icon-gear' }
 ];
 
 var filterFlowsMenuItems = [{ 'value': 'is:running', 'text': 'Running' }
