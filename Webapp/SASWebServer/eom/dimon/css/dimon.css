@@ -1,14 +1,16 @@
 @import 'https://fonts.googleapis.com/css?family=Open+Sans|Roboto';
-
-.batch {indent:-10px !important;}
+.batch {
+	indent: -10px !important;
+}
 
 .ui-widget {
-	font-size:1.1em;
+	font-size: 1.15em;
+	font-family: Roboto,RobotoDraft,Helvetica,Arial,sans-serif;
 }
 
-.ui-datepicker {
+/* .ui-datepicker {
 	margin-top: 36px;
-}
+} */
 
 #dimon-statusmessage {
 	position: fixed;
@@ -17,7 +19,7 @@
 	font-size: 1.2em;
 	padding: 20px;
 	font-weight: bold;
-	z-index:10000;
+	z-index: 10000;
 }
 
 #dimon-statusmessage.info {
@@ -32,43 +34,57 @@
 
 #dimon-menubar {
 	border-bottom: 1px solid #c0c0c0;
-	overflow:auto;
-	padding-bottom:10px;
+	overflow: auto;
+	padding-bottom: 10px;
+}
+
+#navTitle {
+	color: #404040;
+	float: left;
+	font-size: 20px;
+	padding: 0px 5px 0px 5px;
+	margin-top: 6px;
+	margin-left: 20px;
+	font-weight: bold;
+	outline-offset: 5px;
+	outline: 1px solid #404040;
 }
 
 #dimon-logo {
-	margin-top: 5px;
+	margin-top: 4px;
 	margin-left: 11px;
+	/* width: 245px; */
+	height: 28px;
 }
 
 #dimon-navbar {
 	border-bottom: 1px solid #c0c0c0;
-	overflow:auto;
-	background-color:#fcfcfc;
+	overflow: auto;
+	background-color: #fcfcfc;
 }
 
 #navpath {
-	float:left;
-	margin-top:6px;
-	margin-bottom:5px;
-	margin-left:5px;
+	float: left;
+	margin-top: 6px;
+	margin-bottom: 5px;
+	margin-left: 5px;
 }
 
 #dimon-navbar .ui-state-hover {
 	border: 1px solid #c5c5c5;
-	background: #f6f6f6;	
+	background: #f6f6f6;
 }
 
-#menubuttonNavbar {
-	float:right;
-	margin-top:6px;
-	color: inherit !important;	
+#btnNavbar {
+	float: right;
+	margin-top: 6px;
+	color: inherit !important;
 	border: 1px solid #fcfcfc;
 	background: #fcfcfc;
 }
 
 .navpath-item {
-	color: inherit !important;	
+	color: inherit !important;
 	border: 1px solid #fcfcfc;
 	background: #fcfcfc;
 }
@@ -78,13 +94,13 @@
 }
 
 .navpath-separator {
-	font-style:bold;
-	color:#a0a0a0;
+	font-style: bold;
+	color: #a0a0a0;
 	font-size: .8em;
-	margin-right:2px;
+	margin-right: 2px;
 }
 
-.systitleandfootercontainer  , .systemtitle {
+.systitleandfootercontainer, .systemtitle {
 	background-color: inherit !important;
 }
 
@@ -92,56 +108,64 @@
 	font-size: 1.5em !important;
 }
 
-
 #results1 {
-	margin:10px;
-	overflow:auto;
-	height:80%;
-	width:98%;
+	margin: 10px;
+	overflow: auto;
+	height: 80%;
+	width: 98%;
+	/* to make tables faster in chome */
+	-webkit-transform: translate3d(0, 0, 0);
+					transform: translate3d(0, 0, 0);
+	}
+	
 }
 
 #dimon-footer {
-	left:8px;
-	right:8px;
-	bottom:10px;
-	padding-top:5px;
+	left: 8px;
+	right: 8px;
+	bottom: 10px;
+	padding-top: 5px;
 	border-top: 1px solid #c0c0c0;
 }
 
 #linkHome {
-	float:left;
+	float: left;
+}
+
+#btnClearSearch {
+	margin-left: 20px;
 }
 
 #search {
 	color: #454545;
 	background-color: white;
-	text-align : left;
-	outline : none;
-	cursor : text;
-	margin-left: 40px;
+	text-align: left;
+	outline: none;
+	cursor: text;
 	width: 100px;
 }
 
 #dimon-radiomenu {
-	float:right;
-	padding-top:3px;
+	float: right;
+	padding-top: 3px;
 }
 
 #dimon-flowstartdate {
-	padding:2px 0px 0px 20px;
-	float:left;
+	padding: 2px 0px 0px 20px;
+	float: left;
 }
 
 #dimonHistoryFlows {
-	margin-top:10px;
+	margin-top: 10px;
 }
+
 .mean-bar {
 	float: left;
 	display: block;
 	height: 12px;
 	background-color: #c0d0f0;
 	color: white;
-	text-align:center;
+	text-align: center;
 }
 
 .mean-bar-value {
@@ -151,7 +175,7 @@
 .dimonFlowScheduled, .dimonFlowScheduled a {
 	color: #a0a0a0;
 	background-color: #ffffff;
-	font-style:italic;
+	font-style: italic;
 }
 
 .dimonFlowDidNotStart, .dimonFlowDidNotStart a {
@@ -161,128 +185,153 @@
 
 .dimonFlowStatusError, .dimonFlowStatusError a {
 	color: white !important;
-	background-color:#eb5900 !important;
+	background-color: #eb5900 !important;
 }
 
 .dimonFlowStatusWarning, .dimonFlowStatusWarning a {
-  background-color: #faae43 !important;
+	background-color: #faae43 !important;
 }
 
 .dimonFlowStatusRunning, .dimonFlowStatusRunning a {
-  font-weight: bold;
+	font-weight: bold;
 }
 
 .dimonJobStatusSuccessful, .dimonJobStatusSuccessful a {
-  color: black;
-  background-color: #2fb67a;
+	color: black;
+	background-color: #2fb67a;
 }
 
 .dimonJobStatusError, .dimonJobStatusError a {
-  color: white;
-  background-color: red;
+	color: white;
+	background-color: red;
 }
 
 .dimonJobStatusWarning, .dimonJobStatusWarning a {
-  color: black;
-  background-color: #ffeba7;  
+	color: black;
+	background-color: #ffeba7;
 }
 
 .dimonJobStatusRunning, .dimonJobStatusRunning a {
-  font-weight: bold;
+	font-weight: bold;
 }
 
 .dimonReportFootnote {
-  color: blue;
-  background-color: white;
-  font-size: 9px;
-  text-align: left;
+	color: blue;
+	background-color: white;
+	font-size: 9px;
+	text-align: left;
 }
 
 .ajaxLoadingMessage {
-  color: white;
-  background-color: blue;
+	color: white;
+	background-color: blue;
 }
 
 #plot {
-  float:left;
-  width:620px;
-  margin:10px 0px 0px 100px;
+	float: left;
+	margin: 10px 0px 0px 50px;
 }
 
 /* % of Total bars */
+
 .dimon-bar {
-  float: left;
-  background-color: #0288d1;
-  display: block;
-  height: 14px;
-  color: white;
-  text-align:center;
-  margin-top:1px;
+	float: left;
+	background-color: #0288d1;
+	display: block;
+	height: 14px;
+	color: white;
+	text-align: center;
+	margin-top: 1px;
 }
+
 .dimon-bar-value {
-  margin-left:5px;
-  float:right;
-  width:25px;
-  text-align: right;
+	margin-left: 5px;
+	float: right;
+	width: 25px;
+	text-align: right;
 }
+
 .gantt-bar.idle {
 	background-color: #d0d0d0;
 }
 
 .dimon-status-progressbar {
-  position: relative;
-  float: right;
-  height: 14px;
-  width: 120px;
+	position: relative;
+	float: right;
+	height: 14px;
+	width: 120px;
+	border-radius: 4px;
 }
+
 .dimon-status-progressbar-label {
-  position: absolute;
-  top: 1px;
-  font-size: 0.9em;
-  width: 120px;
-  text-align: center;
-  color: #d0d0d0;
-}
-  
-.dimon-status-icon                             { float: left; margin-top: -2px; margin-right: 5px;}
-.dimon-status-icon.ok                       { background-image: url("images/ui-icons_008000_256x240.png"); }
-.dimon-status-icon.running             { background-image: url("images/ui-icons_0288d1_256x240.png"); }
-.dimon-status-icon.warning             { background-image: url("images/ui-icons_222222_256x240.png"); }
-.dimon-status-icon.error                 { background-image: url("images/ui-icons_ffffff_256x240.png"); }
-.dimon-status-icon.did-not-start { background-image: url("images/ui-icons_ff0000_256x240.png"); }
-.dimon-status-icon.scheduled         { background-image: url("images/ui-icons_a0a0a0_256x240.png"); }
-
-.dimon-elapsed-time-icon-warning , .dimon-status-icon-completed-with-warnings {
-  float: left;
-  background-image: url("images/ui-icons_222222_256x240.png") !important;
+	position: absolute;
+	top: 1px;
+	font-size: 0.9em;
+	width: 120px;
+	text-align: center;
+	color: #d0d0d0;
 }
 
-.realtime-flows-view-job-status-link  .flow-status-link {
-  float:left;
+.dimon-status-icon {
+	float: left;
+	margin-top: -2px;
+	margin-right: 5px;
+}
+
+.dimon-status-icon.ok {
+	background-image: url("images/ui-icons_008000_256x240.png");
+}
+
+.dimon-status-icon.running {
+	background-image: url("images/ui-icons_0288d1_256x240.png");
+}
+
+.dimon-status-icon.warning {
+	background-image: url("images/ui-icons_222222_256x240.png");
+}
+
+.dimon-status-icon.error {
+	background-image: url("images/ui-icons_ffffff_256x240.png");
+}
+
+.dimon-status-icon.did-not-start {
+	background-image: url("images/ui-icons_ff0000_256x240.png");
+}
+
+.dimon-status-icon.scheduled {
+	background-image: url("images/ui-icons_a0a0a0_256x240.png");
+}
+
+.dimon-elapsed-time-icon-warning, .dimon-status-icon-completed-with-warnings {
+	float: left;
+	background-image: url("images/ui-icons_222222_256x240.png") !important;
+}
+
+.realtime-flows-view-job-status-link .flow-status-link {
+	float: left;
 }
 
 div #viewlogHeader {
-  overflow: auto;
-  border-bottom: 1px solid #ccc;
+	overflow: auto;
+	border-bottom: 1px solid #ccc;
 }
 
 div #viewlogTitle {
-  padding:10px;
-  font-size:1em;
-  overflow:auto;
-  /*float:left;*/
+	padding: 10px;
+	overflow: auto;
 }
 
 #viewlogTitle-filename {
-	float:left;
-	margin-top:6px;
-	margin-bottom:5px;
-	margin-left:5px;
+	float: left;
+	margin-top: 6px;
+	margin-bottom: 5px;
+	margin-left: 5px;
+	font-size: 0.8em;
 }
 
 #viewlogOptionsButton {
-	float:right;
-	color: inherit !important;	
+	float: right;
+	color: inherit !important;
 	border: 1px solid #ffffff;
 	background: #ffffff;
 }
@@ -291,67 +340,94 @@ div #viewlogTitle {
 	fill: black;
 }
 
-
 #viewlogCheckbox {
-  float:right;
+	float: right;
 }
 
 div #viewlogContent {
-  left:5px;
-  right:5px;
-  height: 400px;
-  margin-top:10px;
-  overflow:auto;
+	left: 5px;
+	right: 5px;
+	height: 400px;
+	margin-top: 10px;
+	overflow: auto;
 }
 
-div #dimon-menu-left{
-  float: left;
-  width: 600px;
+div #dimon-menu-left {
+	float: left;
+	width: 600px;
 }
 
 .dimon-menuitem {
-	margin-top:4px;
+	margin-top: 4px;
 }
 
 .dimon-menuitem.left {
-	float:left;
-}	
-
-.dimon-menuitem.right {
-	float:right;
-}	
-
-div.dropdown-menu {
-		  display: none;
-			color: #444;
- background-color: white;
-		   border: 1px solid #DEDEDE;
-	  white-space: nowrap;
-		  padding: 0;
-	  line-height: 2.5;
-	   /* font-size: 1.1em;*/
+	float: left;
 }
 
-ul.dropdown-menu { margin:10px; padding:0px; }
-.li-dropdown-item       { list-style:none; background-color: #ffffff; cursor: pointer; }
-.li-dropdown-item:hover { list-style:none; background-color: #ededed; cursor: pointer; }
-span.ui-icon-dropdown-item { float:left; margin-top: 8px; margin-right: 4px;}
-span.text-dropdown-item { float:left; margin-right:20px; }
-.sortmenu-sort-direction-item { margin-left: 20px; }
+.dimon-menuitem.right {
+	float: right;
+}
 
+div.dropdown-menu {
+	/* display: none; */
+	color: #444;
+	background-color: white;
+	border: 1px solid #DEDEDE;
+	white-space: nowrap;
+	padding: 0;
+	line-height: 2.5;
+	border-radius: 4px;
+	/* box-shadow: 9px 10px 24px #888, 0px 0px 1px #869; */
+	box-shadow: 0 8px 10px 1px rgba(0,0,0,0.14), 0 3px 14px 2px rgba(0,0,0,0.12), 0 5px 5px -3px rgba(0,0,0,0.2);
+}
+
+ul.dropdown-menu {
+	margin: 10px 0px 10px 0px;
+	padding: 0px;
+}
+
+.li-dropdown-item {
+	list-style: none;
+	background-color: #ffffff;
+	cursor: pointer;
+}
+
+.li-dropdown-item:hover {
+	list-style: none;
+	background-color: #ededed;
+	cursor: pointer;
+}
+
+span.ui-icon-dropdown-item {
+	float: left;
+	margin-left: 20px;
+	margin-top: 8px;
+	margin-right: 4px;
+}
+
+span.text-dropdown-item {
+	float: left;
+	margin-right: 20px;
+}
+
+.sortmenu-sort-direction-item {
+	margin-left: 20px;
+}
 
 div #dimon-schedules {
-  float:right;
-  margin-top:3px;
-  margin-right:5px;
+	float: right;
+	margin-top: 3px;
+	margin-right: 5px;
 }
 
 .ui-icon-blank {
-  background-position: 20px 20px;
+	background-position: 20px 20px;
 }
 
 .job-run-id-flow-cell {
-	color:white/*#a0a0a0*/;
+	color: white/*#a0a0a0*/
+	;
 	font-style: italic;
 }
 
@@ -375,7 +451,7 @@ a:active {
 	color: inherit;
 }
 
-.flow-job-drilldown-link-text   {
+.flow-job-drilldown-link-text {
 	font-weight: bold !important;
 }
 
@@ -390,37 +466,42 @@ a:active {
 }
 
 #plotControls {
-  float:left;
-  margin-left:10px;
-  margin-top:10px;
+	float: left;
+	margin-left: 10px;
+	margin-top: 10px;
 }
 
 #plotControls fieldset {
-	  border: 0;
-	  margin-left: 10px;
-	}
-#plotControls label {
-	  display: block;
-	  margin: 20px 0 0 0;
+	border: 0;
+	margin-left: 10px;
 }
+
+#plotControls label {
+	display: block;
+	margin: 20px 0 0 0;
+}
+
 #plotControls select {
-	  width: 100px;
-	}
+	width: 100px;
+}
 
 #menubarNotesWarningsErrors {
-  border-bottom: 1px solid #c0c0c0;
-  overflow:auto;
-  padding-bottom:10px;
+	border-bottom: 1px solid #c0c0c0;
+	overflow: auto;
+	padding-bottom: 10px;
 }
+
 #titleNotesWarningsErrors {
-	float:left;
+	float: left;
 }
+
 #buttonbarNotesWarningsErrors {
-	float:right;
+	float: right;
 }
+
 #sasresultNotesWarningsErrors {
-	margin-top:10px;
-}	
+	margin-top: 10px;
+}
 
 .table-total-row {
 	background-color: #f6f6f6 !important;
@@ -429,4 +510,85 @@ a:active {
 
 #plotControls label {
 	text-align: left;
+}
+
+#labelsStatusMessage {
+	position: absolute;
+	left: 50%;
+	display: none;
+	top: 0px;
+	height: 20px;
+	z-index: 2000;
+	/* text-align: center;
+	font-weight: bold;
+	color: blue; */
+}
+
+#labelsStatusMessageInner {
+	position: relative;
+	z-index: inherit;
+	left: -50%;
+	padding: 15px;
+	border: solid #404040 1px;
+	background-color: #f9edbe;
+	text-align: center;
+	font-weight: bold;
+}
+
+/* #dialogRundate {
+	box-shadow: 9px 10px 24px #888, 0px 0px 1px #869;
+} */
+
+#tabs > ul {
+	background-color: inherit;
+}
+
+.row {
+	/* Clear floats after the columns */
+  content: "";
+  display: table;
+  clear: both;
+}
+
+.column {
+  float: left;
+  padding: 10px;
+  /* height: 300px; Should be removed. Only for demonstration */
+}
+
+/* because of jqueryui custom theme download problems i set this here */
+.ui-widget-header {
+	color:#fff;
+}
+
+.custom-combobox {
+	position: relative;
+	display: inline-block;
+}
+.custom-combobox-toggle {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	margin-left: -1px;
+	padding: 0;
+}
+.custom-combobox-input {
+	margin: 0;
+	padding: 5px 10px;
+}
+
+table.dataTable.cell-border tbody td {
+	border-top: none;
+	border-bottom: 1px solid #ddd;
+}
+
+
+#btnDownloadLog {
+	font-size: 0.8em;
+}
+
+.header {
+    position: sticky;
+    top: 0;
+	z-index: 1000;
 }

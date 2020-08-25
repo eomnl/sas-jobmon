@@ -13,17 +13,22 @@
 /* ========================================================================= */
 %macro dimon_init;
 
+  /* save options */
+  %let optNotes = %sysfunc(getoption(NOTES));
+  %let optSource = %sysfunc(getoption(SOURCE));
+  %let optSource2 = %sysfunc(getoption(SOURCE2));
+  %let optMprint = %sysfunc(getoption(MPRINT));
   options nonotes nosource nosource2 nomprint;
 
   %let dts1 = %sysfunc(datetime());
 
   /* _debug parameter is passed on the url as &_debug= */
   %global _debug;
-  %if (&_debug. ne 0) %then
+  %if (&_debug gt 0) %then
   %do;
        options notes source source2 mprint;
        %put NOTE: setting debug options because %nrstr(&)_DEBUG = &_DEBUG.;
-	   options msglevel=i;
+       options msglevel=i;
        options sastrace=',,,d' sastraceloc=saslog nostsuffix;
   %end;
 
@@ -41,9 +46,9 @@
     CREATE %if (&engine = SAS) %then TABLE; %else VIEW;
   %mend create_table_or_view;
 
-  %global urlspa sproot webroot _odsstyle viewlog_maxfilesize gantt_width trend_days
+  %global urlspa sproot webroot _odsstyle viewlog_maxfilesize gantt_width trend_days autorefresh_interval_min
           flow_completion_mode flow_completion_mode_2_idle_time lsf_flow_finished_dir
-		  flow_scheduled_dts_match_seconds
+          lsf_flow_active_dir flow_scheduled_dts_match_seconds
           ;
 
   /* ------------------------------------------------------------------------- */
@@ -51,25 +56,51 @@
   /* Do NOT modify this file.  Any additions or changes should be made in      */
   /* dimon_usermods.sas.                                                       */
   /* ------------------------------------------------------------------------- */
-  %let urlspa               = /SASStoredProcess/do;
-  %let sproot               = /My Company/Application Support/EOM DI Job Monitor/Stored Processes;
-  %let webroot              = /eom/dimon;
-  %let _odsstyle            = dimon;
-  %let viewlog_maxfilesize  = 2097152; /* logs beyond this filesize (2MiB) are opened in external viewer */
-                                       /* this is an IE setting, for chrome and ff this value is doubled */
-  %let gantt_width          = 150;     /* width in pixels of Gantt column                                */
-  %let trend_days           = 90;      /* default numer of days to show elapsed time trend for           */
 
-  %let flow_completion_mode = 1;       /* 1 = #jobs_completed < #jobs_in_flow then flow is RUNNING        */
-                                       /* 2 = #jobs_completed < #jobs_in_flow then flow is COMPLETED      */
-                                       /* 3 = base flows on lsf_flow_finished_dir, subflows use 1         */
-                                       /* 4 = base flows on lsf_flow_finished_dir, subflows use 2         */
+  /* URL to the SAS Stored Process Web Application */
+  %let urlspa               = /SASStoredProcess/do;
+
+  /* Metadata folder where the dimon stored processes are located */
+  %let sproot               = /My Company/Application Support/EOM DI Job Monitor/Stored Processes;
+
+  /* Relative URL path where the js, css, and images components are located */
+  %let webroot              = /eom/dimon;
+
+  /* ODS style */
+  %let _odsstyle            = dimon;
+
+  /* For SAS log files beyond this filesize, you are prompted to download. This is an IE setting, for Chrome and Firefox this value is doubled */
+  %let viewlog_maxfilesize  = 2097152; /* in bytes */
+
+  /* Width of the gantt charts in pixels */
+  %let gantt_width          = 150;
+
+  /* Default numer of days to show elapsed time trend for */
+  %let trend_days           = 90;
+
+  /* Minimum value for autorefresh_interval */
+  %let autorefresh_interval_min = 10;
+
+  /* Flow completion mode - When is a flow marked as completed? */
+  /* 1 : when #jobs_completed = #jobs_in_flow (default) */
+  /* 2 : when #jobs_completed < #jobs_in_flow and nothing has been running for &flow_completion_mode_2_idle_time. seconds */
+  /* 3 : when file <flow-id> exists in the &lsf_flow_finished_dir. Subflows use mode 1 */
+  /* 4 : when file <flow-id> exists in the &lsf_flow_finished_dir. Subflows use mode 2 */
+  /* 5 : when file <flow-id> does not exist in the &lsf_flow_active_dir. Subflows use mode 1 */
+  /* 6 : when file <flow-id> does not exist in the &lsf_flow_active_dir. Subflows use mode 2 */
+  %let flow_completion_mode             = 1;
   %let flow_completion_mode_2_idle_time = 60; /* idle seconds before marking flow COMPLETED in mode 2     */
-  %let lsf_flow_finished_dir            = ;                                                     /* mode 3 */
+  %let lsf_flow_finished_dir            = ;   /* for modes 3 and 4 */
+  %let lsf_flow_active_dir              = ;   /* for modes 5 and 6 */
+
+  /* The maximum time between scheduled start and actual start of a flow to be matched */
   %let flow_scheduled_dts_match_seconds = 60;
 
-  /* Include dimon_usersmods */
-  %dimon_usermods;
+  /* Whether to apply metadata security to webapp results. yes or no */
+  %let apply_metadata_security = no;
+
+  /* Include dimon_usermods */
+  %dimon_usermods
 
   /* Get dimon engine. When it is  something other than SAS, dimon creates SQL */
   /* views instead of tables, where applicable, to let SQL  pass through.      */
@@ -95,6 +126,7 @@
   %put NOTE: FLOW_COMPLETION_MODE             = &flow_completion_mode.;
   %put NOTE: FLOW_COMPLETION_MODE_2_IDLE_TIME = &flow_completion_mode_2_idle_time.;
   %put NOTE: LSF_FLOW_FINISHED_DIR            = &lsf_flow_finished_dir.;
+  %put NOTE: LSF_FLOW_ACTIVE_DIR              = &lsf_flow_active_dir.;
   %put NOTE: FLOW_SCHEDULED_DTS_MATCH_SECONDS = &flow_scheduled_dts_match_seconds.;
 
   ods path WORK.TAGSETS(UPDATE) SASHELP.TMPLMST(READ);
@@ -154,9 +186,56 @@
     end;
   run;
 
+
+  
+
+  %if ("&apply_metadata_security" = "yes") %then
+  %do; /* apply metadata security to dimon.dimon_flows */
+  
+       data work.dimon_flows(keep=flow_id flow_name flow_desc valid_from_dts valid_until_dts current_ind update_user update_dts)
+           /view=work.dimon_flows;
+         length uri1 $ 256 flow_id $20;
+         /* Get rid of compile time messages */
+         uri1=uri1; flow_id=flow_id;
+         if (_n_ = 1) then
+         do; /* store flows in hash */
+             declare hash h();
+             h.defineKey('flow_id');
+             h.defineData('flow_id');
+             h.defineDone();
+             num1=metadata_getnobj("omsobj:JFJob?@TransformRole='SCHEDULER_FLOW'",1,uri1);
+             do i=1 to num1;
+                 num1 = metadata_getnobj("omsobj:JFJob?@TransformRole='SCHEDULER_FLOW'",i,uri1);
+                 rc = metadata_getattr(uri1,'Id',flow_id);
+                 if (h.find() ne 0) then h.add();
+             end;/* do i */
+         end;/* store flows in hash */
+         last = 0;
+         do while(not(last));
+             set dimon.dimon_flows end=last;
+             if (h.find() = 0) then output;
+         end;/* do while */
+         stop;
+       run;
+  
+  %end;/* apply metadata security to dimon.dimon_flows */
+  %else
+  %do; /* don't apply metadata security to dimon.dimon_flows */
+  
+       proc sql;
+	       create view work.dimon_flows as
+		     select *
+		     from   dimon.dimon_flows
+		   ;
+	   quit;
+	   
+  %end;/* don't apply metadata security to dimon.dimon_flows */
+  
   %let dts2 = %sysfunc(datetime());
   %let elapsed = %sysfunc(putn(%sysevalf(&dts2. - &dts1.),8.2));
   %put NOTE: dimon_init macro completed execution in &elapsed. seconds.;
   %put NOTE: ====================================================================;
+
+  options &optNotes &optSource &optSource2 &optMprint;
 
 %mend dimon_init;

@@ -61,7 +61,7 @@ options nosource;
       ,     JOB_END_DTS   = datetime()
       ,     JOB_RC        = &job_rc.
       ,     UPDATE_USER   = "&sysuserid."
-      ,     UPDATE_DTS    = "&sysdate9. &systime."dt
+      ,     UPDATE_DTS    = datetime()
       where JOB_RUN_ID    = &job_run_id.
     ;
 
