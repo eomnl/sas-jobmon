@@ -147,7 +147,32 @@ CREATE TABLE dbo.dimon_nav_items
   nav_item_url varchar(255) NOT NULL,
   update_user varchar(32),
   update_dts datetime,
-  CONSTRAINT dimon_nav_items PRIMARY KEY (nav_item_nr)
+  CONSTRAINT pk_dimon_nav_items PRIMARY KEY (nav_item_nr)
+);
+
+CREATE TABLE dbo.dimon_flow_labels
+(
+    flow_id varchar(20) NOT NULL,
+    label varchar(100) NOT NULL,
+    dimon_user varchar(100) NOT NULL,
+    update_user varchar(32),
+    update_dts datetime,
+    CONSTRAINT pk_dimon_flow_labels PRIMARY KEY (flow_id, label, dimon_user)
+);
+
+CREATE TABLE dbo.dimon_flow_alerts
+(
+    flow_alert_id smallint,
+    flow_id varchar(20) NOT NULL,
+    alert_condition varchar(100) NOT NULL,
+    alert_condition_operator varchar(10),
+    alert_condition_value smallint,
+    alert_action varchar(100) NOT NULL,
+    alert_action_details varchar(200),
+    dimon_user varchar(100) NOT NULL,
+    update_user varchar(32),
+    update_dts datetime,
+    CONSTRAINT pk_dimon_flow_alerts PRIMARY KEY (flow_alert_id)
 );
 
 INSERT INTO dimon_calendars (calendar_name,calendar_sascode,update_user,update_dts) VALUES
