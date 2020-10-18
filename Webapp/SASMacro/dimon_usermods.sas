@@ -4,7 +4,7 @@
   /*   This config file extends options set in dimon_init.sas.  Place your site-specific */
   /*   options in this file.                                                             */
   /*                                                                                     */
-  /*   Do NOT modify the sasv9.cfg file.                                                 */
+  /*   Do NOT modify the dimon_init.sas file.                                            */
   /* =================================================================================== */
 
   /* If you use a library other than the default DIMON, allocate it here */
