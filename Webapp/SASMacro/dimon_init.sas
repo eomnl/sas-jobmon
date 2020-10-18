@@ -47,6 +47,7 @@
   %mend create_table_or_view;
 
   %global urlspa sproot webroot _odsstyle viewlog_maxfilesize gantt_width trend_days autorefresh_interval_min
+          sparkline_max_flows
           flow_completion_mode flow_completion_mode_2_idle_time lsf_flow_finished_dir
           lsf_flow_active_dir flow_scheduled_dts_match_seconds
           ;
@@ -80,6 +81,9 @@
 
   /* Minimum value for autorefresh_interval */
   %let autorefresh_interval_min = 10;
+
+  /* Max number of flows to show sparklines for */
+  %let sparkline_max_flows = 20;
 
   /* Flow completion mode - When is a flow marked as completed? */
   /* 1 : when #jobs_completed = #jobs_in_flow (default) */
@@ -123,6 +127,8 @@
   %put NOTE: VIEWLOG_MAXFILESIZE              = &viewlog_maxfilesize.;
   %put NOTE: GANTT_WIDTH                      = &gantt_width.;
   %put NOTE: TREND_DAYS                       = &trend_days.;
+  %put NOTE: AUTOREFRESH_INTERVAL_MIN         = &autorefresh_interval_min;
+  %put NOTE: SPARKLINE_MAX_FLOWS              = &sparkline_max_flows;
   %put NOTE: FLOW_COMPLETION_MODE             = &flow_completion_mode.;
   %put NOTE: FLOW_COMPLETION_MODE_2_IDLE_TIME = &flow_completion_mode_2_idle_time.;
   %put NOTE: LSF_FLOW_FINISHED_DIR            = &lsf_flow_finished_dir.;
