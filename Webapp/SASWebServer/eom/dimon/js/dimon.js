@@ -1827,7 +1827,12 @@ function reports() {
             + '<tbody>'
             + '<tr>'
             + '<td>'
-            + '<a href="#" id="reportScheduledFlows">1. Scheduled flows report</a>'
+            + '<a href="#" id="reportScheduledFlows">1. Scheduled Flows report</a>'
+            + '</td>'
+            + '</tr>'
+            + '<tr>'
+            + '<td>'
+            + '<a href="#" id="reportConcurrentJobs">2. Concurrent Jobs report</a>'
             + '</td>'
             + '</tr>'
             + '</tbody>'
@@ -1860,6 +1865,9 @@ function reports() {
 
     $("#reportScheduledFlows").click(function () {
         reportScheduledFlows();
+    })
+    $("#reportConcurrentJobs").click(function () {
+        reportConcurrentJobs();
     })
     $(":button:contains('Close')").focus(); // Set focus to the [Close] button
 
@@ -1993,6 +2001,102 @@ function reportScheduledFlows() {
 
 }//reportScheduledFlows
 
+
+function reportConcurrentJobs() {
+
+    var dialogReportConcurrentJobs = $('<div id="dialogReportConcurrentJobs">'
+        + '<div class="row" style="padding-bottom: 5px; border-bottom: 1px solid #e0e0e0;">'
+        + '<label for="inputDateFrom">Date from:</label><input id="inputDateFrom" type="text" readonly>'
+        + '<label for="inputDateUntil">Date until:</label><input id="inputDateUntil" type="text" readonly>'
+        + '<button id="btnRunReport">Run</button>'
+        + '</div>'
+        + '<div class="row">'
+        + '<div id="report" style="margin-top:10px;"></div>'
+        + '</div>'
+        + '</div>').appendTo('body');
+
+        dialogReportConcurrentJobs.dialog({    // add a close listener to prevent adding multiple divs to the document
+        close: function (event, ui) {
+            // remove div with all data and events
+            dialogReportConcurrentJobs.remove();
+        }
+        , title: 'Concurrent Jobs Report'
+        , width: $(window).width() - 120
+        , height: $(window).height() - 120
+        , modal: true
+        , buttons: {
+            "Close": function (event, ui) {
+                $(this).dialog('close');
+            }
+        }
+    });
+
+    $("#inputDateFrom").jqtext().css({
+        'width': '80px',
+        'margin-left': '5px',
+        'margin-right': '20px'
+    }).datepicker({
+        dateFormat: "ddMyy"
+        , onSelect: function (date, event) {
+            refreshReportLabels();
+        }
+    });
+    // set date to today
+    $("#inputDateFrom").val($.datepicker.formatDate('ddMyy', new Date()));
+
+    $("#inputDateUntil").jqtext().css({
+        'width': '80px',
+        'margin-left': '5px',
+        'margin-right': '20px'
+    }).datepicker({
+        dateFormat: "ddMyy"
+        , onSelect: function (date, event) {
+            refreshReportLabels();
+        }
+    });
+    // set date to today
+    $("#inputDateUntil").val($.datepicker.formatDate('ddMyy', new Date()));
+
+    $("#btnRunReport").button().click(function () {
+
+        $("#report").html('<img src="' + settings.imgroot + '/dimon-ajax-loader.gif" />');
+
+        $.ajax({
+            type: "GET"
+            , url: settings.urlSPA
+            , data: {
+                "_program": getSPName('dimonReportConcurrentJobs')
+                , "report_date_from": $("#inputDateFrom").val()
+                , "report_date_until": $("#inputDateUntil").val()
+                , "xpixels": $(window).width() - 250
+                , "ypixels": 300
+                , "dest": "html"
+            }
+            , async: true
+            , cache: false
+            , timeout: ajaxTimeout
+            , dataype: 'json'
+            , success: function (response) {
+                $("#report").html('<h1>Concurrent Jobs</h1>' + response);
+            }
+            , error: function (XMLHttpRequest, textStatus, errorThrown) {
+                handleAjaxError('keepAlive', XMLHttpRequest, textStatus, errorThrown);
+            }
+        });
+    })
+
+    $(":button:contains('Close')").focus(); // Set focus to the [Close] button
+    refreshReportLabels();
+
+    function refreshReportLabels() {
+        if (($("#inputDateFrom").val() == "") || ($("#inputDateUntil").val() == "")) {
+            disableButton($("#btnRunReport"));
+        } else {
+            enableButton($("#btnRunReport"));
+        }
+    }
+
+}//reportConcurrentJobs
 
 function updateSortButtonLabel() {
 
