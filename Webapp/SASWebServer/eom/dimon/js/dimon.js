@@ -2288,8 +2288,14 @@ function Flows(run_date) {
     updateSortButtonLabel();
     $("#btnFilter").button("enable");
     $("#btnSort").button("enable");
-    $("#btnClearSearch").button("enable");
-    $("#search").button("enable");
+    enableButton($("#btnClearSearch"));
+    enableButton($("#search"));
+    enableButton($("#btnFilterLabel"));
+    enableButton($("#btnLabels"));
+    //$("#btnClearSearch").button("enable");
+    //$("#search").button("enable");
+    //$("#btnFilterLabel").button("enable");
+    //$("#btnLabels").button("enable");
     $("#results1").html('<img src="' + settings.imgroot + '/dimon-ajax-loader.gif" />');
     refreshFlows(run_date);
     if (settings.autorefresh_interval != (autorefresh_intervals.length - 1)) {
@@ -2562,8 +2568,14 @@ function Jobs(path) {
     updateSortButtonLabel();
     $("#btnFilter").button("enable");
     $("#btnSort").button("enable");
-    $("#btnClearSearch").button("disable");
-    $("#search").button("disable");
+    disableButton($("#btnClearSearch"));
+    disableButton($("#search"));
+    disableButton($("#btnFilterLabel"));
+    disableButton($("#btnLabels"));
+    //$("#btnClearSearch").button("disable");
+    //$("#search").button("disable");
+    //$("#btnFilterLabel").button("disable");
+    //$("#btnLabels").button("disable");
     $("#results1").html('<img src="' + settings.imgroot + '/dimon-ajax-loader.gif" />');
     refreshJobs(path);
     if (settings.autorefresh_interval != (autorefresh_intervals.length - 1)) {
@@ -2694,7 +2706,8 @@ function refreshJobs(path) {
                             setResults1Size();
 
                         });
-                        $(":button:contains('Filter')").button("enable");
+                        //$(":button:contains('Filter')").button("enable");
+                        enableButton("$#btnFilter");
                     }
                 }
                 , error: function (XMLHttpRequest, textStatus, errorThrown) {
@@ -2715,8 +2728,14 @@ function Steps(path) {
     updateSortButtonLabel();
     $("#btnFilter").button("disable");
     $("#btnSort").button("disable");
-    $("#btnClearSearch").button("disable");
-    $("#search").button("disable");
+    disableButton($("#btnClearSearch"));
+    disableButton($("#search"));
+    disableButton($("#btnFilterLabel"));
+    disableButton($("#btnLabels"));
+    //$("#btnClearSearch").button("disable");
+    //$("#search").button("disable");
+    //$("#btnFilterLabel").button("disable");
+    //$("#btnLabels").button("disable");
     $("#results1").html('<img src="' + settings.imgroot + '/dimon-ajax-loader.gif" />');
     refreshSteps(path);
     if (settings.autorefresh_interval != (autorefresh_intervals.length - 1)) {
