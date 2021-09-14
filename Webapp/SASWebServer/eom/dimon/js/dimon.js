@@ -2706,8 +2706,6 @@ function refreshJobs(path) {
                             setResults1Size();
 
                         });
-                        //$(":button:contains('Filter')").button("enable");
-                        enableButton("$#btnFilter");
                     }
                 }
                 , error: function (XMLHttpRequest, textStatus, errorThrown) {
