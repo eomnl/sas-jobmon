@@ -173,7 +173,7 @@
 }
 
 .dimonFlowScheduled, .dimonFlowScheduled a {
-	color: #a0a0a0;
+	color: #c0c0c0;
 	background-color: #ffffff;
 	font-style: italic;
 }
@@ -265,7 +265,6 @@
 
 .dimon-status-progressbar-label {
 	position: absolute;
-	top: 1px;
 	font-size: 0.9em;
 	width: 120px;
 	text-align: center;
@@ -591,4 +590,10 @@ table.dataTable.cell-border tbody td {
     position: sticky;
     top: 0;
 	z-index: 1000;
+}
+
+.start-dts-scheduled, .end-dts-scheduled, .elapsed-time-scheduled {
+    color: #c0c0c0;
+    background-color: #ffffff;
+    font-style: italic;
 }
