@@ -2286,16 +2286,12 @@ function Flows(run_date) {
     clearInterval(interval);
     settings.currentView = 'Flows';
     updateSortButtonLabel();
-    $("#btnFilter").button("enable");
-    $("#btnSort").button("enable");
+    enableButton($("#btnFilter"));
+    enableButton($("#btnSort"));
     enableButton($("#btnClearSearch"));
     enableButton($("#search"));
     enableButton($("#btnFilterLabel"));
     enableButton($("#btnLabels"));
-    //$("#btnClearSearch").button("enable");
-    //$("#search").button("enable");
-    //$("#btnFilterLabel").button("enable");
-    //$("#btnLabels").button("enable");
     $("#results1").html('<img src="' + settings.imgroot + '/dimon-ajax-loader.gif" />');
     refreshFlows(run_date);
     if (settings.autorefresh_interval != (autorefresh_intervals.length - 1)) {
@@ -2566,16 +2562,12 @@ function Jobs(path) {
     clearInterval(interval);
     settings.currentView = 'Jobs';
     updateSortButtonLabel();
-    $("#btnFilter").button("enable");
-    $("#btnSort").button("enable");
+    disableButton($("#btnFilter"));
+    disableButton($("#btnSort"));
     disableButton($("#btnClearSearch"));
     disableButton($("#search"));
     disableButton($("#btnFilterLabel"));
     disableButton($("#btnLabels"));
-    //$("#btnClearSearch").button("disable");
-    //$("#search").button("disable");
-    //$("#btnFilterLabel").button("disable");
-    //$("#btnLabels").button("disable");
     $("#results1").html('<img src="' + settings.imgroot + '/dimon-ajax-loader.gif" />');
     refreshJobs(path);
     if (settings.autorefresh_interval != (autorefresh_intervals.length - 1)) {
@@ -2600,6 +2592,7 @@ function refreshJobs(path) {
                     , "flow_run_seq_nr": path.split('_')[2]
                     , "flow_job_id": path.split('_')[3]
                     , "run_date": path.split('_')[4]
+                    , "trigger": path.split('_')[5]
                     // , "filter": settings.filterJobs
                     , "filter": ""
                     , "sort": settings.sortJobs
@@ -2730,10 +2723,6 @@ function Steps(path) {
     disableButton($("#search"));
     disableButton($("#btnFilterLabel"));
     disableButton($("#btnLabels"));
-    //$("#btnClearSearch").button("disable");
-    //$("#search").button("disable");
-    //$("#btnFilterLabel").button("disable");
-    //$("#btnLabels").button("disable");
     $("#results1").html('<img src="' + settings.imgroot + '/dimon-ajax-loader.gif" />');
     refreshSteps(path);
     if (settings.autorefresh_interval != (autorefresh_intervals.length - 1)) {

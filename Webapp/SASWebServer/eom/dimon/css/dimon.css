@@ -172,7 +172,7 @@
 	margin-left: 5px;
 }
 
-.dimonFlowScheduled, .dimonFlowScheduled a {
+.dimonFlowScheduled, .dimonFlowScheduled a , .dimonJobScheduled, .dimonJobScheduled a {
 	color: #c0c0c0;
 	background-color: #ffffff;
 	font-style: italic;
