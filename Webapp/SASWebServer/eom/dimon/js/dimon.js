@@ -119,11 +119,23 @@ $(document).click(function (event) {
     }
 })
 
+function setTableBorderSpacing() {
+    // fix disappearing table cell borders disappear when browser zoom is less than 100%
+    var browserZoomLevel = Math.round(window.devicePixelRatio * 100);
+    if (browserZoomLevel < 100) {
+        $('.table').css('border-spacing','2px');
+    } else {
+        $('.table').css('border-spacing','1px');
+    }
+}//setTableBorderSpacing
+
 function setResults1Size() {
     var results1Height = $(window).height() - $("#dimon-menubar").height() - $("#dimon-navbar").height() - $("#dimon-footer").height() - 55;
     var results1Width = $(window).width() - 35;
     $("#results1").height(results1Height);
     $("#results1").width(results1Width);
+    setTableBorderSpacing();
+
 }//setResults1Size
 
 function setViewLogContentSize() {
@@ -2696,9 +2708,9 @@ function refreshJobs(path) {
                                     });
                                 });
 
-                            setResults1Size();
-
                         });
+                        setResults1Size();
+
                     }
                 }
                 , error: function (XMLHttpRequest, textStatus, errorThrown) {
