@@ -2575,7 +2575,7 @@ function Jobs(path) {
     settings.currentView = 'Jobs';
     updateSortButtonLabel();
     disableButton($("#btnFilter"));
-    disableButton($("#btnSort"));
+    enableButton($("#btnSort"));
     disableButton($("#btnClearSearch"));
     disableButton($("#search"));
     disableButton($("#btnFilterLabel"));
