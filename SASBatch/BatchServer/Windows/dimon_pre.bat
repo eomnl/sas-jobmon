@@ -26,7 +26,7 @@ IF EXIST "%DIMON_USERMODS%" (
   ECHO NOTE: %DIMON_USERMODS% was not executed because it does not exist.
 )
 
-SET DIMON_SCRIPTDIR=%CONFIGDIR%/../SASEnvironment/SASCode/dimon
+SET DIMON_SCRIPTDIR=%CONFIGDIR%\..\SASEnvironment\SASCode\dimon
 
 SETLOCAL ENABLEDELAYEDEXPANSION
 
@@ -115,7 +115,7 @@ IF DEFINED LSB_JOBID (
 
     REM replace original sas logfile name in command line args with new composed name
     IF "!DIMON_ORIGINAL_SASLOGFILE!" NEQ "" (
-      CALL SET DIMON_CMDLINEARGS=%%DIMON_CMDLINEARGS:!DIMON_ORIGINAL_SASLOGFILE!=!DIMON_SASLOGFILE!%%
+      CALL SET DIMON_CMDLINEARGS=%%DIMON_CMDLINEARGS:!DIMON_ORIGINAL_SASLOGFILE!="!DIMON_SASLOGFILE!"%%
     )
 
     IF DEFINED DIMON_SASLOGFILE SET DIMON_SETSASLOGFILE=-set SASLOGFILE "!DIMON_SASLOGFILE!"
@@ -131,7 +131,7 @@ IF DEFINED LSB_JOBID (
     REM -----------------------------------------------------------------
     REM Execute dimon_job_start.sas
     REM -----------------------------------------------------------------
-    "%SAS_COMMAND%" %CMD_OPTIONS% -sysin "%DIMON_SCRIPTDIR%/dimon_job_start.sas" -log "!DIMON_JOB_START_LOG!" -set LSB_JOBNAME "!LSB_JOBNAME!" !DIMON_SETSASLOGFILE! !DIMON_SETSASLSTFILE! -set LSB_JOBID "!DIMON_LSF_JOBID!"
+    "%SAS_COMMAND%" %CMD_OPTIONS% -sysin "%DIMON_SCRIPTDIR%\dimon_job_start.sas" -log "!DIMON_JOB_START_LOG!" -set LSB_JOBNAME "!LSB_JOBNAME!" !DIMON_SETSASLOGFILE! !DIMON_SETSASLSTFILE! -set LSB_JOBID "!DIMON_LSF_JOBID!"
     SET DIMON_RC=%ERRORLEVEL%
     IF !DIMON_RC! GTR 1 (
       ECHO ERROR: Registering DIMON Job Start event failed for job "%LSB_JOBNAME%". RC=!DIMON_RC!
