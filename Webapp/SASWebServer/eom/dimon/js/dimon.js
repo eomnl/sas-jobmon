@@ -22,13 +22,17 @@ var settings = {
     , currentPath: ''
     , currentNavigate: ''
     , currentRundate: ''
-    , autorefresh_interval: 5
+    , dateFilter: ''
+    , autorefresh_interval: 10
     , filterFlows: 'all_flows_excl_hidden'
     , filterJobs: 'all_jobs'
     , sortFlows: ''
     , sortJobs: ''
     , search: ''
     , autorefresh_interval_min: ''
+    , maxScheduledFlows: 1
+    , request_id: 0
+    , last_request_id: 0
     // , rundateHistDays: 0
 };
 
@@ -53,12 +57,21 @@ var settingsMenuItems = [{ 'value': 'reports', 'text': 'Reports', 'icon': 'ui-ic
     , { 'value': 'settings', 'text': 'Settings', 'icon': 'ui-icon-gear' }
 ];
 
+var dateFilterMenuItems = [{ 'value': 'p1h'   , 'text': 'Previous hour'     }
+                          ,{ 'value': 'p6h'   , 'text': 'Previous 6 hours'  }
+                          ,{ 'value': 'p12h'  , 'text': 'Previous 12 hours' }
+                          ,{ 'value': 'p24h'  , 'text': 'Previous 24 hours' }
+                          ,{ 'value': 'p48h'  , 'text': 'Previous 48 hours' }
+                          ,{ 'value': 'custom', 'text': 'Custom Date Range' }
+];
+
 var filterFlowsMenuItems = [{ 'value': 'is:running', 'text': 'Running' }
     , { 'value': 'is:completed', 'text': 'Completed' }
     , { 'value': 'has:failed', 'text': 'Failed' }
     , { 'value': 'is:scheduled', 'text': 'Scheduled' }
     , { 'value': 'did:notstart', 'text': 'Did not start' }
     , { 'value': 'show:allbuthidden', 'text': 'All but hidden' }
+    , { 'value': 'show:allbutscheduled', 'text': 'All but scheduled' }
     , { 'value': 'show:all', 'text': 'All' }
 ];
 
@@ -98,6 +111,9 @@ $(document).click(function (event) {
         }
         if ((target.id != 'btnSort') && ($(target).closest("#menuSort").attr('id') != 'menuSort')) {
             $('#menuSort').remove();
+        }
+        if ((target.id != 'btnDateFilter') && ($(target).closest("#dateFilterMenu").attr('id') != 'dateFilterMenu')) {
+            $('#dateFilterMenu').remove();
         }
         if ((target.id != 'btnFilter') && ($(target).closest("#menuFilter").attr('id') != 'menuFilter')) {
             $('#menuFilter').remove();
@@ -185,6 +201,7 @@ $(function () {
         + '<button id="btnMore" class="dimon-menuitem right">More</button>'
         + '<button id="btnFilter" class="dimon-menuitem right">Filter</button>'
         + '<button id="btnSort" class="dimon-menuitem right">Sort</button>'
+        + '<button id="btnDateFilter" class="dimon-menuitem right">Previous 24 hours</button>'
         + '<button id="btnFilterLabel" class="dimon-menuitem left">Filter on label</button>'
         + '<button id="btnLabels" class="dimon-menuitem left">Labels</button>'
         + '</div>'
@@ -193,21 +210,24 @@ $(function () {
         + '<div id="dimon-footer"></div>'
     );
 
-
     // get settings from cookies
-    settings.filterFlows = (Cookies.get('dimonFilterFlows') == null ? 'all_excl_hidden' : Cookies.get('dimonFilterFlows'));
+    settings.filterFlows = (Cookies.get('dimonFilterFlows') == null ? 'all_excl_scheduled' : Cookies.get('dimonFilterFlows'));
     settings.filterJobs = (Cookies.get('dimonFilterJobs') == null ? 'all' : Cookies.get('dimonFilterJobs'));
     settings.sortFlows = (Cookies.get('dimonSortFlows') == null ? 'trigger_time desc' : Cookies.get('dimonSortFlows'));
     settings.sortJobs = (Cookies.get('dimonSortJobs') == null ? 'job_seq_nr asc' : Cookies.get('dimonSortJobs'));
     settings.autorefresh_interval = (Cookies.get('dimonAutoRefreshInterval') == null ? 5 : Cookies.get('dimonAutoRefreshInterval'));
     settings.rundateHistDays = (Cookies.get('dimonRundateHistDays') == null ? 0 : Cookies.get('dimonRundateHistDays'));
+    settings.dateFilter = (Cookies.get('dimonDateFilter') == null ? 'p6h' : Cookies.get('dimonDateFilter'));
+    settings.maxScheduledFlows = (Cookies.get('dimonMaxScheduledFlows') == null ? 1 : Cookies.get('dimonMaxScheduledFlows'));
+    
     settings.search = (Cookies.get('dimonSearch') == null ? '' : Cookies.get('dimonSearch'));
+	$("#search").val("test");
 
     $(document).tooltip();
 
     $("#dimon-logo").attr("src", settings.imgroot + '/dimon-logo.png'); // set logo
     $("#linkHome").click(function () {
-        Cookies.set('dimonRundateHistDays', 0, { expires: 365 }); // reset histdays to 0
+        Cookies.set('dimonRundateHistDays', 0, { expires: 365 , sameSite: 'Lax' }); // reset histdays to 0
         window.location.href = settings.urlSPA + '?_program=' + getSPName('dimon');
     });
 
@@ -507,6 +527,72 @@ $(function () {
             }
         });
 
+    $("#btnDateFilter").button({ icons: { secondary: "ui-icon-triangle-1-s" } })
+      .click(function (event) {
+            if ($('#dateFilterMenu').length) {
+                // remove the menu if it already exists
+                $('#dateFilterMenu').remove();
+            } else {
+
+                $('.ui-tooltip').remove(); // remove the tooltip immediately on menu open
+
+                var s = '';
+                s += '<ul class="dropdown-menu">';
+
+                // Add items
+                if (dateFilterMenuItems.length > 0) {
+                    for (i = 0; i < dateFilterMenuItems.length; i++) {
+                        s += '<li class="li-dropdown-item li-dropdown-date-item ui-widget" id="date-' + dateFilterMenuItems[i].value + '"><div>'
+                            + '<span class="ui-icon ui-icon-dropdown-item ' + (settings.dateFilter == dateFilterMenuItems[i].value ? 'ui-icon-check' : 'ui-icon-blank') + '"></span>'
+                            + '<span class="text-dropdown-item">' + dateFilterMenuItems[i].text + '</span>'
+                            + '</div><br></li>'
+                            ;
+                    }
+                } else {
+                    s += '<li class="li-dropdown-item li-dropdown-date-item ui-widget" id="date-null"><div>'
+                        + '<span class="ui-icon ui-icon-dropdown-item ui-icon-blank"></span>'
+                        + '<span class="text-dropdown-item">&lt;no items&gt;</span>'
+                        + '</div><br></li>'
+                        ;
+                }
+
+                s += '</ul>';
+
+                var menuWidth = 200;
+                button = $("#btnDateFilter");
+                var buttonPosition = button.position();
+                var buttonBottom = buttonPosition.top + button.height() + 18;
+                var menuLeft = buttonPosition.left; /* margin-left is 20px */
+                $("#dateFilterMenu").remove(); // remove menu in case it already exists
+                var dateFilterMenu = $('<div id="dateFilterMenu" style="display:block;'
+                    + 'position:absolute;'
+                    + 'top:' + buttonBottom + 'px;'
+                    + 'left:' + menuLeft + 'px;'
+                    + 'width:' + menuWidth + 'px;'
+                    + 'z-index:1001;'
+                    + '" class="dropdown-menu"></div>').appendTo('body');
+                $("#dateFilterMenu").html(s);
+                $('.li-dropdown-date-item').click(function () {
+					settings.dateFilter = $(this).attr('id').split('-')[1];
+                    if (settings.dateFilter != 'custom') {
+                        // don't save custom date range to cookie
+                        Cookies.set('dimonDateFilter', settings.dateFilter, { expires: 365 , sameSite: 'Lax' });
+                    }
+					updateDateFilterButtonLabel()
+					if (settings.dateFilter == 'custom') {
+						editCustomDateRange();						
+					} else {
+                        refresh();
+					}
+					
+                  $("#dateFilterMenu").remove(); // remove menu
+				  
+                });
+            }
+        });
+
+	
+	
     $("#btnSort").button()
         .click(function (event) {
             if ($('#menuSort').length) {
@@ -1343,12 +1429,19 @@ function editSettings() {
 
     var dialogSettings =
         $('<div id="dialogSettings">'
-            + '<p>'
-            + '<label for="autorefresh-interval" style="float:left">Auto-refresh interval:</label>'
-            + '<div id="slider-autorefresh-interval" style="float:left; width:400px; margin-left: 10px;"></div>'
-            + '<input type="text" id="autorefresh-interval" readonly style="border:0; float:left; margin-left: 10px;">'
-            + '</p>'
-            + '</div>').appendTo('body');
+        + '<table>'
+          + '<tr>'
+            + '<td style="padding:10px;"><label for="autorefresh-interval" style="float:left">Auto-refresh interval:</label></td>'
+            + '<td style="padding:10px;"><div id="slider-autorefresh-interval" style="float:left; width:400px; margin-left: 10px;"></div>'
+              + '<input type="text" id="autorefresh-interval" readonly style="border:0; float:left; margin-left: 10px;">'
+            + '</td>'
+          + '</tr>'
+          + '<tr>'
+            + '<td style="padding:10px;vertical-align: middle;"><label for="inputMaxScheduledFlows" class="ui-widget">Maximum scheduled flows to display:</label></td>'
+            + '<td style="padding:10px;"><input type="text" style="width:40px" id="inputMaxScheduledFlows"></td>'
+          + '</tr>'
+        + '</table>'
+        + '</div>').appendTo('body');
 
     dialogSettings.dialog({    // add a close listener to prevent adding multiple divs to the document
         close: function (event, ui) {
@@ -1356,14 +1449,18 @@ function editSettings() {
             dialogSettings.remove();
         }
         , title: 'Settings'
-        , width: 800
+        , width: 920
         , height: 400
         , modal: true
         , buttons: {
             "Apply": function (event, ui) {
-                autorefresh_interval = $("#slider-autorefresh-interval").slider("value");
-                settings.autorefresh_interval = autorefresh_interval;
-                Cookies.set('dimonAutoRefreshInterval', settings.autorefresh_interval, { expires: 365 });
+
+                settings.autorefresh_interval = $("#slider-autorefresh-interval").slider("value");
+                Cookies.set('dimonAutoRefreshInterval', settings.autorefresh_interval, { expires: 365 , sameSite: 'Lax' });
+
+                settings.maxScheduledFlows = $("#inputMaxScheduledFlows").spinner("value");
+                Cookies.set('dimonMaxScheduledFlows', settings.maxScheduledFlows, { expires: 365 , sameSite: 'Lax' });
+//alert(settings.maxScheduledFlows);
                 $(this).dialog('close');
                 refresh();
             }
@@ -1399,6 +1496,11 @@ function editSettings() {
     } else {
         $("#autorefresh-interval").val(autorefresh_intervals[$("#slider-autorefresh-interval").slider("value")] + ' seconds');
     }
+
+    // make the inputMaxScheduledFlows field a spinner
+    $("#inputMaxScheduledFlows").spinner({ min: 0
+                                         , max: 100
+                                         }).val(settings.maxScheduledFlows);
 
     $(":button:contains('Close')").focus(); // Set focus to the [Close] button
 
@@ -2147,16 +2249,37 @@ function updateSortButtonLabel() {
 }//updateSortButtonLabel
 
 
+function updateDateFilterButtonLabel() {
+
+    var btnLabel = '';
+
+    for (i = 0; i < dateFilterMenuItems.length; i++) {
+        if (dateFilterMenuItems[i].value == settings.dateFilter) {
+            btnLabel = dateFilterMenuItems[i].text;
+        }
+    }
+    if (settings.dateFilter == 'custom') {
+        if (settings.run_from_dts.split(':')[0] == settings.run_until_dts.split(':')[0]) {
+            btnLabel = settings.run_until_dts.split(':')[0];
+        } else {
+            btnLabel =  settings.run_from_dts.split(':')[0] + '-' + settings.run_until_dts.split(':')[0];
+        }
+    }
+    $("#btnDateFilter").button({ label: btnLabel })
+
+}//updateDateFilterButtonLabel
+
+
 function filter(options) {
 
     switch (settings.currentView) {
         case "Flows":
             settings.filterFlows = options;
-            Cookies.set('dimonFilterFlows', options, { expires: 365 });
+            Cookies.set('dimonFilterFlows', options, { expires: 365 , sameSite: 'Lax' });
             break;
         case "Jobs":
             settings.filterJobs = options;
-            Cookies.set('dimonFilterJobs', options, { expires: 365 });
+            Cookies.set('dimonFilterJobs', options, { expires: 365 , sameSite: 'Lax' });
             break;
         default:
     }
@@ -2199,12 +2322,12 @@ function sort(sortColumn) {
 
         case "Flows":
             settings.sortFlows = sortColumn + ' ' + sortOrder;
-            Cookies.set('dimonSortFlows', settings.sortFlows, { expires: 365 });
+            Cookies.set('dimonSortFlows', settings.sortFlows, { expires: 365 , sameSite: 'Lax' });
             break;
 
         case "Jobs":
             settings.sortJobs = sortColumn + ' ' + sortOrder;
-            Cookies.set('dimonSortJobs', settings.sortJobs, { expires: 365 });
+            Cookies.set('dimonSortJobs', settings.sortJobs, { expires: 365 , sameSite: 'Lax' });
             break;
 
         default:
@@ -2256,41 +2379,41 @@ function navigate(path) {
 }//navigate
 
 
-function pin() {
+// function pin() {
 
-    var dialogPinWidth = $(window).width() * 0.6;
-    var dialogPinHeight = 175;
-    var dialogPin = $('<div id="dialogPin">'
-        + '<p>'
-        + '<input type="text" id="navigationPath">'
-        + '</p>'
-        + '</div>').appendTo('body');
-    dialogPin.dialog({    // add a close listener to prevent adding multiple divs to the document
-        close: function (event, ui) {
-            // remove div with all data and events
-            dialogPin.remove();
-            $("#btnPin").blur(); // get the focus off of btnPin
-        }
-        , title: 'Pin navigation path'
-        , width: dialogPinWidth
-        , height: dialogPinHeight
-        , modal: true
-        , buttons: {
-            "Copy to clipboard": function (event, ui) {
-                $("#navigationPath").select();
-                document.execCommand("copy");
-            }
-            , "Close": function (event, ui) {
-                $(this).dialog('close');
-                $("#btnPin").blur(); // get the focus off of btnPin
-            }
-        }
-    });
+//     var dialogPinWidth = $(window).width() * 0.6;
+//     var dialogPinHeight = 175;
+//     var dialogPin = $('<div id="dialogPin">'
+//         + '<p>'
+//         + '<input type="text" id="navigationPath">'
+//         + '</p>'
+//         + '</div>').appendTo('body');
+//     dialogPin.dialog({    // add a close listener to prevent adding multiple divs to the document
+//         close: function (event, ui) {
+//             // remove div with all data and events
+//             dialogPin.remove();
+//             $("#btnPin").blur(); // get the focus off of btnPin
+//         }
+//         , title: 'Pin navigation path'
+//         , width: dialogPinWidth
+//         , height: dialogPinHeight
+//         , modal: true
+//         , buttons: {
+//             "Copy to clipboard": function (event, ui) {
+//                 $("#navigationPath").select();
+//                 document.execCommand("copy");
+//             }
+//             , "Close": function (event, ui) {
+//                 $(this).dialog('close');
+//                 $("#btnPin").blur(); // get the focus off of btnPin
+//             }
+//         }
+//     });
 
-    var url = $(location).attr('protocol') + '//' + $(location).attr('host') + settings.webroot + '/?path=' + $('#navpath .navpath-item:last').attr('value');
-    $("#navigationPath").css("width", dialogPinWidth - 55).css("text-align", "left").button().val(url);
+//     var url = $(location).attr('protocol') + '//' + $(location).attr('host') + settings.webroot + '/?path=' + $('#navpath .navpath-item:last').attr('value');
+//     $("#navigationPath").css("width", dialogPinWidth - 55).css("text-align", "left").button().val(url);
 
-}//pin
+// }//pin
 
 
 function Flows(run_date) {
@@ -2298,8 +2421,10 @@ function Flows(run_date) {
     clearInterval(interval);
     settings.currentView = 'Flows';
     updateSortButtonLabel();
+    updateDateFilterButtonLabel();
     enableButton($("#btnFilter"));
     enableButton($("#btnSort"));
+    enableButton($("#btnDateFilter"));
     enableButton($("#btnClearSearch"));
     enableButton($("#search"));
     enableButton($("#btnFilterLabel"));
@@ -2317,35 +2442,53 @@ function refreshFlows(run_date) {
 
     if ($("#results1").length) {
 
-        if (!refreshFlowsRunning) {
+        if (settings.dateFilter != 'custom') {
+            dts1 = new Date();
+            var hours = settings.dateFilter.match(/\d/g); // get hours from string p24h
+            hours = hours.join("");
+            dts2 = new Date(dts1 - hours*60*60*1000);
+            settings.run_from_dts = dts2.getDate() +  dts2.toLocaleString('en-US', { month: 'short' }) + dts2.getFullYear()
+            + ':' + dts2.getHours() + ':' + dts2.getMinutes() + ':' + dts2.getSeconds();
+            settings.run_until_dts = dts1.getDate() +  dts1.toLocaleString('en-US', { month: 'short' }) + dts1.getFullYear()
+            + ':' + dts1.getHours() + ':' + dts1.getMinutes() + ':' + dts1.getSeconds();
+        }
 
-            refreshFlowsRunning = true;
-            settings.search = $('#search').val();
-            $.ajax({
-                url: settings.urlSPA
-                , data: $.extend({}
-                    , {
-                        "_program": getSPName('dimonFlows')
-                        , "run_date": run_date
-                        , "run_date_histdays": settings.rundateHistDays
-                        , "filter": settings.filterFlows
-                        , "sort": settings.sortFlows
-                        , "search": settings.search
-                        , "_debug": _debug
-                    })
-                , cache: false
-                , timeout: ajaxTimeout
-                , success: function (data) {
+        refreshFlowsRunning = true;
+        settings.search = $('#search').val();
+        settings.request_id++;
+        settings.last_request_id = settings.request_id;
+        $.ajax({
+            url: settings.urlSPA
+            , data: $.extend({}
+                , {
+                    "_program": getSPName('dimonFlows')
+                    , "date_filter": settings.dateFilter
+                    , "run_from_dts": settings.run_from_dts
+                    , "run_until_dts": settings.run_until_dts
+                    , "max_scheduled_flows": settings.maxScheduledFlows
+                    , "filter": settings.filterFlows
+                    , "sort": settings.sortFlows
+                    , "search": settings.search
+                    , "request_id": settings.request_id
+                    , "_debug": _debug
+                })
+            , cache: false
+            , timeout: ajaxTimeout
+            , success: function (data,textStatus,jqXHR) {
+
+                var ajax_request_id = data.split(/<!-- request_id:|-->/)[1];
+
+                if ( ajax_request_id == settings.last_request_id) {
 
                     refreshFlowsRunning = false;
                     handleAjaxSuccess();
 
                     // save settings in cookies
-                    Cookies.set('dimonRundate', run_date, { expires: 365 });
-                    Cookies.set('dimonRundateHistDays', settings.rundateHistDays, { expires: 365 });
-                    Cookies.set('dimonFilterFlows', settings.filterFlows, { expires: 365 });
-                    Cookies.set('dimonSortFlows', settings.sortFlows, { expires: 365 });
-                    Cookies.set('dimonSearch', settings.search, { expires: 365 });
+                    Cookies.set('dimonRundate', run_date, { expires: 365 , sameSite: 'Lax' });
+                    Cookies.set('dimonRundateHistDays', settings.rundateHistDays, { expires: 365 , sameSite: 'Lax' });
+                    Cookies.set('dimonFilterFlows', settings.filterFlows, { expires: 365 , sameSite: 'Lax' });
+                    Cookies.set('dimonSortFlows', settings.sortFlows, { expires: 365 , sameSite: 'Lax' });
+                    Cookies.set('dimonSearch', settings.search, { expires: 365 , sameSite: 'Lax' });
 
 
                     // To prevent delayed output from SP, check if we're still in Flows view.
@@ -2354,11 +2497,12 @@ function refreshFlows(run_date) {
                         $("#results1").html(data);
 
                         // move SAS-generated report title to #dimon-navbar
-                        $("#dimon-navbar").html('<div id="navpath"></div><span id="btnNavbar"><button id="btnPin" style="margin-top:3px;">Pin</button></span>');
-                        $("#btnPin").button({ icons: { primary: 'ui-icon-pin-s' }, text: false })
-                            .click(function () {
-                                pin();
-                            });
+                        // $("#dimon-navbar").html('<div id="navpath"></div><span id="btnNavbar"><button id="btnPin" style="margin-top:3px;">Pin</button></span>');
+                        $("#dimon-navbar").html('<div id="navpath"></div><span id="btnNavbar"></span>');
+                        // $("#btnPin").button({ icons: { primary: 'ui-icon-pin-s' }, text: false })
+                        //     .click(function () {
+                        //         pin();
+                        //     });
 
                         $("#results1 .systitleandfootercontainer").appendTo("#navpath");
                         $("#results1").find('br:first').remove();
@@ -2367,126 +2511,8 @@ function refreshFlows(run_date) {
                         $("#dimon-footer").html("");
                         $("#results1 .reportfooter").appendTo("#dimon-footer");
 
-                        function createRundateDialog(initRundate) {
-
-                            var dp = $("#rundate");
-                            var dpPosition = dp.offset();
-                            var dpLeft = dpPosition.left;
-                            var dpBottom = dpPosition.top + dp.height() + 15;
-                            $("#dialogRundate").remove(); // remove menu in case it already exists
-
-                            var dialogRundate = $('<div id="dialogRundate" style="display:block;'
-                                + 'position:absolute;'
-                                + 'top:' + dpBottom + 'px;'
-                                + 'left:' + dpLeft + 'px;'
-                                + 'z-index:1001;'
-                                + '" class="dropdown-menu"></div>').appendTo('body');
-
-                            $("#dialogRundate").html('<div id="dialogRundate">'
-                                + '  <div style="float:left">'
-                                + '    <div id="datepicker" style="padding:15px;"></div>'
-                                + '  </div>'
-                                + '  <div style="float:left;">'
-                                + '    <div style="padding:15px;">'
-                                + '      <table>'
-                                + '        <tr><td><label for="inputRundate" class="ui-widget">Selected date:</label></td><td><input type="text" id="inputRundate"></td></tr>'
-                                + '        <tr><td><label for="inputRundateHistdays" class="ui-widget">History (in days):</label></td><td><input type="text" id="inputRundateHistdays"></td></tr>'
-                                + '        <tr>'
-                                + '          <td>'
-                                + '            <button id="btnRundateToday" style="margin-top:20px">Today</button>'
-                                + '          </td>'
-                                + '          <td align="right">'
-                                + '            <button id="btnRundateCancel" style="margin-top:20px">Cancel</button>'
-                                + '            <button id="btnRundateApply" style="margin-top:20px">Apply</button>'
-                                + '          </td>'
-                                + '        </tr>'
-                                + '      </table>'
-                                + '    </div>'
-                                + '  </div>'
-                                + '</div>'
-                            );
-
-                            $("#datepicker").datepicker({
-                                dateFormat: "ddMyy"
-                                , onSelect: function (date, event) {
-                                    $("#inputRundate").val($.datepicker.formatDate('ddMyy', $("#datepicker").datepicker("getDate")));
-                                    // stupid way to detect double click but it works
-                                    if ((new Date() - datepickerClickDate) < 300) {
-                                        btnRundateApply.click();
-                                    }
-                                    datepickerClickDate = new Date(); // save date for next click
-                                }
-                            });
-
-                            // get initial rundate from #rundate and set it on the datepicker and in the input field
-                            var rundate = $("#rundate").text().split(" ").pop().substr(0, 9);
-                            $("#inputRundate").val(rundate);
-                            $("#datepicker").datepicker("setDate", rundate);
-
-                            // make the inputRundate field a spinner
-                            $("#inputRundate").spinner({
-                                spin: function (event, ui) {
-                                    event.preventDefault();
-                                    var rundate1 = $("#datepicker").datepicker("getDate");
-                                    rundate1.setDate(rundate1.getDate() + ui.value); // ui.value returns the increment value
-                                    $("#inputRundate").val($.datepicker.formatDate('ddMyy', rundate1));
-                                    $("#inputRundate").change(); // update the datepicker
-                                }
-                            });
-
-                            // get and set initial rundateHistDays
-                            $("#inputRundateHistdays").val(settings.rundateHistDays)
-                                .spinner({
-                                    min: -10
-                                    , max: 365
-                                });;
-
-                            // update the datepicker when inputRundate has changed
-                            $("#inputRundate").change(function (event) {
-                                let value = $(this).val();
-                                let format = $("#datepicker").datepicker('option', 'dateFormat');
-                                let valueIsValid = false;
-                                try {
-                                    $.datepicker.parseDate(format, value);
-                                    valueIsValid = true;
-                                    enableButton($("#btnRundateApply"));
-                                    $("#datepicker").datepicker("setDate", $("#inputRundate").val());
-                                }
-                                catch (e) {
-                                    alert('Invalid date entered, it must in the format DDMMMYYYY.')
-                                    disableButton($("#btnRundateApply"));
-                                }
-                            })
-
-                            $("#btnRundateToday").button().click(function () {
-                                $("#inputRundateHistdays").val("0");
-                                $("#inputRundate").val($.datepicker.formatDate('ddMyy', new Date()));
-                                $("#inputRundate").change(); // update the datepicker
-                            });
-                            $("#btnRundateCancel").button().click(function () {
-                                $("#dialogRundate").remove();
-                            });
-                            $("#btnRundateApply").button().click(function () {
-                                settings.currentRundate = $("#inputRundate").val();
-                                settings.rundateHistDays = $("#inputRundateHistdays").val();
-                                Cookies.set('dimonRundateHistDays', settings.rundateHistDays, { expires: 365 });
-                                navigate('//_' + $("#inputRundate").val());
-                                $("#dialogRundate").remove();
-                            });
-                        }
-
                         // rundate click handler
-                        $("#rundate").button()
-                            .click(function (event) {
-                                if ($('#dialogRundate').length) {
-                                    // remove the menu if it already exists
-                                    $('#dialogRundate').remove();
-                                } else {
-                                    createRundateDialog();
-                                    $("#dialogRundate").show();
-                                    $(".navpath-item").addClass('ui-state-hover');
-                                }
-                            });
+                        $("#rundate").button();
 
                         $(".flow-status-link").click(function () {
                             viewNotesWarningsErrors({
@@ -2556,14 +2582,16 @@ function refreshFlows(run_date) {
                         setResults1Size();
                         setSearchSize();
 
-                    }
+                    }                        
+
                 }
-                , error: function (XMLHttpRequest, textStatus, errorThrown) {
-                    refreshFlowsRunning = false;
-                    handleAjaxError('refreshFlows', XMLHttpRequest, textStatus, errorThrown);
-                }
-            });
-        }
+
+            }
+            , error: function (XMLHttpRequest, textStatus, errorThrown) {
+                refreshFlowsRunning = false;
+                handleAjaxError('refreshFlows', XMLHttpRequest, textStatus, errorThrown);
+            }
+        });
     }
 
 }//refreshFlows
@@ -2576,6 +2604,7 @@ function Jobs(path) {
     updateSortButtonLabel();
     disableButton($("#btnFilter"));
     enableButton($("#btnSort"));
+    disableButton($("#btnDateFilter"));
     disableButton($("#btnClearSearch"));
     disableButton($("#search"));
     disableButton($("#btnFilterLabel"));
@@ -2603,7 +2632,7 @@ function refreshJobs(path) {
                     , "flow_run_id": path.split('_')[1]
                     , "flow_run_seq_nr": path.split('_')[2]
                     , "flow_job_id": path.split('_')[3]
-                    , "run_date": path.split('_')[4]
+                    // , "run_date": path.split('_')[4]
                     , "trigger": path.split('_')[5]
                     // , "filter": settings.filterJobs
                     , "filter": ""
@@ -2625,11 +2654,12 @@ function refreshJobs(path) {
                         $("#results1").html(data);
 
                         // move SAS-generated report title to #dimon-navbar
-                        $("#dimon-navbar").html('<div id="navpath"></div><span id="btnNavbar"><button id="btnPin" style="margin-top:3px;">Pin</button></span>');
-                        $("#btnPin").button({ icons: { primary: 'ui-icon-pin-s' }, text: false })
-                            .click(function () {
-                                pin();
-                            });
+                        // $("#dimon-navbar").html('<div id="navpath"></div><span id="btnNavbar"><button id="btnPin" style="margin-top:3px;">Pin</button></span>');
+                        $("#dimon-navbar").html('<div id="navpath"></div><span id="btnNavbar"></span>');
+                        // $("#btnPin").button({ icons: { primary: 'ui-icon-pin-s' }, text: false })
+                        //     .click(function () {
+                                //  pin();
+                        //     });
 
                         $("#results1 .systitleandfootercontainer").appendTo("#navpath");
                         $("#results1").find('br:first').remove();
@@ -2771,11 +2801,12 @@ function refreshSteps(path) {
                         $("#results1").html(data);
 
                         // move SAS-generated report title to #dimon-navbar
-                        $("#dimon-navbar").html('<div id="navpath"></div><span id="btnNavbar"><button id="btnPin" style="margin-top:3px;">Pin</button></span>');
-                        $("#btnPin").button({ icons: { primary: 'ui-icon-pin-s' }, text: false })
-                            .click(function () {
-                                pin();
-                            });
+                        // $("#dimon-navbar").html('<div id="navpath"></div><span id="btnNavbar"><button id="btnPin" style="margin-top:3px;">Pin</button></span>');
+                        $("#dimon-navbar").html('<div id="navpath"></div><span id="btnNavbar"></span>');
+                        // $("#btnPin").button({ icons: { primary: 'ui-icon-pin-s' }, text: false })
+                        //     .click(function () {
+                        //         pin();
+                        //     });
                         $("#results1 .systitleandfootercontainer").appendTo("#navpath");
                         $("#results1").find('br:first').remove();
 
@@ -3030,19 +3061,19 @@ function plot(parms) {
     });
     $(".dimon-combobox").selectmenu({
         change: function (event, data) {
-            Cookies.set('dimonPlotHistDays', $("#combobox-numdays").val(), { expires: 365 });
-            Cookies.set('dimonPlotCI', $("#combobox-ci").val(), { expires: 365 });
+            Cookies.set('dimonPlotHistDays', $("#combobox-numdays").val(), { expires: 365 , sameSite: 'Lax' });
+            Cookies.set('dimonPlotCI', $("#combobox-ci").val(), { expires: 365 , sameSite: 'Lax' });
             createPlot(parms);
         }
     });
     $("#checkbox-showzero").button()
         .click(function () {
-            Cookies.set('dimonPlotShowZero', ($("#checkbox-showzero").is(':checked') ? "yes" : "no"), { expires: 365 });
+            Cookies.set('dimonPlotShowZero', ($("#checkbox-showzero").is(':checked') ? "yes" : "no"), { expires: 365 , sameSite: 'Lax' });
             createPlot(parms);
         });
     $("#checkbox-hideoutliers").button()
         .click(function () {
-            Cookies.set('dimonPlotHideOutliers', ($("#checkbox-hideoutliers").is(':checked') ? "yes" : "no"), { expires: 365 });
+            Cookies.set('dimonPlotHideOutliers', ($("#checkbox-hideoutliers").is(':checked') ? "yes" : "no"), { expires: 365 , sameSite: 'Lax' });
             createPlot(parms);
         });
 
@@ -3284,3 +3315,54 @@ function enableText(t) {
     t.disabed = false;
     t.prop('disabled', false).removeClass("ui-state-disabled");
 }
+
+
+function editCustomDateRange() {
+
+    var dialogCustomDateRange =
+        $('<div id="dialogCustomDateRange">'
+        + '  <div style="float:left">'
+        + '    <div id="datepickerFrom" style="padding:15px; float: left;">From:</div>'
+        + '    <div id="datepickerUntil" style="padding:15px; float: left;">Until:</div>'
+        + '  </div>'
+        + '</div>').appendTo('body');
+
+        $("#datepickerFrom").datepicker({
+            dateFormat: "ddMyy"
+            , onSelect: function (date, event) {
+                //$("#inputRundate").val($.datepicker.formatDate('ddMyy', $("#datepicker").datepicker("getDate")));
+                datepickerClickDate = new Date(); // save date for next click
+            }
+        });
+        $("#datepickerUntil").datepicker({
+            dateFormat: "ddMyy"
+            , onSelect: function (date, event) {
+                //$("#inputRundate").val($.datepicker.formatDate('ddMyy', $("#datepicker").datepicker("getDate")));
+            }
+        });
+
+
+    dialogCustomDateRange.dialog({    // add a close listener to prevent adding multiple divs to the document
+        close: function (event, ui) {
+            // remove div with all data and events
+            dialogCustomDateRange.remove();
+        }
+        , title: 'Custom Date Range'
+        , width: 590
+        , height: 365
+        , modal: true
+        , buttons: {
+            "OK": function (event, ui) {
+                settings.run_from_dts = $("#datepickerFrom").val() + ':00:00:00';
+                settings.run_until_dts = $("#datepickerUntil").val() + ':23:59:59';
+                updateDateFilterButtonLabel();
+                $(this).dialog('close');
+                refresh();
+            }
+            , "Cancel": function (event, ui) {
+                $(this).dialog('close');
+            }
+        }
+    });
+
+}//editCustomDateRange

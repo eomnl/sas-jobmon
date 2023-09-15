@@ -50,6 +50,7 @@
           sparkline_max_flows
           flow_completion_mode flow_completion_mode_2_idle_time lsf_flow_finished_dir
           lsf_flow_active_dir flow_scheduled_dts_match_seconds
+          scheduled_flows_lookahead_time
           ;
 
   /* ------------------------------------------------------------------------- */
@@ -103,6 +104,8 @@
   /* Whether to apply metadata security to webapp results. yes or no */
   %let apply_metadata_security = no;
 
+  %let scheduled_flows_lookahead_time   = 86400; /* seconds to look ahead for scheduled flows */
+
   /* Include dimon_usermods */
   %dimon_usermods
 
@@ -119,6 +122,7 @@
     ;
   quit;
 
+  options notes;
   %put NOTE: ENGINE                           = &engine.;
   %put NOTE: URLSPA                           = &urlspa.;
   %put NOTE: SPROOT                           = &sproot.;
@@ -134,6 +138,9 @@
   %put NOTE: LSF_FLOW_FINISHED_DIR            = &lsf_flow_finished_dir.;
   %put NOTE: LSF_FLOW_ACTIVE_DIR              = &lsf_flow_active_dir.;
   %put NOTE: FLOW_SCHEDULED_DTS_MATCH_SECONDS = &flow_scheduled_dts_match_seconds.;
+  %put NOTE: SCHEDULED_FLOWS_LOOKAHEAD_TIME   = &scheduled_flows_lookahead_time.;
+  options nonotes;
+
 
   ods path WORK.TAGSETS(UPDATE) SASHELP.TMPLMST(READ);
   proc template;

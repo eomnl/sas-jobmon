@@ -4,24 +4,23 @@
  *
  * To rebuild or modify this file with the latest versions of the included
  * software please visit:
- *   https://datatables.net/download/#dt/dt-1.10.24/b-1.7.0/sl-1.3.3
+ *   https://datatables.net/download/#dt/dt-1.13.6/b-2.4.2/sl-1.7.0
  *
  * Included libraries:
- *   DataTables 1.10.24, Buttons 1.7.0, Select 1.3.3
+ *   DataTables 1.13.6, Buttons 2.4.2, Select 1.7.0
  */
 
-/*! DataTables 1.10.24
- * ©2008-2021 SpryMedia Ltd - datatables.net/license
+/*! DataTables 1.13.6
+ * ©2008-2023 SpryMedia Ltd - datatables.net/license
  */
 
 /**
  * @summary     DataTables
  * @description Paginate, search and order HTML tables
- * @version     1.10.24
- * @file        jquery.dataTables.js
+ * @version     1.13.6
  * @author      SpryMedia Ltd
  * @contact     www.datatables.net
- * @copyright   Copyright 2008-2021 SpryMedia Ltd.
+ * @copyright   SpryMedia Ltd.
  *
  * This source file is free software, available under the following license:
  *   MIT license - http://datatables.net/license
@@ -47,64 +46,55 @@
 	}
 	else if ( typeof exports === 'object' ) {
 		// CommonJS
-		module.exports = function (root, $) {
-			if ( ! root ) {
-				// CommonJS environments without a window global must pass a
-				// root. This will give an error otherwise
-				root = window;
-			}
+		// jQuery's factory checks for a global window - if it isn't present then it
+		// returns a factory function that expects the window object
+		var jq = require('jquery');
 
-			if ( ! $ ) {
-				$ = typeof window !== 'undefined' ? // jQuery's factory checks for a global window
-					require('jquery') :
-					require('jquery')( root );
-			}
+		if (typeof window === 'undefined') {
+			module.exports = function (root, $) {
+				if ( ! root ) {
+					// CommonJS environments without a window global must pass a
+					// root. This will give an error otherwise
+					root = window;
+				}
 
-			return factory( $, root, root.document );
-		};
+				if ( ! $ ) {
+					$ = jq( root );
+				}
+
+				return factory( $, root, root.document );
+			};
+		}
+		else {
+			return factory( jq, window, window.document );
+		}
 	}
 	else {
 		// Browser
-		factory( jQuery, window, document );
+		window.DataTable = factory( jQuery, window, document );
 	}
 }
 (function( $, window, document, undefined ) {
 	"use strict";
 
-	/**
-	 * DataTables is a plug-in for the jQuery Javascript library. It is a highly
-	 * flexible tool, based upon the foundations of progressive enhancement,
-	 * which will add advanced interaction controls to any HTML table. For a
-	 * full list of features please refer to
-	 * [DataTables.net](href="http://datatables.net).
-	 *
-	 * Note that the `DataTable` object is not a global variable but is aliased
-	 * to `jQuery.fn.DataTable` and `jQuery.fn.dataTable` through which it may
-	 * be  accessed.
-	 *
-	 *  @class
-	 *  @param {object} [init={}] Configuration object for DataTables. Options
-	 *    are defined by {@link DataTable.defaults}
-	 *  @requires jQuery 1.7+
-	 *
-	 *  @example
-	 *    // Basic initialisation
-	 *    $(document).ready( function {
-	 *      $('#example').dataTable();
-	 *    } );
-	 *
-	 *  @example
-	 *    // Initialisation with configuration options - in this case, disable
-	 *    // pagination and sorting.
-	 *    $(document).ready( function {
-	 *      $('#example').dataTable( {
-	 *        "paginate": false,
-	 *        "sort": false
-	 *      } );
-	 *    } );
-	 */
-	var DataTable = function ( options )
+	
+	var DataTable = function ( selector, options )
 	{
+		// Check if called with a window or jQuery object for DOM less applications
+		// This is for backwards compatibility
+		if (DataTable.factory(selector, options)) {
+			return DataTable;
+		}
+	
+		// When creating with `new`, create a new DataTable, returning the API instance
+		if (this instanceof DataTable) {
+			return $(selector).DataTable(options);
+		}
+		else {
+			// Argument switching
+			options = selector;
+		}
+	
 		/**
 		 * Perform a jQuery selector action on the table's TR elements (from the tbody) and
 		 * return the resulting jQuery object.
@@ -860,24 +850,24 @@
 		 */
 		this.fnVersionCheck = _ext.fnVersionCheck;
 		
-
+	
 		var _that = this;
 		var emptyInit = options === undefined;
 		var len = this.length;
-
+	
 		if ( emptyInit ) {
 			options = {};
 		}
-
+	
 		this.oApi = this.internal = _ext.internal;
-
+	
 		// Extend with old style plug-in API methods
 		for ( var fn in DataTable.ext.internal ) {
 			if ( fn ) {
 				this[fn] = _fnExternApiFunc(fn);
 			}
 		}
-
+	
 		this.each(function() {
 			// For each initialisation we want to give it a clean initialisation
 			// object that can be bashed around
@@ -885,7 +875,7 @@
 			var oInit = len > 1 ? // optimisation for single table case
 				_fnExtend( o, options, true ) :
 				options;
-
+	
 			/*global oInit,_that,emptyInit*/
 			var i=0, iLen, j, jLen, k, kLen;
 			var sId = this.getAttribute( 'id' );
@@ -1097,9 +1087,9 @@
 					dataType: 'json',
 					url: oLanguage.sUrl,
 					success: function ( json ) {
-						_fnLanguageCompat( json );
 						_fnCamelToHungarian( defaults.oLanguage, json );
-						$.extend( true, oLanguage, json );
+						_fnLanguageCompat( json );
+						$.extend( true, oLanguage, json, oSettings.oInit.oLanguage );
 			
 						_fnCallbackFire( oSettings, null, 'i18n', [oSettings]);
 						_fnInitialise( oSettings );
@@ -1185,6 +1175,10 @@
 				$( rowOne[0] ).children('th, td').each( function (i, cell) {
 					var col = oSettings.aoColumns[i];
 			
+					if (! col) {
+						_fnLog( oSettings, 0, 'Incorrect column count', 18 );
+					}
+			
 					if ( col.mData === i ) {
 						var sort = a( cell, 'sort' ) || a( cell, 'order' );
 						var filter = a( cell, 'filter' ) || a( cell, 'search' );
@@ -1196,6 +1190,7 @@
 								type:   sort !== null   ? i+'.@data-'+sort   : undefined,
 								filter: filter !== null ? i+'.@data-'+filter : undefined
 							};
+							col._isArrayHost = true;
 			
 							_fnColumnOptions( oSettings, i );
 						}
@@ -1265,7 +1260,7 @@
 			
 				var tbody = $this.children('tbody');
 				if ( tbody.length === 0 ) {
-					tbody = $('<tbody/>').appendTo($this);
+					tbody = $('<tbody/>').insertAfter(thead);
 				}
 				oSettings.nTBody = tbody[0];
 			
@@ -1313,10 +1308,11 @@
 			};
 			
 			/* Must be done after everything which can be overridden by the state saving! */
+			_fnCallbackReg( oSettings, 'aoDrawCallback', _fnSaveState, 'state_save' );
+			
 			if ( oInit.bStateSave )
 			{
 				features.bStateSave = true;
-				_fnCallbackReg( oSettings, 'aoDrawCallback', _fnSaveState, 'state_save' );
 				_fnLoadState( oSettings, oInit, loadedInit );
 			}
 			else {
@@ -1327,7 +1323,7 @@
 		_that = null;
 		return this;
 	};
-
+	
 	
 	/*
 	 * It is useful to have variables which are scoped locally so only the
@@ -1400,7 +1396,12 @@
 	
 	
 	var _isNumber = function ( d, decimalPoint, formatted ) {
-		var strType = typeof d === 'string';
+		var type = typeof d;
+		var strType = type === 'string';
+	
+		if ( type === 'number' || type === 'bigint') {
+			return true;
+		}
 	
 		// If empty return immediately so there must be a number if it is a
 		// formatted string (this stops the string "k", or "kr", etc being detected
@@ -1529,7 +1530,9 @@
 	
 	
 	var _stripHtml = function ( d ) {
-		return d.replace( _re_html, '' );
+		return d
+			.replace( _re_html, '' ) // Complete tags
+			.replace(/<script/i, ''); // Safety for incomplete script tag
 	};
 	
 	
@@ -1616,6 +1619,14 @@
 		return out;
 	}
 	
+	var _includes = function (search, start) {
+		if (start === undefined) {
+			start = 0;
+		}
+	
+		return this.indexOf(search, start) !== -1;	
+	};
+	
 	// Array.isArray polyfill.
 	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/isArray
 	if (! Array.isArray) {
@@ -1624,12 +1635,20 @@
 	    };
 	}
 	
+	if (! Array.prototype.includes) {
+		Array.prototype.includes = _includes;
+	}
+	
 	// .trim() polyfill
 	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/trim
 	if (!String.prototype.trim) {
 	  String.prototype.trim = function () {
 	    return this.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, '');
 	  };
+	}
+	
+	if (! String.prototype.includes) {
+		String.prototype.includes = _includes;
 	}
 	
 	/**
@@ -1687,6 +1706,230 @@
 		 */
 		escapeRegex: function ( val ) {
 			return val.replace( _re_escape_regex, '\\$1' );
+		},
+	
+		/**
+		 * Create a function that will write to a nested object or array
+		 * @param {*} source JSON notation string
+		 * @returns Write function
+		 */
+		set: function ( source ) {
+			if ( $.isPlainObject( source ) ) {
+				/* Unlike get, only the underscore (global) option is used for for
+				 * setting data since we don't know the type here. This is why an object
+				 * option is not documented for `mData` (which is read/write), but it is
+				 * for `mRender` which is read only.
+				 */
+				return DataTable.util.set( source._ );
+			}
+			else if ( source === null ) {
+				// Nothing to do when the data source is null
+				return function () {};
+			}
+			else if ( typeof source === 'function' ) {
+				return function (data, val, meta) {
+					source( data, 'set', val, meta );
+				};
+			}
+			else if ( typeof source === 'string' && (source.indexOf('.') !== -1 ||
+					  source.indexOf('[') !== -1 || source.indexOf('(') !== -1) )
+			{
+				// Like the get, we need to get data from a nested object
+				var setData = function (data, val, src) {
+					var a = _fnSplitObjNotation( src ), b;
+					var aLast = a[a.length-1];
+					var arrayNotation, funcNotation, o, innerSrc;
+		
+					for ( var i=0, iLen=a.length-1 ; i<iLen ; i++ ) {
+						// Protect against prototype pollution
+						if (a[i] === '__proto__' || a[i] === 'constructor') {
+							throw new Error('Cannot set prototype values');
+						}
+		
+						// Check if we are dealing with an array notation request
+						arrayNotation = a[i].match(__reArray);
+						funcNotation = a[i].match(__reFn);
+		
+						if ( arrayNotation ) {
+							a[i] = a[i].replace(__reArray, '');
+							data[ a[i] ] = [];
+		
+							// Get the remainder of the nested object to set so we can recurse
+							b = a.slice();
+							b.splice( 0, i+1 );
+							innerSrc = b.join('.');
+		
+							// Traverse each entry in the array setting the properties requested
+							if ( Array.isArray( val ) ) {
+								for ( var j=0, jLen=val.length ; j<jLen ; j++ ) {
+									o = {};
+									setData( o, val[j], innerSrc );
+									data[ a[i] ].push( o );
+								}
+							}
+							else {
+								// We've been asked to save data to an array, but it
+								// isn't array data to be saved. Best that can be done
+								// is to just save the value.
+								data[ a[i] ] = val;
+							}
+		
+							// The inner call to setData has already traversed through the remainder
+							// of the source and has set the data, thus we can exit here
+							return;
+						}
+						else if ( funcNotation ) {
+							// Function call
+							a[i] = a[i].replace(__reFn, '');
+							data = data[ a[i] ]( val );
+						}
+		
+						// If the nested object doesn't currently exist - since we are
+						// trying to set the value - create it
+						if ( data[ a[i] ] === null || data[ a[i] ] === undefined ) {
+							data[ a[i] ] = {};
+						}
+						data = data[ a[i] ];
+					}
+		
+					// Last item in the input - i.e, the actual set
+					if ( aLast.match(__reFn ) ) {
+						// Function call
+						data = data[ aLast.replace(__reFn, '') ]( val );
+					}
+					else {
+						// If array notation is used, we just want to strip it and use the property name
+						// and assign the value. If it isn't used, then we get the result we want anyway
+						data[ aLast.replace(__reArray, '') ] = val;
+					}
+				};
+		
+				return function (data, val) { // meta is also passed in, but not used
+					return setData( data, val, source );
+				};
+			}
+			else {
+				// Array or flat object mapping
+				return function (data, val) { // meta is also passed in, but not used
+					data[source] = val;
+				};
+			}
+		},
+	
+		/**
+		 * Create a function that will read nested objects from arrays, based on JSON notation
+		 * @param {*} source JSON notation string
+		 * @returns Value read
+		 */
+		get: function ( source ) {
+			if ( $.isPlainObject( source ) ) {
+				// Build an object of get functions, and wrap them in a single call
+				var o = {};
+				$.each( source, function (key, val) {
+					if ( val ) {
+						o[key] = DataTable.util.get( val );
+					}
+				} );
+		
+				return function (data, type, row, meta) {
+					var t = o[type] || o._;
+					return t !== undefined ?
+						t(data, type, row, meta) :
+						data;
+				};
+			}
+			else if ( source === null ) {
+				// Give an empty string for rendering / sorting etc
+				return function (data) { // type, row and meta also passed, but not used
+					return data;
+				};
+			}
+			else if ( typeof source === 'function' ) {
+				return function (data, type, row, meta) {
+					return source( data, type, row, meta );
+				};
+			}
+			else if ( typeof source === 'string' && (source.indexOf('.') !== -1 ||
+					  source.indexOf('[') !== -1 || source.indexOf('(') !== -1) )
+			{
+				/* If there is a . in the source string then the data source is in a
+				 * nested object so we loop over the data for each level to get the next
+				 * level down. On each loop we test for undefined, and if found immediately
+				 * return. This allows entire objects to be missing and sDefaultContent to
+				 * be used if defined, rather than throwing an error
+				 */
+				var fetchData = function (data, type, src) {
+					var arrayNotation, funcNotation, out, innerSrc;
+		
+					if ( src !== "" ) {
+						var a = _fnSplitObjNotation( src );
+		
+						for ( var i=0, iLen=a.length ; i<iLen ; i++ ) {
+							// Check if we are dealing with special notation
+							arrayNotation = a[i].match(__reArray);
+							funcNotation = a[i].match(__reFn);
+		
+							if ( arrayNotation ) {
+								// Array notation
+								a[i] = a[i].replace(__reArray, '');
+		
+								// Condition allows simply [] to be passed in
+								if ( a[i] !== "" ) {
+									data = data[ a[i] ];
+								}
+								out = [];
+		
+								// Get the remainder of the nested object to get
+								a.splice( 0, i+1 );
+								innerSrc = a.join('.');
+		
+								// Traverse each entry in the array getting the properties requested
+								if ( Array.isArray( data ) ) {
+									for ( var j=0, jLen=data.length ; j<jLen ; j++ ) {
+										out.push( fetchData( data[j], type, innerSrc ) );
+									}
+								}
+		
+								// If a string is given in between the array notation indicators, that
+								// is used to join the strings together, otherwise an array is returned
+								var join = arrayNotation[0].substring(1, arrayNotation[0].length-1);
+								data = (join==="") ? out : out.join(join);
+		
+								// The inner call to fetchData has already traversed through the remainder
+								// of the source requested, so we exit from the loop
+								break;
+							}
+							else if ( funcNotation ) {
+								// Function call
+								a[i] = a[i].replace(__reFn, '');
+								data = data[ a[i] ]();
+								continue;
+							}
+		
+							if (data === null || data[ a[i] ] === null) {
+								return null;
+							}
+							else if ( data === undefined || data[ a[i] ] === undefined ) {
+								return undefined;
+							}
+	
+							data = data[ a[i] ];
+						}
+					}
+		
+					return data;
+				};
+		
+				return function (data, type) { // row and meta also passed, but not used
+					return fetchData( data, type, source );
+				};
+			}
+			else {
+				// Array or flat object mapping
+				return function (data, type) { // row and meta also passed, but not used
+					return data[source];
+				};
+			}
 		}
 	};
 	
@@ -2094,8 +2337,16 @@
 				th.addClass( oOptions.sClass );
 			}
 	
+			var origClass = oCol.sClass;
+	
 			$.extend( oCol, oOptions );
 			_fnMap( oCol, oOptions, "sWidth", "sWidthOrig" );
+	
+			// Merge class from previously defined classes with this one, rather than just
+			// overwriting it in the extend above
+			if (origClass !== oCol.sClass) {
+				oCol.sClass = origClass + ' ' + oCol.sClass;
+			}
 	
 			/* iDataSort to be applied (backwards compatibility), but aDataSort will take
 			 * priority if defined
@@ -2105,6 +2356,12 @@
 				oCol.aDataSort = [ oOptions.iDataSort ];
 			}
 			_fnMap( oCol, oOptions, "aDataSort" );
+	
+			// Fall back to the aria-label attribute on the table header if no ariaTitle is
+			// provided.
+			if (! oCol.ariaTitle) {
+				oCol.ariaTitle = th.attr("aria-label");
+			}
 		}
 	
 		/* Cache the data get and set functions for speed */
@@ -2133,7 +2390,7 @@
 	
 		// Indicate if DataTables should read DOM data as an object or array
 		// Used in _fnGetRowElements
-		if ( typeof mDataSrc !== 'number' ) {
+		if ( typeof mDataSrc !== 'number' && ! oCol._isArrayHost ) {
 			oSettings._rowReadObject = true;
 		}
 	
@@ -2201,7 +2458,7 @@
 	
 	
 	/**
-	 * Covert the index of a visible column to the index in the data array (take account
+	 * Convert the index of a visible column to the index in the data array (take account
 	 * of hidden columns)
 	 *  @param {object} oSettings dataTables settings object
 	 *  @param {int} iMatch Visible column index to lookup
@@ -2219,7 +2476,7 @@
 	
 	
 	/**
-	 * Covert the index of an index in the data array and convert it to the visible
+	 * Convert the index of an index in the data array and convert it to the visible
 	 *   column index (take account of hidden columns)
 	 *  @param {int} iMatch Column index to lookup
 	 *  @param {object} oSettings dataTables settings object
@@ -2320,8 +2577,9 @@
 						}
 	
 						// Only a single match is needed for html type since it is
-						// bottom of the pile and very similar to string
-						if ( detectedType === 'html' ) {
+						// bottom of the pile and very similar to string - but it
+						// must not be empty
+						if ( detectedType === 'html' && ! _empty(cache[k]) ) {
 							break;
 						}
 					}
@@ -2368,9 +2626,11 @@
 				def = aoColDefs[i];
 	
 				/* Each definition can target multiple columns, as it is an array */
-				var aTargets = def.targets !== undefined ?
-					def.targets :
-					def.aTargets;
+				var aTargets = def.target !== undefined
+					? def.target
+					: def.targets !== undefined
+						? def.targets
+						: def.aTargets;
 	
 				if ( ! Array.isArray( aTargets ) )
 				{
@@ -2532,12 +2792,19 @@
 	 *  @param {object} settings dataTables settings object
 	 *  @param {int} rowIdx aoData row id
 	 *  @param {int} colIdx Column index
-	 *  @param {string} type data get type ('display', 'type' 'filter' 'sort')
+	 *  @param {string} type data get type ('display', 'type' 'filter|search' 'sort|order')
 	 *  @returns {*} Cell data
 	 *  @memberof DataTable#oApi
 	 */
 	function _fnGetCellData( settings, rowIdx, colIdx, type )
 	{
+		if (type === 'search') {
+			type = 'filter';
+		}
+		else if (type === 'order') {
+			type = 'sort';
+		}
+	
 		var draw           = settings.iDraw;
 		var col            = settings.aoColumns[colIdx];
 		var rowData        = settings.aoData[rowIdx]._aData;
@@ -2569,9 +2836,18 @@
 			return cellData.call( rowData );
 		}
 	
-		if ( cellData === null && type == 'display' ) {
+		if ( cellData === null && type === 'display' ) {
 			return '';
 		}
+	
+		if ( type === 'filter' ) {
+			var fomatters = DataTable.ext.type.search;
+	
+			if ( fomatters[ col.sType ] ) {
+				cellData = fomatters[ col.sType ]( cellData );
+			}
+		}
+	
 		return cellData;
 	}
 	
@@ -2621,122 +2897,7 @@
 	 *  @returns {function} Data get function
 	 *  @memberof DataTable#oApi
 	 */
-	function _fnGetObjectDataFn( mSource )
-	{
-		if ( $.isPlainObject( mSource ) )
-		{
-			/* Build an object of get functions, and wrap them in a single call */
-			var o = {};
-			$.each( mSource, function (key, val) {
-				if ( val ) {
-					o[key] = _fnGetObjectDataFn( val );
-				}
-			} );
-	
-			return function (data, type, row, meta) {
-				var t = o[type] || o._;
-				return t !== undefined ?
-					t(data, type, row, meta) :
-					data;
-			};
-		}
-		else if ( mSource === null )
-		{
-			/* Give an empty string for rendering / sorting etc */
-			return function (data) { // type, row and meta also passed, but not used
-				return data;
-			};
-		}
-		else if ( typeof mSource === 'function' )
-		{
-			return function (data, type, row, meta) {
-				return mSource( data, type, row, meta );
-			};
-		}
-		else if ( typeof mSource === 'string' && (mSource.indexOf('.') !== -1 ||
-			      mSource.indexOf('[') !== -1 || mSource.indexOf('(') !== -1) )
-		{
-			/* If there is a . in the source string then the data source is in a
-			 * nested object so we loop over the data for each level to get the next
-			 * level down. On each loop we test for undefined, and if found immediately
-			 * return. This allows entire objects to be missing and sDefaultContent to
-			 * be used if defined, rather than throwing an error
-			 */
-			var fetchData = function (data, type, src) {
-				var arrayNotation, funcNotation, out, innerSrc;
-	
-				if ( src !== "" )
-				{
-					var a = _fnSplitObjNotation( src );
-	
-					for ( var i=0, iLen=a.length ; i<iLen ; i++ )
-					{
-						// Check if we are dealing with special notation
-						arrayNotation = a[i].match(__reArray);
-						funcNotation = a[i].match(__reFn);
-	
-						if ( arrayNotation )
-						{
-							// Array notation
-							a[i] = a[i].replace(__reArray, '');
-	
-							// Condition allows simply [] to be passed in
-							if ( a[i] !== "" ) {
-								data = data[ a[i] ];
-							}
-							out = [];
-	
-							// Get the remainder of the nested object to get
-							a.splice( 0, i+1 );
-							innerSrc = a.join('.');
-	
-							// Traverse each entry in the array getting the properties requested
-							if ( Array.isArray( data ) ) {
-								for ( var j=0, jLen=data.length ; j<jLen ; j++ ) {
-									out.push( fetchData( data[j], type, innerSrc ) );
-								}
-							}
-	
-							// If a string is given in between the array notation indicators, that
-							// is used to join the strings together, otherwise an array is returned
-							var join = arrayNotation[0].substring(1, arrayNotation[0].length-1);
-							data = (join==="") ? out : out.join(join);
-	
-							// The inner call to fetchData has already traversed through the remainder
-							// of the source requested, so we exit from the loop
-							break;
-						}
-						else if ( funcNotation )
-						{
-							// Function call
-							a[i] = a[i].replace(__reFn, '');
-							data = data[ a[i] ]();
-							continue;
-						}
-	
-						if ( data === null || data[ a[i] ] === undefined )
-						{
-							return undefined;
-						}
-						data = data[ a[i] ];
-					}
-				}
-	
-				return data;
-			};
-	
-			return function (data, type) { // row and meta also passed, but not used
-				return fetchData( data, type, mSource );
-			};
-		}
-		else
-		{
-			/* Array or flat object mapping */
-			return function (data, type) { // row and meta also passed, but not used
-				return data[mSource];
-			};
-		}
-	}
+	var _fnGetObjectDataFn = DataTable.util.get;
 	
 	
 	/**
@@ -2746,122 +2907,7 @@
 	 *  @returns {function} Data set function
 	 *  @memberof DataTable#oApi
 	 */
-	function _fnSetObjectDataFn( mSource )
-	{
-		if ( $.isPlainObject( mSource ) )
-		{
-			/* Unlike get, only the underscore (global) option is used for for
-			 * setting data since we don't know the type here. This is why an object
-			 * option is not documented for `mData` (which is read/write), but it is
-			 * for `mRender` which is read only.
-			 */
-			return _fnSetObjectDataFn( mSource._ );
-		}
-		else if ( mSource === null )
-		{
-			/* Nothing to do when the data source is null */
-			return function () {};
-		}
-		else if ( typeof mSource === 'function' )
-		{
-			return function (data, val, meta) {
-				mSource( data, 'set', val, meta );
-			};
-		}
-		else if ( typeof mSource === 'string' && (mSource.indexOf('.') !== -1 ||
-			      mSource.indexOf('[') !== -1 || mSource.indexOf('(') !== -1) )
-		{
-			/* Like the get, we need to get data from a nested object */
-			var setData = function (data, val, src) {
-				var a = _fnSplitObjNotation( src ), b;
-				var aLast = a[a.length-1];
-				var arrayNotation, funcNotation, o, innerSrc;
-	
-				for ( var i=0, iLen=a.length-1 ; i<iLen ; i++ )
-				{
-					// Protect against prototype pollution
-					if (a[i] === '__proto__' || a[i] === 'constructor') {
-						throw new Error('Cannot set prototype values');
-					}
-	
-					// Check if we are dealing with an array notation request
-					arrayNotation = a[i].match(__reArray);
-					funcNotation = a[i].match(__reFn);
-	
-					if ( arrayNotation )
-					{
-						a[i] = a[i].replace(__reArray, '');
-						data[ a[i] ] = [];
-	
-						// Get the remainder of the nested object to set so we can recurse
-						b = a.slice();
-						b.splice( 0, i+1 );
-						innerSrc = b.join('.');
-	
-						// Traverse each entry in the array setting the properties requested
-						if ( Array.isArray( val ) )
-						{
-							for ( var j=0, jLen=val.length ; j<jLen ; j++ )
-							{
-								o = {};
-								setData( o, val[j], innerSrc );
-								data[ a[i] ].push( o );
-							}
-						}
-						else
-						{
-							// We've been asked to save data to an array, but it
-							// isn't array data to be saved. Best that can be done
-							// is to just save the value.
-							data[ a[i] ] = val;
-						}
-	
-						// The inner call to setData has already traversed through the remainder
-						// of the source and has set the data, thus we can exit here
-						return;
-					}
-					else if ( funcNotation )
-					{
-						// Function call
-						a[i] = a[i].replace(__reFn, '');
-						data = data[ a[i] ]( val );
-					}
-	
-					// If the nested object doesn't currently exist - since we are
-					// trying to set the value - create it
-					if ( data[ a[i] ] === null || data[ a[i] ] === undefined )
-					{
-						data[ a[i] ] = {};
-					}
-					data = data[ a[i] ];
-				}
-	
-				// Last item in the input - i.e, the actual set
-				if ( aLast.match(__reFn ) )
-				{
-					// Function call
-					data = data[ aLast.replace(__reFn, '') ]( val );
-				}
-				else
-				{
-					// If array notation is used, we just want to strip it and use the property name
-					// and assign the value. If it isn't used, then we get the result we want anyway
-					data[ aLast.replace(__reArray, '') ] = val;
-				}
-			};
-	
-			return function (data, val) { // meta is also passed in, but not used
-				return setData( data, val, mSource );
-			};
-		}
-		else
-		{
-			/* Array or flat object mapping */
-			return function (data, val) { // meta is also passed in, but not used
-				data[mSource] = val;
-			};
-		}
-	}
+	var _fnSetObjectDataFn = DataTable.util.set;
 	
 	
 	/**
@@ -3154,6 +3200,11 @@
 				create = nTrIn ? false : true;
 	
 				nTd = create ? document.createElement( oCol.sCellType ) : anTds[i];
+	
+				if (! nTd) {
+					_fnLog( oSettings, 0, 'Incorrect column count', 18 );
+				}
+	
 				nTd._DT_CellIndex = {
 					row: iRow,
 					column: i
@@ -3290,9 +3341,6 @@
 		if ( createHeader ) {
 			_fnDetectHeader( oSettings.aoHeader, thead );
 		}
-		
-		/* ARIA role for the rows */
-		$(thead).children('tr').attr('role', 'row');
 	
 		/* Deal with the footer - add classes if required */
 		$(thead).children('tr').children('th, td').addClass( classes.sHeaderTH );
@@ -3307,10 +3355,16 @@
 	
 			for ( i=0, ien=cells.length ; i<ien ; i++ ) {
 				column = columns[i];
-				column.nTf = cells[i].cell;
 	
-				if ( column.sClass ) {
-					$(column.nTf).addClass( column.sClass );
+				if (column) {
+					column.nTf = cells[i].cell;
+		
+					if ( column.sClass ) {
+						$(column.nTf).addClass( column.sClass );
+					}
+				}
+				else {
+					_fnLog( oSettings, 0, 'Incorrect column count', 18 );
 				}
 			}
 		}
@@ -3426,10 +3480,14 @@
 	/**
 	 * Insert the required TR nodes into the table for display
 	 *  @param {object} oSettings dataTables settings object
+	 *  @param ajaxComplete true after ajax call to complete rendering
 	 *  @memberof DataTable#oApi
 	 */
-	function _fnDraw( oSettings )
+	function _fnDraw( oSettings, ajaxComplete )
 	{
+		// Allow for state saving and a custom start position
+		_fnStart( oSettings );
+	
 		/* Provide a pre-callback function which can be used to cancel the draw is false is returned */
 		var aPreDraw = _fnCallbackFire( oSettings, 'aoPreDrawCallback', 'preDraw', [oSettings] );
 		if ( $.inArray( false, aPreDraw ) !== -1 )
@@ -3438,33 +3496,17 @@
 			return;
 		}
 	
-		var i, iLen, n;
 		var anRows = [];
 		var iRowCount = 0;
 		var asStripeClasses = oSettings.asStripeClasses;
 		var iStripes = asStripeClasses.length;
-		var iOpenRows = oSettings.aoOpenRows.length;
 		var oLang = oSettings.oLanguage;
-		var iInitDisplayStart = oSettings.iInitDisplayStart;
 		var bServerSide = _fnDataSource( oSettings ) == 'ssp';
 		var aiDisplay = oSettings.aiDisplay;
-	
-		oSettings.bDrawing = true;
-	
-		/* Check and see if we have an initial draw position from state saving */
-		if ( iInitDisplayStart !== undefined && iInitDisplayStart !== -1 )
-		{
-			oSettings._iDisplayStart = bServerSide ?
-				iInitDisplayStart :
-				iInitDisplayStart >= oSettings.fnRecordsDisplay() ?
-					0 :
-					iInitDisplayStart;
-	
-			oSettings.iInitDisplayStart = -1;
-		}
-	
 		var iDisplayStart = oSettings._iDisplayStart;
 		var iDisplayEnd = oSettings.fnDisplayEnd();
+	
+		oSettings.bDrawing = true;
 	
 		/* Server-side processing draw intercept */
 		if ( oSettings.bDeferLoading )
@@ -3477,8 +3519,9 @@
 		{
 			oSettings.iDraw++;
 		}
-		else if ( !oSettings.bDestroying && !_fnAjaxUpdate( oSettings ) )
+		else if ( !oSettings.bDestroying && !ajaxComplete)
 		{
+			_fnAjaxUpdate( oSettings );
 			return;
 		}
 	
@@ -3867,6 +3910,28 @@
 	}
 	
 	/**
+	 * Set the start position for draw
+	 *  @param {object} oSettings dataTables settings object
+	 */
+	function _fnStart( oSettings )
+	{
+		var bServerSide = _fnDataSource( oSettings ) == 'ssp';
+		var iInitDisplayStart = oSettings.iInitDisplayStart;
+	
+		// Check and see if we have an initial draw position from state saving
+		if ( iInitDisplayStart !== undefined && iInitDisplayStart !== -1 )
+		{
+			oSettings._iDisplayStart = bServerSide ?
+				iInitDisplayStart :
+				iInitDisplayStart >= oSettings.fnRecordsDisplay() ?
+					0 :
+					iInitDisplayStart;
+	
+			oSettings.iInitDisplayStart = -1;
+		}
+	}
+	
+	/**
 	 * Create an Ajax call based on the table's settings, taking into account that
 	 * parameters can have multiple forms, and backwards compatibility.
 	 *
@@ -3909,6 +3974,22 @@
 		var ajax = oSettings.ajax;
 		var instance = oSettings.oInstance;
 		var callback = function ( json ) {
+			var status = oSettings.jqXHR
+				? oSettings.jqXHR.status
+				: null;
+	
+			if ( json === null || (typeof status === 'number' && status == 204 ) ) {
+				json = {};
+				_fnAjaxDataSrc( oSettings, json, [] );
+			}
+	
+			var error = json.error || json.sError;
+			if ( error ) {
+				_fnLog( oSettings, 0, error );
+			}
+	
+			oSettings.json = json;
+	
 			_fnCallbackFire( oSettings, null, 'xhr', [oSettings, json, oSettings.jqXHR] );
 			fn( json );
 		};
@@ -3933,15 +4014,7 @@
 	
 		var baseAjax = {
 			"data": data,
-			"success": function (json) {
-				var error = json.error || json.sError;
-				if ( error ) {
-					_fnLog( oSettings, 0, error );
-				}
-	
-				oSettings.json = json;
-				callback( json );
-			},
+			"success": callback,
 			"dataType": "json",
 			"cache": false,
 			"type": oSettings.sServerMethod,
@@ -4010,21 +4083,21 @@
 	 */
 	function _fnAjaxUpdate( settings )
 	{
-		if ( settings.bAjaxDataGet ) {
-			settings.iDraw++;
-			_fnProcessingDisplay( settings, true );
+		settings.iDraw++;
+		_fnProcessingDisplay( settings, true );
 	
-			_fnBuildAjax(
-				settings,
-				_fnAjaxParameters( settings ),
-				function(json) {
-					_fnAjaxUpdateDraw( settings, json );
-				}
-			);
+		// Keep track of drawHold state to handle scrolling after the Ajax call
+		var drawHold = settings._drawHold;
 	
-			return false;
-		}
-		return true;
+		_fnBuildAjax(
+			settings,
+			_fnAjaxParameters( settings ),
+			function(json) {
+				settings._drawHold = drawHold;
+				_fnAjaxUpdateDraw( settings, json );
+				settings._drawHold = false;
+			}
+		);
 	}
 	
 	
@@ -4168,6 +4241,11 @@
 			settings.iDraw = draw * 1;
 		}
 	
+		// No data in returned object, so rather than an array, we show an empty table
+		if ( ! data ) {
+			data = [];
+		}
+	
 		_fnClearTable( settings );
 		settings._iRecordsTotal   = parseInt(recordsTotal, 10);
 		settings._iRecordsDisplay = parseInt(recordsFiltered, 10);
@@ -4177,14 +4255,12 @@
 		}
 		settings.aiDisplay = settings.aiDisplayMaster.slice();
 	
-		settings.bAjaxDataGet = false;
-		_fnDraw( settings );
+		_fnDraw( settings, true );
 	
 		if ( ! settings._bInitComplete ) {
 			_fnInitComplete( settings, json );
 		}
 	
-		settings.bAjaxDataGet = true;
 		_fnProcessingDisplay( settings, false );
 	}
 	
@@ -4197,21 +4273,26 @@
 	 *  @param  {object} json Data source object / array from the server
 	 *  @return {array} Array of data to use
 	 */
-	function _fnAjaxDataSrc ( oSettings, json )
-	{
+	 function _fnAjaxDataSrc ( oSettings, json, write )
+	 {
 		var dataSrc = $.isPlainObject( oSettings.ajax ) && oSettings.ajax.dataSrc !== undefined ?
 			oSettings.ajax.dataSrc :
 			oSettings.sAjaxDataProp; // Compatibility with 1.9-.
 	
-		// Compatibility with 1.9-. In order to read from aaData, check if the
-		// default has been changed, if not, check for aaData
-		if ( dataSrc === 'data' ) {
-			return json.aaData || json[dataSrc];
+		if ( ! write ) {
+			if ( dataSrc === 'data' ) {
+				// If the default, then we still want to support the old style, and safely ignore
+				// it if possible
+				return json.aaData || json[dataSrc];
+			}
+	
+			return dataSrc !== "" ?
+				_fnGetObjectDataFn( dataSrc )( json ) :
+				json;
 		}
 	
-		return dataSrc !== "" ?
-			_fnGetObjectDataFn( dataSrc )( json ) :
-			json;
+		// set
+		_fnSetObjectDataFn( dataSrc )( json, write );
 	}
 	
 	/**
@@ -4240,18 +4321,21 @@
 			} )
 			.append( $('<label/>' ).append( str ) );
 	
-		var searchFn = function() {
+		var searchFn = function(event) {
 			/* Update all other filter input elements for the new display */
 			var n = features.f;
 			var val = !this.value ? "" : this.value; // mental IE8 fix :-(
-	
+			if(previousSearch.return && event.key !== "Enter") {
+				return;
+			}
 			/* Now do the filter */
 			if ( val != previousSearch.sSearch ) {
 				_fnFilterComplete( settings, {
 					"sSearch": val,
 					"bRegex": previousSearch.bRegex,
 					"bSmart": previousSearch.bSmart ,
-					"bCaseInsensitive": previousSearch.bCaseInsensitive
+					"bCaseInsensitive": previousSearch.bCaseInsensitive,
+					"return": previousSearch.return
 				} );
 	
 				// Need to redraw, without resorting
@@ -4275,12 +4359,12 @@
 					_fnThrottle( searchFn, searchDelay ) :
 					searchFn
 			)
-			.on( 'mouseup', function(e) {
+			.on( 'mouseup.DT', function(e) {
 				// Edge fix! Edge 17 does not trigger anything other than mouse events when clicking
 				// on the clear icon (Edge bug 17584515). This is safe in other browsers as `searchFn`
 				// checks the value to see if it has changed. In other browsers it won't have.
 				setTimeout( function () {
-					searchFn.call(jqFilter[0]);
+					searchFn.call(jqFilter[0], e);
 				}, 10);
 			} )
 			.on( 'keypress.DT', function(e) {
@@ -4326,6 +4410,7 @@
 			oPrevSearch.bRegex = oFilter.bRegex;
 			oPrevSearch.bSmart = oFilter.bSmart;
 			oPrevSearch.bCaseInsensitive = oFilter.bCaseInsensitive;
+			oPrevSearch.return = oFilter.return;
 		};
 		var fnRegex = function ( o ) {
 			// Backwards compatibility with the bEscapeRegex option
@@ -4403,7 +4488,7 @@
 	 *  @param {int} iColumn column to filter
 	 *  @param {bool} bRegex treat search string as a regular expression or not
 	 *  @param {bool} bSmart use smart filtering or not
-	 *  @param {bool} bCaseInsensitive Do case insenstive matching or not
+	 *  @param {bool} bCaseInsensitive Do case insensitive matching or not
 	 *  @memberof DataTable#oApi
 	 */
 	function _fnFilterColumn ( settings, searchStr, colIdx, regex, smart, caseInsensitive )
@@ -4436,7 +4521,7 @@
 	 *  @param {int} force optional - force a research of the master array (1) or not (undefined or 0)
 	 *  @param {bool} regex treat as a regular expression or not
 	 *  @param {bool} smart perform smart filtering or not
-	 *  @param {bool} caseInsensitive Do case insenstive matching or not
+	 *  @param {bool} caseInsensitive Do case insensitive matching or not
 	 *  @memberof DataTable#oApi
 	 */
 	function _fnFilter( settings, input, force, regex, smart, caseInsensitive )
@@ -4509,9 +4594,13 @@
 			 * 
 			 * ^(?=.*?\bone\b)(?=.*?\btwo three\b)(?=.*?\bfour\b).*$
 			 */
-			var a = $.map( search.match( /"[^"]+"|[^ ]+/g ) || [''], function ( word ) {
+			var a = $.map( search.match( /["\u201C][^"\u201D]+["\u201D]|[^ ]+/g ) || [''], function ( word ) {
 				if ( word.charAt(0) === '"' ) {
 					var m = word.match( /^"(.*)"$/ );
+					word = m ? m[1] : word;
+				}
+				else if ( word.charAt(0) === '\u201C' ) {
+					var m = word.match( /^\u201C(.*)\u201D$/ );
 					word = m ? m[1] : word;
 				}
 	
@@ -4542,7 +4631,6 @@
 		var columns = settings.aoColumns;
 		var column;
 		var i, j, ien, jen, filterData, cellData, row;
-		var fomatters = DataTable.ext.type.search;
 		var wasInvalidated = false;
 	
 		for ( i=0, ien=settings.aoData.length ; i<ien ; i++ ) {
@@ -4556,10 +4644,6 @@
 	
 					if ( column.bSearchable ) {
 						cellData = _fnGetCellData( settings, i, j, 'filter' );
-	
-						if ( fomatters[ column.sType ] ) {
-							cellData = fomatters[ column.sType ]( cellData );
-						}
 	
 						// Search in DataTables 1.10 is string based. In 1.11 this
 						// should be altered to also allow strict type checking.
@@ -5049,6 +5133,10 @@
 				_fnDraw( settings );
 			}
 		}
+		else {
+			// No change event - paging was called, but no change
+			_fnCallbackFire( settings, null, 'page-nc', [settings] );
+		}
 	
 		return changed;
 	}
@@ -5065,9 +5153,11 @@
 	{
 		return $('<div/>', {
 				'id': ! settings.aanFeatures.r ? settings.sTableId+'_processing' : null,
-				'class': settings.oClasses.sProcessing
+				'class': settings.oClasses.sProcessing,
+				'role': 'status'
 			} )
 			.html( settings.oLanguage.sProcessing )
+			.append('<div><div></div><div></div><div></div><div></div></div>')
 			.insertBefore( settings.nTable )[0];
 	}
 	
@@ -5096,9 +5186,6 @@
 	function _fnFeatureHtmlTable ( settings )
 	{
 		var table = $(settings.nTable);
-	
-		// Add the ARIA grid role to the table
-		table.attr( 'role', 'grid' );
 	
 		// Scrolling from here on in
 		var scroll = settings.oScroll;
@@ -5320,6 +5407,7 @@
 			footerCopy = footer.clone().prependTo( table );
 			footerTrgEls = footer.find('tr'); // the original tfoot is in its own table and must be sized
 			footerSrcEls = footerCopy.find('tr');
+			footerCopy.find('[id]').removeAttr('id');
 		}
 	
 		// Clone the current header and footer elements and then place it into the inner table
@@ -5327,6 +5415,7 @@
 		headerTrgEls = header.find('tr'); // original header is in its own table
 		headerSrcEls = headerCopy.find('tr');
 		headerCopy.find('th, td').removeAttr('tabindex');
+		headerCopy.find('[id]').removeAttr('id');
 	
 	
 		/*
@@ -5387,20 +5476,20 @@
 	
 		// Read all widths in next pass
 		_fnApplyToChildren( function(nSizer) {
+			var style = window.getComputedStyle ?
+				window.getComputedStyle(nSizer).width :
+				_fnStringToCss( $(nSizer).width() );
+	
 			headerContent.push( nSizer.innerHTML );
-			headerWidths.push( _fnStringToCss( $(nSizer).css('width') ) );
+			headerWidths.push( style );
 		}, headerSrcEls );
 	
 		// Apply all widths in final pass
 		_fnApplyToChildren( function(nToSize, i) {
-			// Only apply widths to the DataTables detected header cells - this
-			// prevents complex headers from having contradictory sizes applied
-			if ( $.inArray( nToSize, dtHeaderCells ) !== -1 ) {
-				nToSize.style.width = headerWidths[i];
-			}
+			nToSize.style.width = headerWidths[i];
 		}, headerTrgEls );
 	
-		$(headerSrcEls).height(0);
+		$(headerSrcEls).css('height', 0);
 	
 		/* Same again with the footer if we have one */
 		if ( footer )
@@ -5447,7 +5536,7 @@
 	
 		// Sanity check that the table is of a sensible width. If not then we are going to get
 		// misalignment - try to prevent this by not allowing the table to shrink below its min width
-		if ( table.outerWidth() < sanityWidth )
+		if ( Math.round(table.outerWidth()) < Math.round(sanityWidth) )
 		{
 			// The min width depends upon if we have a vertical scrollbar visible or not */
 			correction = ((divBodyEl.scrollHeight > divBodyEl.offsetHeight ||
@@ -6113,7 +6202,7 @@
 		{
 			var col = columns[i];
 			var asSorting = col.asSorting;
-			var sTitle = col.sTitle.replace( /<.*?>/g, "" );
+			var sTitle = col.ariaTitle || col.sTitle.replace( /<.*?>/g, "" );
 			var th = col.nTh;
 	
 			// IE7 is throwing an error when setting these properties with jQuery's
@@ -6354,8 +6443,7 @@
 	 */
 	function _fnSaveState ( settings )
 	{
-		if ( !settings.oFeatures.bStateSave || settings.bDestroying )
-		{
+		if (settings._bLoadingState) {
 			return;
 		}
 	
@@ -6374,10 +6462,13 @@
 			} )
 		};
 	
-		_fnCallbackFire( settings, "aoStateSaveParams", 'stateSaveParams', [settings, state] );
-	
 		settings.oSavedState = state;
-		settings.fnStateSaveCallback.call( settings.oInstance, settings, state );
+		_fnCallbackFire( settings, "aoStateSaveParams", 'stateSaveParams', [settings, state] );
+		
+		if ( settings.oFeatures.bStateSave && !settings.bDestroying )
+		{
+			settings.fnStateSaveCallback.call( settings.oInstance, settings, state );
+		}	
 	}
 	
 	
@@ -6390,98 +6481,139 @@
 	 */
 	function _fnLoadState ( settings, oInit, callback )
 	{
-		var i, ien;
-		var columns = settings.aoColumns;
-		var loaded = function ( s ) {
-			if ( ! s || ! s.time ) {
-				callback();
-				return;
-			}
-	
-			// Allow custom and plug-in manipulation functions to alter the saved data set and
-			// cancelling of loading by returning false
-			var abStateLoad = _fnCallbackFire( settings, 'aoStateLoadParams', 'stateLoadParams', [settings, s] );
-			if ( $.inArray( false, abStateLoad ) !== -1 ) {
-				callback();
-				return;
-			}
-	
-			// Reject old data
-			var duration = settings.iStateDuration;
-			if ( duration > 0 && s.time < +new Date() - (duration*1000) ) {
-				callback();
-				return;
-			}
-	
-			// Number of columns have changed - all bets are off, no restore of settings
-			if ( s.columns && columns.length !== s.columns.length ) {
-				callback();
-				return;
-			}
-	
-			// Store the saved state so it might be accessed at any time
-			settings.oLoadedState = $.extend( true, {}, s );
-	
-			// Restore key features - todo - for 1.11 this needs to be done by
-			// subscribed events
-			if ( s.start !== undefined ) {
-				settings._iDisplayStart    = s.start;
-				settings.iInitDisplayStart = s.start;
-			}
-			if ( s.length !== undefined ) {
-				settings._iDisplayLength   = s.length;
-			}
-	
-			// Order
-			if ( s.order !== undefined ) {
-				settings.aaSorting = [];
-				$.each( s.order, function ( i, col ) {
-					settings.aaSorting.push( col[0] >= columns.length ?
-						[ 0, col[1] ] :
-						col
-					);
-				} );
-			}
-	
-			// Search
-			if ( s.search !== undefined ) {
-				$.extend( settings.oPreviousSearch, _fnSearchToHung( s.search ) );
-			}
-	
-			// Columns
-			//
-			if ( s.columns ) {
-				for ( i=0, ien=s.columns.length ; i<ien ; i++ ) {
-					var col = s.columns[i];
-	
-					// Visibility
-					if ( col.visible !== undefined ) {
-						columns[i].bVisible = col.visible;
-					}
-	
-					// Search
-					if ( col.search !== undefined ) {
-						$.extend( settings.aoPreSearchCols[i], _fnSearchToHung( col.search ) );
-					}
-				}
-			}
-	
-			_fnCallbackFire( settings, 'aoStateLoaded', 'stateLoaded', [settings, s] );
-			callback();
-		};
-	
 		if ( ! settings.oFeatures.bStateSave ) {
 			callback();
 			return;
 		}
 	
+		var loaded = function(state) {
+			_fnImplementState(settings, state, callback);
+		}
+	
 		var state = settings.fnStateLoadCallback.call( settings.oInstance, settings, loaded );
 	
 		if ( state !== undefined ) {
-			loaded( state );
+			_fnImplementState( settings, state, callback );
 		}
 		// otherwise, wait for the loaded callback to be executed
+	
+		return true;
 	}
+	
+	function _fnImplementState ( settings, s, callback) {
+		var i, ien;
+		var columns = settings.aoColumns;
+		settings._bLoadingState = true;
+	
+		// When StateRestore was introduced the state could now be implemented at any time
+		// Not just initialisation. To do this an api instance is required in some places
+		var api = settings._bInitComplete ? new DataTable.Api(settings) : null;
+	
+		if ( ! s || ! s.time ) {
+			settings._bLoadingState = false;
+			callback();
+			return;
+		}
+	
+		// Allow custom and plug-in manipulation functions to alter the saved data set and
+		// cancelling of loading by returning false
+		var abStateLoad = _fnCallbackFire( settings, 'aoStateLoadParams', 'stateLoadParams', [settings, s] );
+		if ( $.inArray( false, abStateLoad ) !== -1 ) {
+			settings._bLoadingState = false;
+			callback();
+			return;
+		}
+	
+		// Reject old data
+		var duration = settings.iStateDuration;
+		if ( duration > 0 && s.time < +new Date() - (duration*1000) ) {
+			settings._bLoadingState = false;
+			callback();
+			return;
+		}
+	
+		// Number of columns have changed - all bets are off, no restore of settings
+		if ( s.columns && columns.length !== s.columns.length ) {
+			settings._bLoadingState = false;
+			callback();
+			return;
+		}
+	
+		// Store the saved state so it might be accessed at any time
+		settings.oLoadedState = $.extend( true, {}, s );
+	
+		// Page Length
+		if ( s.length !== undefined ) {
+			// If already initialised just set the value directly so that the select element is also updated
+			if (api) {
+				api.page.len(s.length)
+			}
+			else {
+				settings._iDisplayLength   = s.length;
+			}
+		}
+	
+		// Restore key features - todo - for 1.11 this needs to be done by
+		// subscribed events
+		if ( s.start !== undefined ) {
+			if(api === null) {
+				settings._iDisplayStart    = s.start;
+				settings.iInitDisplayStart = s.start;
+			}
+			else {
+				_fnPageChange(settings, s.start/settings._iDisplayLength);
+			}
+		}
+	
+		// Order
+		if ( s.order !== undefined ) {
+			settings.aaSorting = [];
+			$.each( s.order, function ( i, col ) {
+				settings.aaSorting.push( col[0] >= columns.length ?
+					[ 0, col[1] ] :
+					col
+				);
+			} );
+		}
+	
+		// Search
+		if ( s.search !== undefined ) {
+			$.extend( settings.oPreviousSearch, _fnSearchToHung( s.search ) );
+		}
+	
+		// Columns
+		if ( s.columns ) {
+			for ( i=0, ien=s.columns.length ; i<ien ; i++ ) {
+				var col = s.columns[i];
+	
+				// Visibility
+				if ( col.visible !== undefined ) {
+					// If the api is defined, the table has been initialised so we need to use it rather than internal settings
+					if (api) {
+						// Don't redraw the columns on every iteration of this loop, we will do this at the end instead
+						api.column(i).visible(col.visible, false);
+					}
+					else {
+						columns[i].bVisible = col.visible;
+					}
+				}
+	
+				// Search
+				if ( col.search !== undefined ) {
+					$.extend( settings.aoPreSearchCols[i], _fnSearchToHung( col.search ) );
+				}
+			}
+			
+			// If the api is defined then we need to adjust the columns once the visibility has been changed
+			if (api) {
+				api.columns.adjust();
+			}
+		}
+	
+		settings._bLoadingState = false;
+		_fnCallbackFire( settings, 'aoStateLoaded', 'stateLoaded', [settings, s] );
+		callback();
+	};
 	
 	
 	/**
@@ -6697,8 +6829,15 @@
 	
 		if ( eventName !== null ) {
 			var e = $.Event( eventName+'.dt' );
+			var table = $(settings.nTable);
 	
-			$(settings.nTable).trigger( e, args );
+			table.trigger( e, args );
+	
+			// If not yet attached to the document, trigger the event
+			// on the body directly to sort of simulate the bubble
+			if (table.parents('body').length === 0) {
+				$('body').trigger( e, args );
+			}
 	
 			ret.push( e.result );
 		}
@@ -6772,7 +6911,7 @@
 		return 'dom';
 	}
 	
-
+	
 	
 	
 	/**
@@ -7164,8 +7303,10 @@
 	
 		pluck: function ( prop )
 		{
+			var fn = DataTable.util.get(prop);
+	
 			return this.map( function ( el ) {
-				return el[ prop ];
+				return fn(el);
 			} );
 		},
 	
@@ -7876,7 +8017,7 @@
 				_range( 0, displayMaster.length );
 		}
 		else if ( page == 'current' ) {
-			// Current page implies that order=current and fitler=applied, since it is
+			// Current page implies that order=current and filter=applied, since it is
 			// fairly senseless otherwise, regardless of what order and search actually
 			// are
 			for ( i=settings._iDisplayStart, ien=settings.fnDisplayEnd() ; i<ien ; i++ ) {
@@ -8257,6 +8398,44 @@
 	} );
 	
 	
+	$(document).on('plugin-init.dt', function (e, context) {
+		var api = new _Api( context );
+		var namespace = 'on-plugin-init';
+		var stateSaveParamsEvent = 'stateSaveParams.' + namespace;
+		var destroyEvent = 'destroy. ' + namespace;
+	
+		api.on( stateSaveParamsEvent, function ( e, settings, d ) {
+			// This could be more compact with the API, but it is a lot faster as a simple
+			// internal loop
+			var idFn = settings.rowIdFn;
+			var data = settings.aoData;
+			var ids = [];
+	
+			for (var i=0 ; i<data.length ; i++) {
+				if (data[i]._detailsShow) {
+					ids.push( '#' + idFn(data[i]._aData) );
+				}
+			}
+	
+			d.childRows = ids;
+		});
+	
+		api.on( destroyEvent, function () {
+			api.off(stateSaveParamsEvent + ' ' + destroyEvent);
+		});
+	
+		var loaded = api.state.loaded();
+	
+		if ( loaded && loaded.childRows ) {
+			api
+				.rows( $.map(loaded.childRows, function (id){
+					return id.replace(/:/g, '\\:')
+				}) )
+				.every( function () {
+					_fnCallbackFire( context, null, 'requestChild', [ this ] )
+				});
+		}
+	});
 	
 	var __details_add = function ( ctx, row, data, klass )
 	{
@@ -8303,6 +8482,15 @@
 	};
 	
 	
+	// Make state saving of child row details async to allow them to be batch processed
+	var __details_state = DataTable.util.throttle(
+		function (ctx) {
+			_fnSaveState( ctx[0] )
+		},
+		500
+	);
+	
+	
 	var __details_remove = function ( api, idx )
 	{
 		var ctx = api.context;
@@ -8315,6 +8503,8 @@
 	
 				row._detailsShow = undefined;
 				row._details = undefined;
+				$( row.nTr ).removeClass( 'dt-hasChild' );
+				__details_state( ctx );
 			}
 		}
 	};
@@ -8331,12 +8521,17 @@
 	
 				if ( show ) {
 					row._details.insertAfter( row.nTr );
+					$( row.nTr ).addClass( 'dt-hasChild' );
 				}
 				else {
 					row._details.detach();
+					$( row.nTr ).removeClass( 'dt-hasChild' );
 				}
 	
+				_fnCallbackFire( ctx[0], null, 'childRow', [ show, api.row( api[0] ) ] )
+	
 				__details_events( ctx[0] );
+				__details_state( ctx );
 			}
 		}
 	};
@@ -8347,7 +8542,7 @@
 		var api = new _Api( settings );
 		var namespace = '.dt.DT_details';
 		var drawEvent = 'draw'+namespace;
-		var colvisEvent = 'column-visibility'+namespace;
+		var colvisEvent = 'column-sizing'+namespace;
 		var destroyEvent = 'destroy'+namespace;
 		var data = settings.aoData;
 	
@@ -9208,6 +9403,52 @@
 	
 	
 	/**
+	 * Set the jQuery or window object to be used by DataTables
+	 *
+	 * @param {*} module Library / container object
+	 * @param {string} [type] Library or container type `lib`, `win` or `datetime`.
+	 *   If not provided, automatic detection is attempted.
+	 */
+	DataTable.use = function (module, type) {
+		if (type === 'lib' || module.fn) {
+			$ = module;
+		}
+		else if (type == 'win' || module.document) {
+			window = module;
+			document = module.document;
+		}
+		else if (type === 'datetime' || module.type === 'DateTime') {
+			DataTable.DateTime = module;
+		}
+	}
+	
+	/**
+	 * CommonJS factory function pass through. This will check if the arguments
+	 * given are a window object or a jQuery object. If so they are set
+	 * accordingly.
+	 * @param {*} root Window
+	 * @param {*} jq jQUery
+	 * @returns {boolean} Indicator
+	 */
+	DataTable.factory = function (root, jq) {
+		var is = false;
+	
+		// Test if the first parameter is a window object
+		if (root && root.document) {
+			window = root;
+			document = root.document;
+		}
+	
+		// Test if the second parameter is a jQuery object
+		if (jq && jq.fn && jq.fn.jquery) {
+			$ = jq;
+			is = true;
+		}
+	
+		return is;
+	}
+	
+	/**
 	 * Provide a common method for plug-ins to check the version of DataTables being
 	 * used, in order to ensure compatibility.
 	 *
@@ -9399,7 +9640,6 @@
 		remove = remove || false;
 	
 		return this.iterator( 'table', function ( settings ) {
-			var orig      = settings.nTableWrapper.parentNode;
 			var classes   = settings.oClasses;
 			var table     = settings.nTable;
 			var tbody     = settings.nTBody;
@@ -9453,6 +9693,8 @@
 			// Add the TR elements back into the table in their original order
 			jqTbody.children().detach();
 			jqTbody.append( rows );
+	
+			var orig = settings.nTableWrapper.parentNode;
 	
 			// Remove the DataTables generated nodes, events and classes
 			var removedMethod = remove ? 'remove' : 'detach';
@@ -9537,8 +9779,10 @@
 				resolved._;
 		}
 	
-		return resolved.replace( '%d', plural ); // nb: plural might be undefined,
-	} );
+		return typeof resolved === 'string'
+			? resolved.replace( '%d', plural ) // nb: plural might be undefined,
+			: resolved;
+	} );	
 	/**
 	 * Version string for plug-ins to check compatibility. Allowed format is
 	 * `a.b.c-d` where: a:int, b:int, c:int, d:string(dev|beta|alpha). `d` is used
@@ -9547,8 +9791,8 @@
 	 *  @type string
 	 *  @default Version number
 	 */
-	DataTable.version = "1.10.24";
-
+	DataTable.version = "1.13.6";
+	
 	/**
 	 * Private data store, containing all of the settings objects that are
 	 * created for the tables on a given page.
@@ -9562,7 +9806,7 @@
 	 *  @private
 	 */
 	DataTable.settings = [];
-
+	
 	/**
 	 * Object models container, for the various models that DataTables has
 	 * available to it. These models define the objects that are used to hold
@@ -9607,7 +9851,15 @@
 		 *  @type boolean
 		 *  @default true
 		 */
-		"bSmart": true
+		"bSmart": true,
+	
+		/**
+		 * Flag to indicate if DataTables should only trigger a search when
+		 * the return key is pressed.
+		 *  @type boolean
+		 *  @default false
+		 */
+		"return": false
 	};
 	
 	
@@ -11744,7 +11996,6 @@
 			 * Text which is displayed when the table is processing a user action
 			 * (usually a sort command or similar).
 			 *  @type string
-			 *  @default Processing...
 			 *
 			 *  @dtopt Language
 			 *  @name DataTable.defaults.language.processing
@@ -11758,7 +12009,7 @@
 			 *      } );
 			 *    } );
 			 */
-			"sProcessing": "Processing...",
+			"sProcessing": "",
 	
 	
 			/**
@@ -12503,7 +12754,7 @@
 		 *          "data": function ( source, type, val ) {
 		 *            if (type === 'set') {
 		 *              source.price = val;
-		 *              // Store the computed dislay and filter values for efficiency
+		 *              // Store the computed display and filter values for efficiency
 		 *              source.price_display = val=="" ? "" : "$"+numberFormat(val);
 		 *              source.price_filter  = val=="" ? "" : "$"+numberFormat(val)+" "+val;
 		 *              return;
@@ -13052,7 +13303,7 @@
 			 * Delay the creation of TR and TD elements until they are actually
 			 * needed by a driven page draw. This can give a significant speed
 			 * increase for Ajax source and Javascript source data, but makes no
-			 * difference at all fro DOM and server-side processing tables.
+			 * difference at all for DOM and server-side processing tables.
 			 * Note that this parameter will be set by the initialisation routine. To
 			 * set a default use {@link DataTable.defaults}.
 			 *  @type boolean
@@ -13629,13 +13880,6 @@
 		"sAjaxDataProp": null,
 	
 		/**
-		 * Note if draw should be blocked while getting data
-		 *  @type boolean
-		 *  @default true
-		 */
-		"bAjaxDataGet": true,
-	
-		/**
 		 * The last jQuery XHR object that was used for server-side data gathering.
 		 * This can be used for working with the XHR information in one of the
 		 * callbacks
@@ -13919,7 +14163,7 @@
 		 */
 		"rowId": null
 	};
-
+	
 	/**
 	 * Extension object for DataTables that is used to provide all extension
 	 * options.
@@ -13971,7 +14215,7 @@
 		 *
 		 *  @type string
 		 */
-		build:"dt/dt-1.10.24/b-1.7.0/sl-1.3.3",
+		build:"dt/dt-1.13.6/b-2.4.2/sl-1.7.0",
 	
 	
 		/**
@@ -14417,7 +14661,7 @@
 	
 		//
 		// Depreciated
-		// The following properties are retained for backwards compatiblity only.
+		// The following properties are retained for backwards compatibility only.
 		// The should not be used in new projects and will be removed in a future
 		// version
 		//
@@ -14609,10 +14853,10 @@
 				var classes = settings.oClasses;
 				var lang = settings.oLanguage.oPaginate;
 				var aria = settings.oLanguage.oAria.paginate || {};
-				var btnDisplay, btnClass, counter=0;
+				var btnDisplay, btnClass;
 	
 				var attach = function( container, buttons ) {
-					var i, ien, node, button, tabIndex;
+					var i, ien, node, button;
 					var disabledClass = classes.sPageButtonDisabled;
 					var clickHandler = function ( e ) {
 						_fnPageChange( settings, e.data.action, true );
@@ -14627,9 +14871,10 @@
 							attach( inner, button );
 						}
 						else {
+							var disabled = false;
+	
 							btnDisplay = null;
 							btnClass = button;
-							tabIndex = settings.iTabIndex;
 	
 							switch ( button ) {
 								case 'ellipsis':
@@ -14640,8 +14885,7 @@
 									btnDisplay = lang.sFirst;
 	
 									if ( page === 0 ) {
-										tabIndex = -1;
-										btnClass += ' ' + disabledClass;
+										disabled = true;
 									}
 									break;
 	
@@ -14649,8 +14893,7 @@
 									btnDisplay = lang.sPrevious;
 	
 									if ( page === 0 ) {
-										tabIndex = -1;
-										btnClass += ' ' + disabledClass;
+										disabled = true;
 									}
 									break;
 	
@@ -14658,8 +14901,7 @@
 									btnDisplay = lang.sNext;
 	
 									if ( pages === 0 || page === pages-1 ) {
-										tabIndex = -1;
-										btnClass += ' ' + disabledClass;
+										disabled = true;
 									}
 									break;
 	
@@ -14667,8 +14909,7 @@
 									btnDisplay = lang.sLast;
 	
 									if ( pages === 0 || page === pages-1 ) {
-										tabIndex = -1;
-										btnClass += ' ' + disabledClass;
+										disabled = true;
 									}
 									break;
 	
@@ -14680,12 +14921,21 @@
 							}
 	
 							if ( btnDisplay !== null ) {
-								node = $('<a>', {
+								var tag = settings.oInit.pagingTag || 'a';
+	
+								if (disabled) {
+									btnClass += ' ' + disabledClass;
+								}
+	
+								node = $('<'+tag+'>', {
 										'class': classes.sPageButton+' '+btnClass,
 										'aria-controls': settings.sTableId,
+										'aria-disabled': disabled ? 'true' : null,
 										'aria-label': aria[ button ],
-										'data-dt-idx': counter,
-										'tabindex': tabIndex,
+										'role': 'link',
+										'aria-current': btnClass === classes.sPageButtonActive ? 'page' : null,
+										'data-dt-idx': button,
+										'tabindex': disabled ? -1 : settings.iTabIndex,
 										'id': idx === 0 && typeof button === 'string' ?
 											settings.sTableId +'_'+ button :
 											null
@@ -14696,8 +14946,6 @@
 								_fnBindAction(
 									node, {action: button}, clickHandler
 								);
-	
-								counter++;
 							}
 						}
 					}
@@ -14816,6 +15064,12 @@
 	var __numericReplace = function ( d, decimalPlace, re1, re2 ) {
 		if ( d !== 0 && (!d || d === '-') ) {
 			return -Infinity;
+		}
+		
+		var type = typeof d;
+	
+		if (type === 'number' || type === 'bigint') {
+			return d;
 		}
 	
 		// If a decimal place other than `.` is used, it needs to be given to the
@@ -15004,6 +15258,10 @@
 	 */
 	
 	var __htmlEscapeEntities = function ( d ) {
+		if (Array.isArray(d)) {
+			d = d.join(',');
+		}
+	
 		return typeof d === 'string' ?
 			d
 				.replace(/&/g, '&amp;')
@@ -15012,6 +15270,213 @@
 				.replace(/"/g, '&quot;') :
 			d;
 	};
+	
+	// Common logic for moment, luxon or a date action
+	function __mld( dt, momentFn, luxonFn, dateFn, arg1 ) {
+		if (window.moment) {
+			return dt[momentFn]( arg1 );
+		}
+		else if (window.luxon) {
+			return dt[luxonFn]( arg1 );
+		}
+		
+		return dateFn ? dt[dateFn]( arg1 ) : dt;
+	}
+	
+	
+	var __mlWarning = false;
+	function __mldObj (d, format, locale) {
+		var dt;
+	
+		if (window.moment) {
+			dt = window.moment.utc( d, format, locale, true );
+	
+			if (! dt.isValid()) {
+				return null;
+			}
+		}
+		else if (window.luxon) {
+			dt = format && typeof d === 'string'
+				? window.luxon.DateTime.fromFormat( d, format )
+				: window.luxon.DateTime.fromISO( d );
+	
+			if (! dt.isValid) {
+				return null;
+			}
+	
+			dt.setLocale(locale);
+		}
+		else if (! format) {
+			// No format given, must be ISO
+			dt = new Date(d);
+		}
+		else {
+			if (! __mlWarning) {
+				alert('DataTables warning: Formatted date without Moment.js or Luxon - https://datatables.net/tn/17');
+			}
+	
+			__mlWarning = true;
+		}
+	
+		return dt;
+	}
+	
+	// Wrapper for date, datetime and time which all operate the same way with the exception of
+	// the output string for auto locale support
+	function __mlHelper (localeString) {
+		return function ( from, to, locale, def ) {
+			// Luxon and Moment support
+			// Argument shifting
+			if ( arguments.length === 0 ) {
+				locale = 'en';
+				to = null; // means toLocaleString
+				from = null; // means iso8601
+			}
+			else if ( arguments.length === 1 ) {
+				locale = 'en';
+				to = from;
+				from = null;
+			}
+			else if ( arguments.length === 2 ) {
+				locale = to;
+				to = from;
+				from = null;
+			}
+	
+			var typeName = 'datetime-' + to;
+	
+			// Add type detection and sorting specific to this date format - we need to be able to identify
+			// date type columns as such, rather than as numbers in extensions. Hence the need for this.
+			if (! DataTable.ext.type.order[typeName]) {
+				// The renderer will give the value to type detect as the type!
+				DataTable.ext.type.detect.unshift(function (d) {
+					return d === typeName ? typeName : false;
+				});
+	
+				// The renderer gives us Moment, Luxon or Date obects for the sorting, all of which have a
+				// `valueOf` which gives milliseconds epoch
+				DataTable.ext.type.order[typeName + '-asc'] = function (a, b) {
+					var x = a.valueOf();
+					var y = b.valueOf();
+	
+					return x === y
+						? 0
+						: x < y
+							? -1
+							: 1;
+				}
+	
+				DataTable.ext.type.order[typeName + '-desc'] = function (a, b) {
+					var x = a.valueOf();
+					var y = b.valueOf();
+	
+					return x === y
+						? 0
+						: x > y
+							? -1
+							: 1;
+				}
+			}
+		
+			return function ( d, type ) {
+				// Allow for a default value
+				if (d === null || d === undefined) {
+					if (def === '--now') {
+						// We treat everything as UTC further down, so no changes are
+						// made, as such need to get the local date / time as if it were
+						// UTC
+						var local = new Date();
+						d = new Date( Date.UTC(
+							local.getFullYear(), local.getMonth(), local.getDate(),
+							local.getHours(), local.getMinutes(), local.getSeconds()
+						) );
+					}
+					else {
+						d = '';
+					}
+				}
+	
+				if (type === 'type') {
+					// Typing uses the type name for fast matching
+					return typeName;
+				}
+	
+				if (d === '') {
+					return type !== 'sort'
+						? ''
+						: __mldObj('0000-01-01 00:00:00', null, locale);
+				}
+	
+				// Shortcut. If `from` and `to` are the same, we are using the renderer to
+				// format for ordering, not display - its already in the display format.
+				if ( to !== null && from === to && type !== 'sort' && type !== 'type' && ! (d instanceof Date) ) {
+					return d;
+				}
+	
+				var dt = __mldObj(d, from, locale);
+	
+				if (dt === null) {
+					return d;
+				}
+	
+				if (type === 'sort') {
+					return dt;
+				}
+				
+				var formatted = to === null
+					? __mld(dt, 'toDate', 'toJSDate', '')[localeString]()
+					: __mld(dt, 'format', 'toFormat', 'toISOString', to);
+	
+				// XSS protection
+				return type === 'display' ?
+					__htmlEscapeEntities( formatted ) :
+					formatted;
+			};
+		}
+	}
+	
+	// Based on locale, determine standard number formatting
+	// Fallback for legacy browsers is US English
+	var __thousands = ',';
+	var __decimal = '.';
+	
+	if (window.Intl !== undefined) {
+		try {
+			var num = new Intl.NumberFormat().formatToParts(100000.1);
+		
+			for (var i=0 ; i<num.length ; i++) {
+				if (num[i].type === 'group') {
+					__thousands = num[i].value;
+				}
+				else if (num[i].type === 'decimal') {
+					__decimal = num[i].value;
+				}
+			}
+		}
+		catch (e) {
+			// noop
+		}
+	}
+	
+	// Formatted date time detection - use by declaring the formats you are going to use
+	DataTable.datetime = function ( format, locale ) {
+		var typeName = 'datetime-detect-' + format;
+	
+		if (! locale) {
+			locale = 'en';
+		}
+	
+		if (! DataTable.ext.type.order[typeName]) {
+			DataTable.ext.type.detect.unshift(function (d) {
+				var dt = __mldObj(d, format, locale);
+				return d === '' || dt ? typeName : false;
+			});
+	
+			DataTable.ext.type.order[typeName + '-pre'] = function (d) {
+				return __mldObj(d, format, locale) || 0;
+			}
+		}
+	}
 	
 	/**
 	 * Helpers for `columns.render`.
@@ -15040,10 +15505,26 @@
 	 * @namespace
 	 */
 	DataTable.render = {
+		date: __mlHelper('toLocaleDateString'),
+		datetime: __mlHelper('toLocaleString'),
+		time: __mlHelper('toLocaleTimeString'),
 		number: function ( thousands, decimal, precision, prefix, postfix ) {
+			// Auto locale detection
+			if (thousands === null || thousands === undefined) {
+				thousands = __thousands;
+			}
+	
+			if (decimal === null || decimal === undefined) {
+				decimal = __decimal;
+			}
+	
 			return {
 				display: function ( d ) {
 					if ( typeof d !== 'number' && typeof d !== 'string' ) {
+						return d;
+					}
+	
+					if (d === '' || d === null) {
 						return d;
 					}
 	
@@ -15064,6 +15545,11 @@
 					var floatPart = precision ?
 						decimal+(d - intPart).toFixed( precision ).substring( 2 ):
 						'';
+	
+					// If zero, then can't have a negative prefix
+					if (intPart === 0 && parseFloat(floatPart) === 0) {
+						negative = '';
+					}
 	
 					return negative + (prefix||'') +
 						intPart.toString().replace(
@@ -15193,6 +15679,7 @@
 		_fnSortData: _fnSortData,
 		_fnSaveState: _fnSaveState,
 		_fnLoadState: _fnLoadState,
+		_fnImplementState: _fnImplementState,
 		_fnSettingsFromNode: _fnSettingsFromNode,
 		_fnLog: _fnLog,
 		_fnMap: _fnMap,
@@ -15209,198 +15696,35 @@
 		                                // added to prevent errors
 	} );
 	
-
+	
 	// jQuery access
 	$.fn.dataTable = DataTable;
-
+	
 	// Provide access to the host jQuery object (circular reference)
 	DataTable.$ = $;
-
+	
 	// Legacy aliases
 	$.fn.dataTableSettings = DataTable.settings;
 	$.fn.dataTableExt = DataTable.ext;
-
+	
 	// With a capital `D` we return a DataTables API instance rather than a
 	// jQuery object
 	$.fn.DataTable = function ( opts ) {
 		return $(this).dataTable( opts ).api();
 	};
-
+	
 	// All properties that are available to $.fn.dataTable should also be
 	// available on $.fn.DataTable
 	$.each( DataTable, function ( prop, val ) {
 		$.fn.DataTable[ prop ] = val;
 	} );
 
-
-	// Information about events fired by DataTables - for documentation.
-	/**
-	 * Draw event, fired whenever the table is redrawn on the page, at the same
-	 * point as fnDrawCallback. This may be useful for binding events or
-	 * performing calculations when the table is altered at all.
-	 *  @name DataTable#draw.dt
-	 *  @event
-	 *  @param {event} e jQuery event object
-	 *  @param {object} o DataTables settings object {@link DataTable.models.oSettings}
-	 */
-
-	/**
-	 * Search event, fired when the searching applied to the table (using the
-	 * built-in global search, or column filters) is altered.
-	 *  @name DataTable#search.dt
-	 *  @event
-	 *  @param {event} e jQuery event object
-	 *  @param {object} o DataTables settings object {@link DataTable.models.oSettings}
-	 */
-
-	/**
-	 * Page change event, fired when the paging of the table is altered.
-	 *  @name DataTable#page.dt
-	 *  @event
-	 *  @param {event} e jQuery event object
-	 *  @param {object} o DataTables settings object {@link DataTable.models.oSettings}
-	 */
-
-	/**
-	 * Order event, fired when the ordering applied to the table is altered.
-	 *  @name DataTable#order.dt
-	 *  @event
-	 *  @param {event} e jQuery event object
-	 *  @param {object} o DataTables settings object {@link DataTable.models.oSettings}
-	 */
-
-	/**
-	 * DataTables initialisation complete event, fired when the table is fully
-	 * drawn, including Ajax data loaded, if Ajax data is required.
-	 *  @name DataTable#init.dt
-	 *  @event
-	 *  @param {event} e jQuery event object
-	 *  @param {object} oSettings DataTables settings object
-	 *  @param {object} json The JSON object request from the server - only
-	 *    present if client-side Ajax sourced data is used</li></ol>
-	 */
-
-	/**
-	 * State save event, fired when the table has changed state a new state save
-	 * is required. This event allows modification of the state saving object
-	 * prior to actually doing the save, including addition or other state
-	 * properties (for plug-ins) or modification of a DataTables core property.
-	 *  @name DataTable#stateSaveParams.dt
-	 *  @event
-	 *  @param {event} e jQuery event object
-	 *  @param {object} oSettings DataTables settings object
-	 *  @param {object} json The state information to be saved
-	 */
-
-	/**
-	 * State load event, fired when the table is loading state from the stored
-	 * data, but prior to the settings object being modified by the saved state
-	 * - allowing modification of the saved state is required or loading of
-	 * state for a plug-in.
-	 *  @name DataTable#stateLoadParams.dt
-	 *  @event
-	 *  @param {event} e jQuery event object
-	 *  @param {object} oSettings DataTables settings object
-	 *  @param {object} json The saved state information
-	 */
-
-	/**
-	 * State loaded event, fired when state has been loaded from stored data and
-	 * the settings object has been modified by the loaded data.
-	 *  @name DataTable#stateLoaded.dt
-	 *  @event
-	 *  @param {event} e jQuery event object
-	 *  @param {object} oSettings DataTables settings object
-	 *  @param {object} json The saved state information
-	 */
-
-	/**
-	 * Processing event, fired when DataTables is doing some kind of processing
-	 * (be it, order, search or anything else). It can be used to indicate to
-	 * the end user that there is something happening, or that something has
-	 * finished.
-	 *  @name DataTable#processing.dt
-	 *  @event
-	 *  @param {event} e jQuery event object
-	 *  @param {object} oSettings DataTables settings object
-	 *  @param {boolean} bShow Flag for if DataTables is doing processing or not
-	 */
-
-	/**
-	 * Ajax (XHR) event, fired whenever an Ajax request is completed from a
-	 * request to made to the server for new data. This event is called before
-	 * DataTables processed the returned data, so it can also be used to pre-
-	 * process the data returned from the server, if needed.
-	 *
-	 * Note that this trigger is called in `fnServerData`, if you override
-	 * `fnServerData` and which to use this event, you need to trigger it in you
-	 * success function.
-	 *  @name DataTable#xhr.dt
-	 *  @event
-	 *  @param {event} e jQuery event object
-	 *  @param {object} o DataTables settings object {@link DataTable.models.oSettings}
-	 *  @param {object} json JSON returned from the server
-	 *
-	 *  @example
-	 *     // Use a custom property returned from the server in another DOM element
-	 *     $('#table').dataTable().on('xhr.dt', function (e, settings, json) {
-	 *       $('#status').html( json.status );
-	 *     } );
-	 *
-	 *  @example
-	 *     // Pre-process the data returned from the server
-	 *     $('#table').dataTable().on('xhr.dt', function (e, settings, json) {
-	 *       for ( var i=0, ien=json.aaData.length ; i<ien ; i++ ) {
-	 *         json.aaData[i].sum = json.aaData[i].one + json.aaData[i].two;
-	 *       }
-	 *       // Note no return - manipulate the data directly in the JSON object.
-	 *     } );
-	 */
-
-	/**
-	 * Destroy event, fired when the DataTable is destroyed by calling fnDestroy
-	 * or passing the bDestroy:true parameter in the initialisation object. This
-	 * can be used to remove bound events, added DOM nodes, etc.
-	 *  @name DataTable#destroy.dt
-	 *  @event
-	 *  @param {event} e jQuery event object
-	 *  @param {object} o DataTables settings object {@link DataTable.models.oSettings}
-	 */
-
-	/**
-	 * Page length change event, fired when number of records to show on each
-	 * page (the length) is changed.
-	 *  @name DataTable#length.dt
-	 *  @event
-	 *  @param {event} e jQuery event object
-	 *  @param {object} o DataTables settings object {@link DataTable.models.oSettings}
-	 *  @param {integer} len New length
-	 */
-
-	/**
-	 * Column sizing has changed.
-	 *  @name DataTable#column-sizing.dt
-	 *  @event
-	 *  @param {event} e jQuery event object
-	 *  @param {object} o DataTables settings object {@link DataTable.models.oSettings}
-	 */
-
-	/**
-	 * Column visibility has changed.
-	 *  @name DataTable#column-visibility.dt
-	 *  @event
-	 *  @param {event} e jQuery event object
-	 *  @param {object} o DataTables settings object {@link DataTable.models.oSettings}
-	 *  @param {int} column Column index
-	 *  @param {bool} vis `false` if column now hidden, or `true` if visible
-	 */
-
-	return $.fn.dataTable;
+	return DataTable;
 }));
 
 
-/*! Buttons for DataTables 1.7.0
- * ©2016-2021 SpryMedia Ltd - datatables.net/license
+/*! DataTables styling integration
+ * ©2018 SpryMedia Ltd - datatables.net/license
  */
 
 (function( factory ){
@@ -15412,17 +15736,33 @@
 	}
 	else if ( typeof exports === 'object' ) {
 		// CommonJS
-		module.exports = function (root, $) {
-			if ( ! root ) {
-				root = window;
+		var jq = require('jquery');
+		var cjsRequires = function (root, $) {
+			if ( ! $.fn.dataTable ) {
+				require('datatables.net')(root, $);
 			}
-
-			if ( ! $ || ! $.fn.dataTable ) {
-				$ = require('datatables.net')(root, $).$;
-			}
-
-			return factory( $, root, root.document );
 		};
+
+		if (typeof window === 'undefined') {
+			module.exports = function (root, $) {
+				if ( ! root ) {
+					// CommonJS environments without a window global must pass a
+					// root. This will give an error otherwise
+					root = window;
+				}
+
+				if ( ! $ ) {
+					$ = jq( root );
+				}
+
+				cjsRequires( root, $ );
+				return factory( $, root, root.document );
+			};
+		}
+		else {
+			cjsRequires( window, jq );
+			module.exports = factory( jq, window, window.document );
+		}
 	}
 	else {
 		// Browser
@@ -15431,6 +15771,64 @@
 }(function( $, window, document, undefined ) {
 'use strict';
 var DataTable = $.fn.dataTable;
+
+
+
+
+
+return DataTable;
+}));
+
+
+/*! Buttons for DataTables 2.4.2
+ * © SpryMedia Ltd - datatables.net/license
+ */
+
+(function( factory ){
+	if ( typeof define === 'function' && define.amd ) {
+		// AMD
+		define( ['jquery', 'datatables.net'], function ( $ ) {
+			return factory( $, window, document );
+		} );
+	}
+	else if ( typeof exports === 'object' ) {
+		// CommonJS
+		var jq = require('jquery');
+		var cjsRequires = function (root, $) {
+			if ( ! $.fn.dataTable ) {
+				require('datatables.net')(root, $);
+			}
+		};
+
+		if (typeof window === 'undefined') {
+			module.exports = function (root, $) {
+				if ( ! root ) {
+					// CommonJS environments without a window global must pass a
+					// root. This will give an error otherwise
+					root = window;
+				}
+
+				if ( ! $ ) {
+					$ = jq( root );
+				}
+
+				cjsRequires( root, $ );
+				return factory( $, root, root.document );
+			};
+		}
+		else {
+			cjsRequires( window, jq );
+			module.exports = factory( jq, window, window.document );
+		}
+	}
+	else {
+		// Browser
+		factory( jQuery, window, document );
+	}
+}(function( $, window, document, undefined ) {
+'use strict';
+var DataTable = $.fn.dataTable;
+
 
 
 // Used for namespacing events added to the document by each instance, so they
@@ -15442,12 +15840,13 @@ var _buttonCounter = 0;
 
 var _dtButtons = DataTable.ext.buttons;
 
+// Custom entity decoder for data export
+var _entityDecoder = null;
+
 // Allow for jQuery slim
 function _fadeIn(el, duration, fn) {
 	if ($.fn.animate) {
-		el
-			.stop()
-			.fadeIn( duration, fn );
+		el.stop().fadeIn(duration, fn);
 	}
 	else {
 		el.css('display', 'block');
@@ -15460,13 +15859,11 @@ function _fadeIn(el, duration, fn) {
 
 function _fadeOut(el, duration, fn) {
 	if ($.fn.animate) {
-		el
-			.stop()
-			.fadeOut( duration, fn );
+		el.stop().fadeOut(duration, fn);
 	}
 	else {
 		el.css('display', 'none');
-		
+
 		if (fn) {
 			fn.call(el);
 		}
@@ -15478,56 +15875,53 @@ function _fadeOut(el, duration, fn) {
  * @param {[type]}
  * @param {[type]}
  */
-var Buttons = function( dt, config )
-{
+var Buttons = function (dt, config) {
 	// If not created with a `new` keyword then we return a wrapper function that
 	// will take the settings object for a DT. This allows easy use of new instances
 	// with the `layout` option - e.g. `topLeft: $.fn.dataTable.Buttons( ... )`.
-	if ( !(this instanceof Buttons) ) {
+	if (!(this instanceof Buttons)) {
 		return function (settings) {
-			return new Buttons( settings, dt ).container();
+			return new Buttons(settings, dt).container();
 		};
 	}
 
 	// If there is no config set it to an empty object
-	if ( typeof( config ) === 'undefined' ) {
-		config = {};	
+	if (typeof config === 'undefined') {
+		config = {};
 	}
-	
+
 	// Allow a boolean true for defaults
-	if ( config === true ) {
+	if (config === true) {
 		config = {};
 	}
 
 	// For easy configuration of buttons an array can be given
-	if ( Array.isArray( config ) ) {
+	if (Array.isArray(config)) {
 		config = { buttons: config };
 	}
 
-	this.c = $.extend( true, {}, Buttons.defaults, config );
+	this.c = $.extend(true, {}, Buttons.defaults, config);
 
 	// Don't want a deep copy for the buttons
-	if ( config.buttons ) {
+	if (config.buttons) {
 		this.c.buttons = config.buttons;
 	}
 
 	this.s = {
-		dt: new DataTable.Api( dt ),
+		dt: new DataTable.Api(dt),
 		buttons: [],
 		listenKeys: '',
-		namespace: 'dtb'+(_instCounter++)
+		namespace: 'dtb' + _instCounter++
 	};
 
 	this.dom = {
-		container: $('<'+this.c.dom.container.tag+'/>')
-			.addClass( this.c.dom.container.className )
+		container: $('<' + this.c.dom.container.tag + '/>').addClass(this.c.dom.container.className)
 	};
 
 	this._constructor();
 };
 
-
-$.extend( Buttons.prototype, {
+$.extend(Buttons.prototype, {
 	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 	 * Public methods
 	 */
@@ -15536,17 +15930,16 @@ $.extend( Buttons.prototype, {
 	 * Get the action of a button
 	 * @param  {int|string} Button index
 	 * @return {function}
-	 *//**
+	 */ /**
 	 * Set the action of a button
 	 * @param  {node} node Button element
 	 * @param  {function} action Function to set
 	 * @return {Buttons} Self for chaining
 	 */
-	action: function ( node, action )
-	{
-		var button = this._nodeToButton( node );
+	action: function (node, action) {
+		var button = this._nodeToButton(node);
 
-		if ( action === undefined ) {
+		if (action === undefined) {
 			return button.conf.action;
 		}
 
@@ -15562,16 +15955,24 @@ $.extend( Buttons.prototype, {
 	 * @param  {boolean} [flag] Enable / disable flag
 	 * @return {Buttons} Self for chaining or boolean for getter
 	 */
-	active: function ( node, flag ) {
-		var button = this._nodeToButton( node );
+	active: function (node, flag) {
+		var button = this._nodeToButton(node);
 		var klass = this.c.dom.button.active;
 		var jqNode = $(button.node);
 
-		if ( flag === undefined ) {
-			return jqNode.hasClass( klass );
+		if (
+			button.inCollection &&
+			this.c.dom.collection.button &&
+			this.c.dom.collection.button.active !== undefined
+		) {
+			klass = this.c.dom.collection.button.active;
 		}
 
-		jqNode.toggleClass( klass, flag === undefined ? true : flag );
+		if (flag === undefined) {
+			return jqNode.hasClass(klass);
+		}
+
+		jqNode.toggleClass(klass, flag === undefined ? true : flag);
 
 		return this;
 	},
@@ -15580,36 +15981,89 @@ $.extend( Buttons.prototype, {
 	 * Add a new button
 	 * @param {object} config Button configuration object, base string name or function
 	 * @param {int|string} [idx] Button index for where to insert the button
+	 * @param {boolean} [draw=true] Trigger a draw. Set a false when adding
+	 *   lots of buttons, until the last button.
 	 * @return {Buttons} Self for chaining
 	 */
-	add: function ( config, idx )
-	{
+	add: function (config, idx, draw) {
 		var buttons = this.s.buttons;
 
-		if ( typeof idx === 'string' ) {
+		if (typeof idx === 'string') {
 			var split = idx.split('-');
 			var base = this.s;
 
-			for ( var i=0, ien=split.length-1 ; i<ien ; i++ ) {
-				base = base.buttons[ split[i]*1 ];
+			for (var i = 0, ien = split.length - 1; i < ien; i++) {
+				base = base.buttons[split[i] * 1];
 			}
 
 			buttons = base.buttons;
-			idx = split[ split.length-1 ]*1;
+			idx = split[split.length - 1] * 1;
 		}
 
-		this._expandButton( buttons, config, base !== undefined, idx );
-		this._draw();
+		this._expandButton(
+			buttons,
+			config,
+			config !== undefined ? config.split : undefined,
+			(config === undefined || config.split === undefined || config.split.length === 0) &&
+				base !== undefined,
+			false,
+			idx
+		);
+
+		if (draw === undefined || draw === true) {
+			this._draw();
+		}
 
 		return this;
+	},
+
+	/**
+	 * Clear buttons from a collection and then insert new buttons
+	 */
+	collectionRebuild: function (node, newButtons) {
+		var button = this._nodeToButton(node);
+
+		if (newButtons !== undefined) {
+			var i;
+			// Need to reverse the array
+			for (i = button.buttons.length - 1; i >= 0; i--) {
+				this.remove(button.buttons[i].node);
+			}
+
+			// If the collection has prefix and / or postfix buttons we need to add them in
+			if (button.conf.prefixButtons) {
+				newButtons.unshift.apply(newButtons, button.conf.prefixButtons);
+			}
+
+			if (button.conf.postfixButtons) {
+				newButtons.push.apply(newButtons, button.conf.postfixButtons);
+			}
+
+			for (i = 0; i < newButtons.length; i++) {
+				var newBtn = newButtons[i];
+
+				this._expandButton(
+					button.buttons,
+					newBtn,
+					newBtn !== undefined &&
+						newBtn.config !== undefined &&
+						newBtn.config.split !== undefined,
+					true,
+					newBtn.parentConf !== undefined && newBtn.parentConf.split !== undefined,
+					null,
+					newBtn.parentConf
+				);
+			}
+		}
+
+		this._draw(button.collection, button.buttons);
 	},
 
 	/**
 	 * Get the container node for the buttons
 	 * @return {jQuery} Buttons node
 	 */
-	container: function ()
-	{
+	container: function () {
 		return this.dom.container;
 	},
 
@@ -15618,12 +16072,10 @@ $.extend( Buttons.prototype, {
 	 * @param  {node} node Button node
 	 * @return {Buttons} Self for chaining
 	 */
-	disable: function ( node ) {
-		var button = this._nodeToButton( node );
+	disable: function (node) {
+		var button = this._nodeToButton(node);
 
-		$(button.node)
-			.addClass( this.c.dom.button.disabled )
-			.attr('disabled', true);
+		$(button.node).addClass(this.c.dom.button.disabled).prop('disabled', true);
 
 		return this;
 	},
@@ -15633,18 +16085,17 @@ $.extend( Buttons.prototype, {
 	 * elements
 	 * @return {Buttons} Self for chaining
 	 */
-	destroy: function ()
-	{
+	destroy: function () {
 		// Key event listener
-		$('body').off( 'keyup.'+this.s.namespace );
+		$('body').off('keyup.' + this.s.namespace);
 
 		// Individual button destroy (so they can remove their own events if
 		// needed). Take a copy as the array is modified by `remove`
 		var buttons = this.s.buttons.slice();
 		var i, ien;
-		
-		for ( i=0, ien=buttons.length ; i<ien ; i++ ) {
-			this.remove( buttons[i].node );
+
+		for (i = 0, ien = buttons.length; i < ien; i++) {
+			this.remove(buttons[i].node);
 		}
 
 		// Container
@@ -15653,9 +16104,9 @@ $.extend( Buttons.prototype, {
 		// Remove from the settings object collection
 		var buttonInsts = this.s.dt.settings()[0];
 
-		for ( i=0, ien=buttonInsts.length ; i<ien ; i++ ) {
-			if ( buttonInsts.inst === this ) {
-				buttonInsts.splice( i, 1 );
+		for (i = 0, ien = buttonInsts.length; i < ien; i++) {
+			if (buttonInsts.inst === this) {
+				buttonInsts.splice(i, 1);
 				break;
 			}
 		}
@@ -15669,26 +16120,54 @@ $.extend( Buttons.prototype, {
 	 * @param  {boolean} [flag=true] Enable / disable flag
 	 * @return {Buttons} Self for chaining
 	 */
-	enable: function ( node, flag )
-	{
-		if ( flag === false ) {
-			return this.disable( node );
+	enable: function (node, flag) {
+		if (flag === false) {
+			return this.disable(node);
 		}
 
-		var button = this._nodeToButton( node );
-		$(button.node)
-			.removeClass( this.c.dom.button.disabled )
-			.removeAttr('disabled');
+		var button = this._nodeToButton(node);
+		$(button.node).removeClass(this.c.dom.button.disabled).prop('disabled', false);
 
 		return this;
+	},
+
+	/**
+	 * Get a button's index
+	 *
+	 * This is internally recursive
+	 * @param {element} node Button to get the index of
+	 * @return {string} Button index
+	 */
+	index: function (node, nested, buttons) {
+		if (!nested) {
+			nested = '';
+			buttons = this.s.buttons;
+		}
+
+		for (var i = 0, ien = buttons.length; i < ien; i++) {
+			var inner = buttons[i].buttons;
+
+			if (buttons[i].node === node) {
+				return nested + i;
+			}
+
+			if (inner && inner.length) {
+				var match = this.index(node, i + '-', inner);
+
+				if (match !== null) {
+					return match;
+				}
+			}
+		}
+
+		return null;
 	},
 
 	/**
 	 * Get the instance name for the button set selector
 	 * @return {string} Instance name
 	 */
-	name: function ()
-	{
+	name: function () {
 		return this.c.name;
 	},
 
@@ -15697,13 +16176,12 @@ $.extend( Buttons.prototype, {
 	 * @param  {node} [node] Button node
 	 * @return {jQuery} Button element, or container
 	 */
-	node: function ( node )
-	{
-		if ( ! node ) {
+	node: function (node) {
+		if (!node) {
 			return this.dom.container;
 		}
 
-		var button = this._nodeToButton( node );
+		var button = this._nodeToButton(node);
 		return $(button.node);
 	},
 
@@ -15713,20 +16191,23 @@ $.extend( Buttons.prototype, {
 	 * @param  {boolean} flag true to add, false to remove, undefined to get
 	 * @return {boolean|Buttons} Getter value or this if a setter.
 	 */
-	processing: function ( node, flag )
-	{
+	processing: function (node, flag) {
 		var dt = this.s.dt;
-		var button = this._nodeToButton( node );
+		var button = this._nodeToButton(node);
 
-		if ( flag === undefined ) {
-			return $(button.node).hasClass( 'processing' );
+		if (flag === undefined) {
+			return $(button.node).hasClass('processing');
 		}
 
-		$(button.node).toggleClass( 'processing', flag );
+		$(button.node).toggleClass('processing', flag);
 
-		$(dt.table().node()).triggerHandler( 'buttons-processing.dt', [
-			flag, dt.button( node ), dt, $(node), button.conf
-		] );
+		$(dt.table().node()).triggerHandler('buttons-processing.dt', [
+			flag,
+			dt.button(node),
+			dt,
+			$(node),
+			button.conf
+		]);
 
 		return this;
 	},
@@ -15736,30 +16217,31 @@ $.extend( Buttons.prototype, {
 	 * @param  {node} node Button node
 	 * @return {Buttons} Self for chaining
 	 */
-	remove: function ( node )
-	{
-		var button = this._nodeToButton( node );
-		var host = this._nodeToHost( node );
+	remove: function (node) {
+		var button = this._nodeToButton(node);
+		var host = this._nodeToHost(node);
 		var dt = this.s.dt;
 
 		// Remove any child buttons first
-		if ( button.buttons.length ) {
-			for ( var i=button.buttons.length-1 ; i>=0 ; i-- ) {
-				this.remove( button.buttons[i].node );
+		if (button.buttons.length) {
+			for (var i = button.buttons.length - 1; i >= 0; i--) {
+				this.remove(button.buttons[i].node);
 			}
 		}
 
+		button.conf.destroying = true;
+
 		// Allow the button to remove event handlers, etc
-		if ( button.conf.destroy ) {
-			button.conf.destroy.call( dt.button(node), dt, $(node), button.conf );
+		if (button.conf.destroy) {
+			button.conf.destroy.call(dt.button(node), dt, $(node), button.conf);
 		}
 
-		this._removeKey( button.conf );
+		this._removeKey(button.conf);
 
 		$(button.node).remove();
 
-		var idx = $.inArray( button, host );
-		host.splice( idx, 1 );
+		var idx = $.inArray(button, host);
+		host.splice(idx, 1);
 
 		return this;
 	},
@@ -15768,43 +16250,30 @@ $.extend( Buttons.prototype, {
 	 * Get the text for a button
 	 * @param  {int|string} node Button index
 	 * @return {string} Button text
-	 *//**
+	 */ /**
 	 * Set the text for a button
 	 * @param  {int|string|function} node Button index
 	 * @param  {string} label Text
 	 * @return {Buttons} Self for chaining
 	 */
-	text: function ( node, label )
-	{
-		var button = this._nodeToButton( node );
-		var buttonLiner = this.c.dom.collection.buttonLiner;
-		var linerTag = button.inCollection && buttonLiner && buttonLiner.tag ?
-			buttonLiner.tag :
-			this.c.dom.buttonLiner.tag;
+	text: function (node, label) {
+		var button = this._nodeToButton(node);
+		var textNode = button.textNode;
 		var dt = this.s.dt;
 		var jqNode = $(button.node);
-		var text = function ( opt ) {
-			return typeof opt === 'function' ?
-				opt( dt, jqNode, button.conf ) :
-				opt;
+		var text = function (opt) {
+			return typeof opt === 'function' ? opt(dt, jqNode, button.conf) : opt;
 		};
 
-		if ( label === undefined ) {
-			return text( button.conf.text );
+		if (label === undefined) {
+			return text(button.conf.text);
 		}
 
 		button.conf.text = label;
-
-		if ( linerTag ) {
-			jqNode.children( linerTag ).html( text(label) );
-		}
-		else {
-			jqNode.html( text(label) );
-		}
+		textNode.html(text(label));
 
 		return this;
 	},
-
 
 	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 	 * Constructor
@@ -15814,46 +16283,44 @@ $.extend( Buttons.prototype, {
 	 * Buttons constructor
 	 * @private
 	 */
-	_constructor: function ()
-	{
+	_constructor: function () {
 		var that = this;
 		var dt = this.s.dt;
 		var dtSettings = dt.settings()[0];
-		var buttons =  this.c.buttons;
+		var buttons = this.c.buttons;
 
-		if ( ! dtSettings._buttons ) {
+		if (!dtSettings._buttons) {
 			dtSettings._buttons = [];
 		}
 
-		dtSettings._buttons.push( {
+		dtSettings._buttons.push({
 			inst: this,
 			name: this.c.name
-		} );
+		});
 
-		for ( var i=0, ien=buttons.length ; i<ien ; i++ ) {
-			this.add( buttons[i] );
+		for (var i = 0, ien = buttons.length; i < ien; i++) {
+			this.add(buttons[i]);
 		}
 
-		dt.on( 'destroy', function ( e, settings ) {
-			if ( settings === dtSettings ) {
+		dt.on('destroy', function (e, settings) {
+			if (settings === dtSettings) {
 				that.destroy();
 			}
-		} );
+		});
 
 		// Global key event binding to listen for button keys
-		$('body').on( 'keyup.'+this.s.namespace, function ( e ) {
-			if ( ! document.activeElement || document.activeElement === document.body ) {
+		$('body').on('keyup.' + this.s.namespace, function (e) {
+			if (!document.activeElement || document.activeElement === document.body) {
 				// SUse a string of characters for fast lookup of if we need to
 				// handle this
 				var character = String.fromCharCode(e.keyCode).toLowerCase();
 
-				if ( that.s.listenKeys.toLowerCase().indexOf( character ) !== -1 ) {
-					that._keypress( character, e );
+				if (that.s.listenKeys.toLowerCase().indexOf(character) !== -1) {
+					that._keypress(character, e);
 				}
 			}
-		} );
+		});
 	},
-
 
 	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 	 * Private methods
@@ -15864,12 +16331,9 @@ $.extend( Buttons.prototype, {
 	 * @param {object} conf Resolved button configuration object
 	 * @private
 	 */
-	_addKey: function ( conf )
-	{
-		if ( conf.key ) {
-			this.s.listenKeys += $.isPlainObject( conf.key ) ?
-				conf.key.key :
-				conf.key;
+	_addKey: function (conf) {
+		if (conf.key) {
+			this.s.listenKeys += $.isPlainObject(conf.key) ? conf.key.key : conf.key;
 		}
 	},
 
@@ -15879,21 +16343,20 @@ $.extend( Buttons.prototype, {
 	 * @param  {array} [buttons] Recursive only - Buttons array
 	 * @private
 	 */
-	_draw: function ( container, buttons )
-	{
-		if ( ! container ) {
+	_draw: function (container, buttons) {
+		if (!container) {
 			container = this.dom.container;
 			buttons = this.s.buttons;
 		}
 
 		container.children().detach();
 
-		for ( var i=0, ien=buttons.length ; i<ien ; i++ ) {
-			container.append( buttons[i].inserter );
-			container.append( ' ' );
+		for (var i = 0, ien = buttons.length; i < ien; i++) {
+			container.append(buttons[i].inserter);
+			container.append(' ');
 
-			if ( buttons[i].buttons && buttons[i].buttons.length ) {
-				this._draw( buttons[i].collection, buttons[i].buttons );
+			if (buttons[i].buttons && buttons[i].buttons.length) {
+				this._draw(buttons[i].collection, buttons[i].buttons);
 			}
 		}
 	},
@@ -15905,56 +16368,128 @@ $.extend( Buttons.prototype, {
 	 * @param  {boolean} inCollection true if the button is in a collection
 	 * @private
 	 */
-	_expandButton: function ( attachTo, button, inCollection, attachPoint )
-	{
+	_expandButton: function (
+		attachTo,
+		button,
+		split,
+		inCollection,
+		inSplit,
+		attachPoint,
+		parentConf
+	) {
 		var dt = this.s.dt;
-		var buttonCounter = 0;
-		var buttons = ! Array.isArray( button ) ?
-			[ button ] :
-			button;
+		var isSplit = false;
+		var domCollection = this.c.dom.collection;
+		var buttons = !Array.isArray(button) ? [button] : button;
 
-		for ( var i=0, ien=buttons.length ; i<ien ; i++ ) {
-			var conf = this._resolveExtends( buttons[i] );
+		if (button === undefined) {
+			buttons = !Array.isArray(split) ? [split] : split;
+		}
 
-			if ( ! conf ) {
+		for (var i = 0, ien = buttons.length; i < ien; i++) {
+			var conf = this._resolveExtends(buttons[i]);
+
+			if (!conf) {
 				continue;
 			}
+
+			isSplit = conf.config && conf.config.split ? true : false;
 
 			// If the configuration is an array, then expand the buttons at this
 			// point
-			if ( Array.isArray( conf ) ) {
-				this._expandButton( attachTo, conf, inCollection, attachPoint );
+			if (Array.isArray(conf)) {
+				this._expandButton(
+					attachTo,
+					conf,
+					built !== undefined && built.conf !== undefined ? built.conf.split : undefined,
+					inCollection,
+					parentConf !== undefined && parentConf.split !== undefined,
+					attachPoint,
+					parentConf
+				);
 				continue;
 			}
 
-			var built = this._buildButton( conf, inCollection );
-			if ( ! built ) {
+			var built = this._buildButton(
+				conf,
+				inCollection,
+				conf.split !== undefined ||
+					(conf.config !== undefined && conf.config.split !== undefined),
+				inSplit
+			);
+			if (!built) {
 				continue;
 			}
 
-			if ( attachPoint !== undefined && attachPoint !== null ) {
-				attachTo.splice( attachPoint, 0, built );
+			if (attachPoint !== undefined && attachPoint !== null) {
+				attachTo.splice(attachPoint, 0, built);
 				attachPoint++;
 			}
 			else {
-				attachTo.push( built );
+				attachTo.push(built);
 			}
 
-			if ( built.conf.buttons ) {
-				built.collection = $('<'+this.c.dom.collection.tag+'/>');
-
+			// Create the dropdown for a collection
+			if (built.conf.buttons) {
+				built.collection = $('<' + domCollection.container.content.tag + '/>');
 				built.conf._collection = built.collection;
 
-				this._expandButton( built.buttons, built.conf.buttons, true, attachPoint );
+				$(built.node).append(domCollection.action.dropHtml);
+
+				this._expandButton(
+					built.buttons,
+					built.conf.buttons,
+					built.conf.split,
+					!isSplit,
+					isSplit,
+					attachPoint,
+					built.conf
+				);
 			}
+
+			// And the split collection
+			if (built.conf.split) {
+				built.collection = $('<' + domCollection.container.tag + '/>');
+				built.conf._collection = built.collection;
+
+				for (var j = 0; j < built.conf.split.length; j++) {
+					var item = built.conf.split[j];
+
+					if (typeof item === 'object') {
+						item.parent = parentConf;
+
+						if (item.collectionLayout === undefined) {
+							item.collectionLayout = built.conf.collectionLayout;
+						}
+
+						if (item.dropup === undefined) {
+							item.dropup = built.conf.dropup;
+						}
+
+						if (item.fade === undefined) {
+							item.fade = built.conf.fade;
+						}
+					}
+				}
+
+				this._expandButton(
+					built.buttons,
+					built.conf.buttons,
+					built.conf.split,
+					!isSplit,
+					isSplit,
+					attachPoint,
+					built.conf
+				);
+			}
+
+			built.conf.parent = parentConf;
 
 			// init call is made here, rather than buildButton as it needs to
 			// be selectable, and for that it needs to be in the buttons array
-			if ( conf.init ) {
-				conf.init.call( dt.button( built.node ), dt, $(built.node), conf );
+			if (conf.init) {
+				conf.init.call(dt.button(built.node), dt, $(built.node), conf);
 			}
-
-			buttonCounter++;
 		}
 	},
 
@@ -15962,139 +16497,253 @@ $.extend( Buttons.prototype, {
 	 * Create an individual button
 	 * @param  {object} config            Resolved button configuration
 	 * @param  {boolean} inCollection `true` if a collection button
-	 * @return {jQuery} Created button node (jQuery)
+	 * @return {object} Completed button description object
 	 * @private
 	 */
-	_buildButton: function ( config, inCollection )
-	{
-		var buttonDom = this.c.dom.button;
-		var linerDom = this.c.dom.buttonLiner;
-		var collectionDom = this.c.dom.collection;
+	_buildButton: function (config, inCollection, isSplit, inSplit) {
+		var configDom = this.c.dom;
+		var textNode;
 		var dt = this.s.dt;
-		var text = function ( opt ) {
-			return typeof opt === 'function' ?
-				opt( dt, button, config ) :
-				opt;
+		var text = function (opt) {
+			return typeof opt === 'function' ? opt(dt, button, config) : opt;
 		};
 
-		if ( inCollection && collectionDom.button ) {
-			buttonDom = collectionDom.button;
+		// Create an object that describes the button which can be in `dom.button`, or
+		// `dom.collection.button` or `dom.split.button` or `dom.collection.split.button`!
+		// Each should extend from `dom.button`.
+		var dom = $.extend(true, {}, configDom.button);
+
+		if (inCollection && isSplit && configDom.collection.split) {
+			$.extend(true, dom, configDom.collection.split.action);
+		}
+		else if (inSplit || inCollection) {
+			$.extend(true, dom, configDom.collection.button);
+		}
+		else if (isSplit) {
+			$.extend(true, dom, configDom.split.button);
 		}
 
-		if ( inCollection && collectionDom.buttonLiner ) {
-			linerDom = collectionDom.buttonLiner;
+		// Spacers don't do much other than insert an element into the DOM
+		if (config.spacer) {
+			var spacer = $('<' + dom.spacer.tag + '/>')
+				.addClass('dt-button-spacer ' + config.style + ' ' + dom.spacer.className)
+				.html(text(config.text));
+
+			return {
+				conf: config,
+				node: spacer,
+				inserter: spacer,
+				buttons: [],
+				inCollection: inCollection,
+				isSplit: isSplit,
+				collection: null,
+				textNode: spacer
+			};
 		}
 
 		// Make sure that the button is available based on whatever requirements
 		// it has. For example, PDF button require pdfmake
-		if ( config.available && ! config.available( dt, config ) ) {
+		if (config.available && !config.available(dt, config) && !config.hasOwnProperty('html')) {
 			return false;
 		}
 
-		var action = function ( e, dt, button, config ) {
-			config.action.call( dt.button( button ), e, dt, button, config );
+		var button;
 
-			$(dt.table().node()).triggerHandler( 'buttons-action.dt', [
-				dt.button( button ), dt, button, config 
-			] );
-		};
+		if (!config.hasOwnProperty('html')) {
+			var action = function (e, dt, button, config) {
+				config.action.call(dt.button(button), e, dt, button, config);
 
-		var tag = config.tag || buttonDom.tag;
-		var clickBlurs = config.clickBlurs === undefined ? true : config.clickBlurs
-		var button = $('<'+tag+'/>')
-			.addClass( buttonDom.className )
-			.attr( 'tabindex', this.s.dt.settings()[0].iTabIndex )
-			.attr( 'aria-controls', this.s.dt.table().node().id )
-			.on( 'click.dtb', function (e) {
-				e.preventDefault();
+				$(dt.table().node()).triggerHandler('buttons-action.dt', [
+					dt.button(button),
+					dt,
+					button,
+					config
+				]);
+			};
 
-				if ( ! button.hasClass( buttonDom.disabled ) && config.action ) {
-					action( e, dt, button, config );
-				}
-				if( clickBlurs ) {
-					button.trigger('blur');
-				}
-			} )
-			.on( 'keyup.dtb', function (e) {
-				if ( e.keyCode === 13 ) {
-					if ( ! button.hasClass( buttonDom.disabled ) && config.action ) {
-						action( e, dt, button, config );
+			var tag = config.tag || dom.tag;
+			var clickBlurs = config.clickBlurs === undefined ? true : config.clickBlurs;
+
+			button = $('<' + tag + '/>')
+				.addClass(dom.className)
+				.attr('tabindex', this.s.dt.settings()[0].iTabIndex)
+				.attr('aria-controls', this.s.dt.table().node().id)
+				.on('click.dtb', function (e) {
+					e.preventDefault();
+
+					if (!button.hasClass(dom.disabled) && config.action) {
+						action(e, dt, button, config);
 					}
-				}
-			} );
 
-		// Make `a` tags act like a link
-		if ( tag.toLowerCase() === 'a' ) {
-			button.attr( 'href', '#' );
-		}
+					if (clickBlurs) {
+						button.trigger('blur');
+					}
+				})
+				.on('keypress.dtb', function (e) {
+					if (e.keyCode === 13) {
+						e.preventDefault();
 
-		// Button tags should have `type=button` so they don't have any default behaviour
-		if ( tag.toLowerCase() === 'button' ) {
-			button.attr( 'type', 'button' );
-		}
+						if (!button.hasClass(dom.disabled) && config.action) {
+							action(e, dt, button, config);
+						}
+					}
+				});
 
-		if ( linerDom.tag ) {
-			var liner = $('<'+linerDom.tag+'/>')
-				.html( text( config.text ) )
-				.addClass( linerDom.className );
-
-			if ( linerDom.tag.toLowerCase() === 'a' ) {
-				liner.attr( 'href', '#' );
+			// Make `a` tags act like a link
+			if (tag.toLowerCase() === 'a') {
+				button.attr('href', '#');
 			}
 
-			button.append( liner );
+			// Button tags should have `type=button` so they don't have any default behaviour
+			if (tag.toLowerCase() === 'button') {
+				button.attr('type', 'button');
+			}
+
+			if (dom.liner.tag) {
+				var liner = $('<' + dom.liner.tag + '/>')
+					.html(text(config.text))
+					.addClass(dom.liner.className);
+
+				if (dom.liner.tag.toLowerCase() === 'a') {
+					liner.attr('href', '#');
+				}
+
+				button.append(liner);
+				textNode = liner;
+			}
+			else {
+				button.html(text(config.text));
+				textNode = button;
+			}
+
+			if (config.enabled === false) {
+				button.addClass(dom.disabled);
+			}
+
+			if (config.className) {
+				button.addClass(config.className);
+			}
+
+			if (config.titleAttr) {
+				button.attr('title', text(config.titleAttr));
+			}
+
+			if (config.attr) {
+				button.attr(config.attr);
+			}
+
+			if (!config.namespace) {
+				config.namespace = '.dt-button-' + _buttonCounter++;
+			}
+
+			if (config.config !== undefined && config.config.split) {
+				config.split = config.config.split;
+			}
 		}
 		else {
-			button.html( text( config.text ) );
-		}
-
-		if ( config.enabled === false ) {
-			button.addClass( buttonDom.disabled );
-		}
-
-		if ( config.className ) {
-			button.addClass( config.className );
-		}
-
-		if ( config.titleAttr ) {
-			button.attr( 'title', text( config.titleAttr ) );
-		}
-
-		if ( config.attr ) {
-			button.attr( config.attr );
-		}
-
-		if ( ! config.namespace ) {
-			config.namespace = '.dt-button-'+(_buttonCounter++);
+			button = $(config.html);
 		}
 
 		var buttonContainer = this.c.dom.buttonContainer;
 		var inserter;
-		if ( buttonContainer && buttonContainer.tag ) {
-			inserter = $('<'+buttonContainer.tag+'/>')
-				.addClass( buttonContainer.className )
-				.append( button );
+		if (buttonContainer && buttonContainer.tag) {
+			inserter = $('<' + buttonContainer.tag + '/>')
+				.addClass(buttonContainer.className)
+				.append(button);
 		}
 		else {
 			inserter = button;
 		}
 
-		this._addKey( config );
+		this._addKey(config);
 
 		// Style integration callback for DOM manipulation
 		// Note that this is _not_ documented. It is currently
 		// for style integration only
-		if( this.c.buttonCreated ) {
-			inserter = this.c.buttonCreated( config, inserter );
+		if (this.c.buttonCreated) {
+			inserter = this.c.buttonCreated(config, inserter);
+		}
+
+		var splitDiv;
+
+		if (isSplit) {
+			var dropdownConf = inCollection
+				? $.extend(true, this.c.dom.split, this.c.dom.collection.split)
+				: this.c.dom.split;
+			var wrapperConf = dropdownConf.wrapper;
+
+			splitDiv = $('<' + wrapperConf.tag + '/>')
+				.addClass(wrapperConf.className)
+				.append(button);
+
+			var dropButtonConfig = $.extend(config, {
+				align: dropdownConf.dropdown.align,
+				attr: {
+					'aria-haspopup': 'dialog',
+					'aria-expanded': false
+				},
+				className: dropdownConf.dropdown.className,
+				closeButton: false,
+				splitAlignClass: dropdownConf.dropdown.splitAlignClass,
+				text: dropdownConf.dropdown.text
+			});
+
+			this._addKey(dropButtonConfig);
+
+			var splitAction = function (e, dt, button, config) {
+				_dtButtons.split.action.call(dt.button(splitDiv), e, dt, button, config);
+
+				$(dt.table().node()).triggerHandler('buttons-action.dt', [
+					dt.button(button),
+					dt,
+					button,
+					config
+				]);
+				button.attr('aria-expanded', true);
+			};
+
+			var dropButton = $(
+				'<button class="' + dropdownConf.dropdown.className + ' dt-button"></button>'
+			)
+				.html(dropdownConf.dropdown.dropHtml)
+				.on('click.dtb', function (e) {
+					e.preventDefault();
+					e.stopPropagation();
+
+					if (!dropButton.hasClass(dom.disabled)) {
+						splitAction(e, dt, dropButton, dropButtonConfig);
+					}
+					if (clickBlurs) {
+						dropButton.trigger('blur');
+					}
+				})
+				.on('keypress.dtb', function (e) {
+					if (e.keyCode === 13) {
+						e.preventDefault();
+
+						if (!dropButton.hasClass(dom.disabled)) {
+							splitAction(e, dt, dropButton, dropButtonConfig);
+						}
+					}
+				});
+
+			if (config.split.length === 0) {
+				dropButton.addClass('dtb-hide-drop');
+			}
+
+			splitDiv.append(dropButton).attr(dropButtonConfig.attr);
 		}
 
 		return {
-			conf:         config,
-			node:         button.get(0),
-			inserter:     inserter,
-			buttons:      [],
+			conf: config,
+			node: isSplit ? splitDiv.get(0) : button.get(0),
+			inserter: isSplit ? splitDiv : inserter,
+			buttons: [],
 			inCollection: inCollection,
-			collection:   null
+			isSplit: isSplit,
+			inSplit: inSplit,
+			collection: null,
+			textNode: textNode
 		};
 	},
 
@@ -16105,21 +16754,20 @@ $.extend( Buttons.prototype, {
 	 * @return {object} Button object
 	 * @private
 	 */
-	_nodeToButton: function ( node, buttons )
-	{
-		if ( ! buttons ) {
+	_nodeToButton: function (node, buttons) {
+		if (!buttons) {
 			buttons = this.s.buttons;
 		}
 
-		for ( var i=0, ien=buttons.length ; i<ien ; i++ ) {
-			if ( buttons[i].node === node ) {
+		for (var i = 0, ien = buttons.length; i < ien; i++) {
+			if (buttons[i].node === node) {
 				return buttons[i];
 			}
 
-			if ( buttons[i].buttons.length ) {
-				var ret = this._nodeToButton( node, buttons[i].buttons );
+			if (buttons[i].buttons.length) {
+				var ret = this._nodeToButton(node, buttons[i].buttons);
 
-				if ( ret ) {
+				if (ret) {
 					return ret;
 				}
 			}
@@ -16133,21 +16781,20 @@ $.extend( Buttons.prototype, {
 	 * @return {array} Button's host array
 	 * @private
 	 */
-	_nodeToHost: function ( node, buttons )
-	{
-		if ( ! buttons ) {
+	_nodeToHost: function (node, buttons) {
+		if (!buttons) {
 			buttons = this.s.buttons;
 		}
 
-		for ( var i=0, ien=buttons.length ; i<ien ; i++ ) {
-			if ( buttons[i].node === node ) {
+		for (var i = 0, ien = buttons.length; i < ien; i++) {
+			if (buttons[i].node === node) {
 				return buttons;
 			}
 
-			if ( buttons[i].buttons.length ) {
-				var ret = this._nodeToHost( node, buttons[i].buttons );
+			if (buttons[i].buttons.length) {
+				var ret = this._nodeToHost(node, buttons[i].buttons);
 
-				if ( ret ) {
+				if (ret) {
 					return ret;
 				}
 			}
@@ -16161,40 +16808,39 @@ $.extend( Buttons.prototype, {
 	 * @param  {object} e Key event that triggered this call
 	 * @private
 	 */
-	_keypress: function ( character, e )
-	{
+	_keypress: function (character, e) {
 		// Check if this button press already activated on another instance of Buttons
-		if ( e._buttonsHandled ) {
+		if (e._buttonsHandled) {
 			return;
 		}
 
-		var run = function ( conf, node ) {
-			if ( ! conf.key ) {
+		var run = function (conf, node) {
+			if (!conf.key) {
 				return;
 			}
 
-			if ( conf.key === character ) {
+			if (conf.key === character) {
 				e._buttonsHandled = true;
 				$(node).click();
 			}
-			else if ( $.isPlainObject( conf.key ) ) {
-				if ( conf.key.key !== character ) {
+			else if ($.isPlainObject(conf.key)) {
+				if (conf.key.key !== character) {
 					return;
 				}
 
-				if ( conf.key.shiftKey && ! e.shiftKey ) {
+				if (conf.key.shiftKey && !e.shiftKey) {
 					return;
 				}
 
-				if ( conf.key.altKey && ! e.altKey ) {
+				if (conf.key.altKey && !e.altKey) {
 					return;
 				}
 
-				if ( conf.key.ctrlKey && ! e.ctrlKey ) {
+				if (conf.key.ctrlKey && !e.ctrlKey) {
 					return;
 				}
 
-				if ( conf.key.metaKey && ! e.metaKey ) {
+				if (conf.key.metaKey && !e.metaKey) {
 					return;
 				}
 
@@ -16204,17 +16850,17 @@ $.extend( Buttons.prototype, {
 			}
 		};
 
-		var recurse = function ( a ) {
-			for ( var i=0, ien=a.length ; i<ien ; i++ ) {
-				run( a[i].conf, a[i].node );
+		var recurse = function (a) {
+			for (var i = 0, ien = a.length; i < ien; i++) {
+				run(a[i].conf, a[i].node);
 
-				if ( a[i].buttons.length ) {
-					recurse( a[i].buttons );
+				if (a[i].buttons.length) {
+					recurse(a[i].buttons);
 				}
 			}
 		};
 
-		recurse( this.s.buttons );
+		recurse(this.s.buttons);
 	},
 
 	/**
@@ -16223,18 +16869,15 @@ $.extend( Buttons.prototype, {
 	 * @param  {object} conf Button configuration
 	 * @private
 	 */
-	_removeKey: function ( conf )
-	{
-		if ( conf.key ) {
-			var character = $.isPlainObject( conf.key ) ?
-				conf.key.key :
-				conf.key;
+	_removeKey: function (conf) {
+		if (conf.key) {
+			var character = $.isPlainObject(conf.key) ? conf.key.key : conf.key;
 
 			// Remove only one character, as multiple buttons could have the
 			// same listening key
 			var a = this.s.listenKeys.split('');
-			var idx = $.inArray( character, a );
-			a.splice( idx, 1 );
+			var idx = $.inArray(character, a);
+			a.splice(idx, 1);
 			this.s.listenKeys = a.join('');
 		}
 	},
@@ -16245,62 +16888,60 @@ $.extend( Buttons.prototype, {
 	 * @return {object} Button configuration
 	 * @private
 	 */
-	_resolveExtends: function ( conf )
-	{
+	_resolveExtends: function (conf) {
+		var that = this;
 		var dt = this.s.dt;
 		var i, ien;
-		var toConfObject = function ( base ) {
+		var toConfObject = function (base) {
 			var loop = 0;
 
 			// Loop until we have resolved to a button configuration, or an
 			// array of button configurations (which will be iterated
 			// separately)
-			while ( ! $.isPlainObject(base) && ! Array.isArray(base) ) {
-				if ( base === undefined ) {
+			while (!$.isPlainObject(base) && !Array.isArray(base)) {
+				if (base === undefined) {
 					return;
 				}
 
-				if ( typeof base === 'function' ) {
-					base = base( dt, conf );
+				if (typeof base === 'function') {
+					base = base.call(that, dt, conf);
 
-					if ( ! base ) {
+					if (!base) {
 						return false;
 					}
 				}
-				else if ( typeof base === 'string' ) {
-					if ( ! _dtButtons[ base ] ) {
-						throw 'Unknown button type: '+base;
+				else if (typeof base === 'string') {
+					if (!_dtButtons[base]) {
+						return { html: base };
 					}
 
-					base = _dtButtons[ base ];
+					base = _dtButtons[base];
 				}
 
 				loop++;
-				if ( loop > 30 ) {
+				if (loop > 30) {
 					// Protect against misconfiguration killing the browser
 					throw 'Buttons: Too many iterations';
 				}
 			}
 
-			return Array.isArray( base ) ?
-				base :
-				$.extend( {}, base );
+			return Array.isArray(base) ? base : $.extend({}, base);
 		};
 
-		conf = toConfObject( conf );
+		conf = toConfObject(conf);
 
-		while ( conf && conf.extend ) {
+		while (conf && conf.extend) {
 			// Use `toConfObject` in case the button definition being extended
 			// is itself a string or a function
-			if ( ! _dtButtons[ conf.extend ] ) {
-				throw 'Cannot extend unknown button type: '+conf.extend;
+			if (!_dtButtons[conf.extend]) {
+				throw 'Cannot extend unknown button type: ' + conf.extend;
 			}
 
-			var objArray = toConfObject( _dtButtons[ conf.extend ] );
-			if ( Array.isArray( objArray ) ) {
+			var objArray = toConfObject(_dtButtons[conf.extend]);
+			if (Array.isArray(objArray)) {
 				return objArray;
 			}
-			else if ( ! objArray ) {
+			else if (!objArray) {
 				// This is a little brutal as it might be possible to have a
 				// valid button without the extend, but if there is no extend
 				// then the host button would be acting in an undefined state
@@ -16310,47 +16951,47 @@ $.extend( Buttons.prototype, {
 			// Stash the current class name
 			var originalClassName = objArray.className;
 
-			conf = $.extend( {}, objArray, conf );
+			if (conf.config !== undefined && objArray.config !== undefined) {
+				conf.config = $.extend({}, objArray.config, conf.config);
+			}
+
+			conf = $.extend({}, objArray, conf);
 
 			// The extend will have overwritten the original class name if the
 			// `conf` object also assigned a class, but we want to concatenate
 			// them so they are list that is combined from all extended buttons
-			if ( originalClassName && conf.className !== originalClassName ) {
-				conf.className = originalClassName+' '+conf.className;
-			}
-
-			// Buttons to be added to a collection  -gives the ability to define
-			// if buttons should be added to the start or end of a collection
-			var postfixButtons = conf.postfixButtons;
-			if ( postfixButtons ) {
-				if ( ! conf.buttons ) {
-					conf.buttons = [];
-				}
-
-				for ( i=0, ien=postfixButtons.length ; i<ien ; i++ ) {
-					conf.buttons.push( postfixButtons[i] );
-				}
-
-				conf.postfixButtons = null;
-			}
-
-			var prefixButtons = conf.prefixButtons;
-			if ( prefixButtons ) {
-				if ( ! conf.buttons ) {
-					conf.buttons = [];
-				}
-
-				for ( i=0, ien=prefixButtons.length ; i<ien ; i++ ) {
-					conf.buttons.splice( i, 0, prefixButtons[i] );
-				}
-
-				conf.prefixButtons = null;
+			if (originalClassName && conf.className !== originalClassName) {
+				conf.className = originalClassName + ' ' + conf.className;
 			}
 
 			// Although we want the `conf` object to overwrite almost all of
 			// the properties of the object being extended, the `extend`
 			// property should come from the object being extended
 			conf.extend = objArray.extend;
+		}
+
+		// Buttons to be added to a collection  -gives the ability to define
+		// if buttons should be added to the start or end of a collection
+		var postfixButtons = conf.postfixButtons;
+		if (postfixButtons) {
+			if (!conf.buttons) {
+				conf.buttons = [];
+			}
+
+			for (i = 0, ien = postfixButtons.length; i < ien; i++) {
+				conf.buttons.push(postfixButtons[i]);
+			}
+		}
+
+		var prefixButtons = conf.prefixButtons;
+		if (prefixButtons) {
+			if (!conf.buttons) {
+				conf.buttons = [];
+			}
+
+			for (i = 0, ien = prefixButtons.length; i < ien; i++) {
+				conf.buttons.splice(i, 0, prefixButtons[i]);
+			}
 		}
 
 		return conf;
@@ -16362,273 +17003,335 @@ $.extend( Buttons.prototype, {
 	 * @param {DataTable.Api} hostButton DT API instance of the button
 	 * @param {object} inOpts Options (see object below for all options)
 	 */
-	_popover: function ( content, hostButton, inOpts ) {
+	_popover: function (content, hostButton, inOpts, e) {
 		var dt = hostButton;
-		var buttonsSettings = this.c;
-		var options = $.extend( {
-			align: 'button-left', // button-right, dt-container
-			autoClose: false,
-			background: true,
-			backgroundClassName: 'dt-button-background',
-			contentClassName: buttonsSettings.dom.collection.className,
-			collectionLayout: '',
-			collectionTitle: '',
-			dropup: false,
-			fade: 400,
-			rightAlignClassName: 'dt-button-right',
-			tag: buttonsSettings.dom.collection.tag
-		}, inOpts );
+		var c = this.c;
+		var closed = false;
+		var options = $.extend(
+			{
+				align: 'button-left', // button-right, dt-container, split-left, split-right
+				autoClose: false,
+				background: true,
+				backgroundClassName: 'dt-button-background',
+				closeButton: true,
+				containerClassName: c.dom.collection.container.className,
+				contentClassName: c.dom.collection.container.content.className,
+				collectionLayout: '',
+				collectionTitle: '',
+				dropup: false,
+				fade: 400,
+				popoverTitle: '',
+				rightAlignClassName: 'dt-button-right',
+				tag: c.dom.collection.container.tag
+			},
+			inOpts
+		);
+
+		var containerSelector = options.tag + '.' + options.containerClassName.replace(/ /g, '.');
 		var hostNode = hostButton.node();
 
 		var close = function () {
-			_fadeOut(
-				$('.dt-button-collection'),
-				options.fade,
-				function () {
-					$(this).detach();
-				}
+			closed = true;
+
+			_fadeOut($(containerSelector), options.fade, function () {
+				$(this).detach();
+			});
+
+			$(dt.buttons('[aria-haspopup="dialog"][aria-expanded="true"]').nodes()).attr(
+				'aria-expanded',
+				'false'
 			);
 
-			$(dt.buttons( '[aria-haspopup="true"][aria-expanded="true"]' ).nodes())
-				.attr('aria-expanded', 'false');
+			$('div.dt-button-background').off('click.dtb-collection');
+			Buttons.background(false, options.backgroundClassName, options.fade, hostNode);
 
-			$('div.dt-button-background').off( 'click.dtb-collection' );
-			Buttons.background( false, options.backgroundClassName, options.fade, hostNode );
-
-			$('body').off( '.dtb-collection' );
-			dt.off( 'buttons-action.b-internal' );
+			$(window).off('resize.resize.dtb-collection');
+			$('body').off('.dtb-collection');
+			dt.off('buttons-action.b-internal');
+			dt.off('destroy');
 		};
 
 		if (content === false) {
 			close();
+			return;
 		}
 
-		var existingExpanded = $(dt.buttons( '[aria-haspopup="true"][aria-expanded="true"]' ).nodes());
-		if ( existingExpanded.length ) {
-			hostNode = existingExpanded.eq(0);
+		var existingExpanded = $(
+			dt.buttons('[aria-haspopup="dialog"][aria-expanded="true"]').nodes()
+		);
+		if (existingExpanded.length) {
+			// Reuse the current position if the button that was triggered is inside an existing collection
+			if (hostNode.closest(containerSelector).length) {
+				hostNode = existingExpanded.eq(0);
+			}
 
 			close();
 		}
 
-		var display = $('<div/>')
-			.addClass('dt-button-collection')
+		// Try to be smart about the layout
+		var cnt = $('.dt-button', content).length;
+		var mod = '';
+
+		if (cnt === 3) {
+			mod = 'dtb-b3';
+		}
+		else if (cnt === 2) {
+			mod = 'dtb-b2';
+		}
+		else if (cnt === 1) {
+			mod = 'dtb-b1';
+		}
+
+		var display = $('<' + options.tag + '/>')
+			.addClass(options.containerClassName)
 			.addClass(options.collectionLayout)
-			.css('display', 'none');
+			.addClass(options.splitAlignClass)
+			.addClass(mod)
+			.css('display', 'none')
+			.attr({
+				'aria-modal': true,
+				role: 'dialog'
+			});
 
 		content = $(content)
 			.addClass(options.contentClassName)
 			.attr('role', 'menu')
 			.appendTo(display);
 
-		hostNode.attr( 'aria-expanded', 'true' );
+		hostNode.attr('aria-expanded', 'true');
 
-		if ( hostNode.parents('body')[0] !== document.body ) {
+		if (hostNode.parents('body')[0] !== document.body) {
 			hostNode = document.body.lastChild;
 		}
 
-		if ( options.collectionTitle ) {
-			display.prepend('<div class="dt-button-collection-title">'+options.collectionTitle+'</div>');
+		if (options.popoverTitle) {
+			display.prepend(
+				'<div class="dt-button-collection-title">' + options.popoverTitle + '</div>'
+			);
+		}
+		else if (options.collectionTitle) {
+			display.prepend(
+				'<div class="dt-button-collection-title">' + options.collectionTitle + '</div>'
+			);
 		}
 
-		_fadeIn( display.insertAfter( hostNode ), options.fade );
+		if (options.closeButton) {
+			display
+				.prepend('<div class="dtb-popover-close">&times;</div>')
+				.addClass('dtb-collection-closeable');
+		}
 
-		var tableContainer = $( hostButton.table().container() );
-		var position = display.css( 'position' );
+		_fadeIn(display.insertAfter(hostNode), options.fade);
 
-		if ( options.align === 'dt-container' ) {
+		var tableContainer = $(hostButton.table().container());
+		var position = display.css('position');
+
+		if (options.span === 'container' || options.align === 'dt-container') {
 			hostNode = hostNode.parent();
 			display.css('width', tableContainer.width());
 		}
 
 		// Align the popover relative to the DataTables container
 		// Useful for wide popovers such as SearchPanes
-		if (
-			position === 'absolute' &&
-			(
-				display.hasClass( options.rightAlignClassName ) ||
-				display.hasClass( options.leftAlignClassName ) ||
-				options.align === 'dt-container'
-			)
-		) {
-
-			var hostPosition = hostNode.position();
-
-			display.css( {
-				top: hostPosition.top + hostNode.outerHeight(),
-				left: hostPosition.left
-			} );
-
-			// calculate overflow when positioned beneath
-			var collectionHeight = display.outerHeight();
-			var tableBottom = tableContainer.offset().top + tableContainer.height();
-			var listBottom = hostPosition.top + hostNode.outerHeight() + collectionHeight;
-			var bottomOverflow = listBottom - tableBottom;
-
-			// calculate overflow when positioned above
-			var listTop = hostPosition.top - collectionHeight;
-			var tableTop = tableContainer.offset().top;
-			var topOverflow = tableTop - listTop;
-
-			// if bottom overflow is larger, move to the top because it fits better, or if dropup is requested
-			var moveTop = hostPosition.top - collectionHeight - 5;
-			if ( (bottomOverflow > topOverflow || options.dropup) && -moveTop < tableTop ) {
-				display.css( 'top', moveTop);
-			}
-
-			// Get the size of the container (left and width - and thus also right)
-			var tableLeft = tableContainer.offset().left;
-			var tableWidth = tableContainer.width();
-			var tableRight = tableLeft + tableWidth;
-
-			// Get the size of the popover (left and width - and ...)
-			var popoverLeft = display.offset().left;
-			var popoverWidth = display.width();
-			var popoverRight = popoverLeft + popoverWidth;
-
-			// Get the size of the host buttons (left and width - and ...)
-			var buttonsLeft = hostNode.offset().left;
-			var buttonsWidth = hostNode.outerWidth()
-			var buttonsRight = buttonsLeft + buttonsWidth;
-			
-			// You've then got all the numbers you need to do some calculations and if statements,
-			//  so we can do some quick JS maths and apply it only once
-			// If it has the right align class OR the buttons are right aligned OR the button container is floated right,
-			//  then calculate left position for the popover to align the popover to the right hand
-			//  side of the button - check to see if the left of the popover is inside the table container.
-			// If not, move the popover so it is, but not more than it means that the popover is to the right of the table container
-			var popoverShuffle = 0;
-			if ( display.hasClass( options.rightAlignClassName )) {
-				popoverShuffle = buttonsRight - popoverRight;
-				if(tableLeft > (popoverLeft + popoverShuffle)){
-					var leftGap = tableLeft - (popoverLeft + popoverShuffle);
-					var rightGap = tableRight - (popoverRight + popoverShuffle);
-	
-					if(leftGap > rightGap){
-						popoverShuffle += rightGap; 
-					}
-					else {
-						popoverShuffle += leftGap;
-					}
-				}
-			}
-			// else attempt to left align the popover to the button. Similar to above, if the popover's right goes past the table container's right,
-			//  then move it back, but not so much that it goes past the left of the table container
-			else {
-				popoverShuffle = tableLeft - popoverLeft;
-
-				if(tableRight < (popoverRight + popoverShuffle)){
-					var leftGap = tableLeft - (popoverLeft + popoverShuffle);
-					var rightGap = tableRight - (popoverRight + popoverShuffle);
-
-					if(leftGap > rightGap ){
-						popoverShuffle += rightGap;
-					}
-					else {
-						popoverShuffle += leftGap;
-					}
-
-				}
-			}
-
-			display.css('left', display.position().left + popoverShuffle);
-			
-		}
-		else if (position === 'absolute') {
+		if (position === 'absolute') {
 			// Align relative to the host button
-			var hostPosition = hostNode.position();
+			var offsetParent = $(hostNode[0].offsetParent);
+			var buttonPosition = hostNode.position();
+			var buttonOffset = hostNode.offset();
+			var tableSizes = offsetParent.offset();
+			var containerPosition = offsetParent.position();
+			var computed = window.getComputedStyle(offsetParent[0]);
 
-			display.css( {
-				top: hostPosition.top + hostNode.outerHeight(),
-				left: hostPosition.left
-			} );
+			tableSizes.height = offsetParent.outerHeight();
+			tableSizes.width = offsetParent.width() + parseFloat(computed.paddingLeft);
+			tableSizes.right = tableSizes.left + tableSizes.width;
+			tableSizes.bottom = tableSizes.top + tableSizes.height;
 
-			// calculate overflow when positioned beneath
-			var collectionHeight = display.outerHeight();
-			var top = hostNode.offset().top
-			var popoverShuffle = 0;
+			// Set the initial position so we can read height / width
+			var top = buttonPosition.top + hostNode.outerHeight();
+			var left = buttonPosition.left;
 
-			// Get the size of the host buttons (left and width - and ...)
-			var buttonsLeft = hostNode.offset().left;
-			var buttonsWidth = hostNode.outerWidth()
-			var buttonsRight = buttonsLeft + buttonsWidth;
+			display.css({
+				top: top,
+				left: left
+			});
 
-			// Get the size of the popover (left and width - and ...)
-			var popoverLeft = display.offset().left;
-			var popoverWidth = content.width();
-			var popoverRight = popoverLeft + popoverWidth;
+			// Get the popover position
+			computed = window.getComputedStyle(display[0]);
+			var popoverSizes = display.offset();
 
-			var moveTop = hostPosition.top - collectionHeight - 5;
-			var tableBottom = tableContainer.offset().top + tableContainer.height();
-			var listBottom = hostPosition.top + hostNode.outerHeight() + collectionHeight;
-			var bottomOverflow = listBottom - tableBottom;
+			popoverSizes.height = display.outerHeight();
+			popoverSizes.width = display.outerWidth();
+			popoverSizes.right = popoverSizes.left + popoverSizes.width;
+			popoverSizes.bottom = popoverSizes.top + popoverSizes.height;
+			popoverSizes.marginTop = parseFloat(computed.marginTop);
+			popoverSizes.marginBottom = parseFloat(computed.marginBottom);
 
-			// calculate overflow when positioned above
-			var listTop = hostPosition.top - collectionHeight;
-			var tableTop = tableContainer.offset().top;
-			var topOverflow = tableTop - listTop;
-
-			if ( (bottomOverflow > topOverflow || options.dropup) && -moveTop < tableTop ) {
-				display.css( 'top', moveTop);
+			// First position per the class requirements - pop up and right align
+			if (options.dropup) {
+				top =
+					buttonPosition.top -
+					popoverSizes.height -
+					popoverSizes.marginTop -
+					popoverSizes.marginBottom;
 			}
 
-			popoverShuffle = options.align === 'button-right'
-				? buttonsRight - popoverRight
-				: buttonsLeft - popoverLeft;
+			if (options.align === 'button-right' || display.hasClass(options.rightAlignClassName)) {
+				left = buttonPosition.left - popoverSizes.width + hostNode.outerWidth();
+			}
 
-			display.css('left', display.position().left + popoverShuffle);
+			// Container alignment - make sure it doesn't overflow the table container
+			if (options.align === 'dt-container' || options.align === 'container') {
+				if (left < buttonPosition.left) {
+					left = -buttonPosition.left;
+				}
+
+				if (left + popoverSizes.width > tableSizes.width) {
+					left = tableSizes.width - popoverSizes.width;
+				}
+			}
+
+			// Window adjustment
+			if (containerPosition.left + left + popoverSizes.width > $(window).width()) {
+				// Overflowing the document to the right
+				left = $(window).width() - popoverSizes.width - containerPosition.left;
+			}
+
+			if (buttonOffset.left + left < 0) {
+				// Off to the left of the document
+				left = -buttonOffset.left;
+			}
+
+			if (
+				containerPosition.top + top + popoverSizes.height >
+				$(window).height() + $(window).scrollTop()
+			) {
+				// Pop up if otherwise we'd need the user to scroll down
+				top =
+					buttonPosition.top -
+					popoverSizes.height -
+					popoverSizes.marginTop -
+					popoverSizes.marginBottom;
+			}
+
+			if (containerPosition.top + top < $(window).scrollTop()) {
+				// Correction for when the top is beyond the top of the page
+				top = buttonPosition.top + hostNode.outerHeight();
+			}
+
+			// Calculations all done - now set it
+			display.css({
+				top: top,
+				left: left
+			});
 		}
 		else {
 			// Fix position - centre on screen
-			var top = display.height() / 2;
-			if ( top > $(window).height() / 2 ) {
-				top = $(window).height() / 2;
-			}
+			var position = function () {
+				var half = $(window).height() / 2;
 
-			display.css( 'marginTop', top*-1 );
+				var top = display.height() / 2;
+				if (top > half) {
+					top = half;
+				}
+
+				display.css('marginTop', top * -1);
+			};
+
+			position();
+
+			$(window).on('resize.dtb-collection', function () {
+				position();
+			});
 		}
 
-		if ( options.background ) {
-			Buttons.background( true, options.backgroundClassName, options.fade, hostNode );
+		if (options.background) {
+			Buttons.background(
+				true,
+				options.backgroundClassName,
+				options.fade,
+				options.backgroundHost || hostNode
+			);
 		}
 
 		// This is bonkers, but if we don't have a click listener on the
 		// background element, iOS Safari will ignore the body click
 		// listener below. An empty function here is all that is
 		// required to make it work...
-		$('div.dt-button-background').on( 'click.dtb-collection', function () {} );
+		$('div.dt-button-background').on('click.dtb-collection', function () {});
 
-		$('body')
-			.on( 'click.dtb-collection', function (e) {
-				// andSelf is deprecated in jQ1.8, but we want 1.7 compat
-				var back = $.fn.addBack ? 'addBack' : 'andSelf';
-				var parent = $(e.target).parent()[0];
-
-				if (( ! $(e.target).parents()[back]().filter( content ).length  && !$(parent).hasClass('dt-buttons')) || $(e.target).hasClass('dt-button-background')) {
-					close();
-				}
-			} )
-			.on( 'keyup.dtb-collection', function (e) {
-				if ( e.keyCode === 27 ) {
-					close();
-				}
-			} );
-
-		if ( options.autoClose ) {
-			setTimeout( function () {
-				dt.on( 'buttons-action.b-internal', function (e, btn, dt, node) {
-					if ( node[0] === hostNode[0] ) {
+		if (options.autoClose) {
+			setTimeout(function () {
+				dt.on('buttons-action.b-internal', function (e, btn, dt, node) {
+					if (node[0] === hostNode[0]) {
 						return;
 					}
 					close();
-				} );
+				});
 			}, 0);
 		}
 
 		$(display).trigger('buttons-popover.dt');
+
+		dt.on('destroy', close);
+
+		setTimeout(function () {
+			closed = false;
+			$('body')
+				.on('click.dtb-collection', function (e) {
+					if (closed) {
+						return;
+					}
+
+					// andSelf is deprecated in jQ1.8, but we want 1.7 compat
+					var back = $.fn.addBack ? 'addBack' : 'andSelf';
+					var parent = $(e.target).parent()[0];
+
+					if (
+						(!$(e.target).parents()[back]().filter(content).length &&
+							!$(parent).hasClass('dt-buttons')) ||
+						$(e.target).hasClass('dt-button-background')
+					) {
+						close();
+					}
+				})
+				.on('keyup.dtb-collection', function (e) {
+					if (e.keyCode === 27) {
+						close();
+					}
+				})
+				.on('keydown.dtb-collection', function (e) {
+					// Focus trap for tab key
+					var elements = $('a, button', content);
+					var active = document.activeElement;
+
+					if (e.keyCode !== 9) {
+						// tab
+						return;
+					}
+
+					if (elements.index(active) === -1) {
+						// If current focus is not inside the popover
+						elements.first().focus();
+						e.preventDefault();
+					}
+					else if (e.shiftKey) {
+						// Reverse tabbing order when shift key is pressed
+						if (active === elements[0]) {
+							elements.last().focus();
+							e.preventDefault();
+						}
+					}
+					else {
+						if (active === elements.last()[0]) {
+							elements.first().focus();
+							e.preventDefault();
+						}
+					}
+				});
+		}, 0);
 	}
-} );
-
-
+});
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Statics
@@ -16637,37 +17340,28 @@ $.extend( Buttons.prototype, {
 /**
  * Show / hide a background layer behind a collection
  * @param  {boolean} Flag to indicate if the background should be shown or
- *   hidden 
+ *   hidden
  * @param  {string} Class to assign to the background
  * @static
  */
-Buttons.background = function ( show, className, fade, insertPoint ) {
-	if ( fade === undefined ) {
+Buttons.background = function (show, className, fade, insertPoint) {
+	if (fade === undefined) {
 		fade = 400;
 	}
-	if ( ! insertPoint ) {
+	if (!insertPoint) {
 		insertPoint = document.body;
 	}
 
-	if ( show ) {
+	if (show) {
 		_fadeIn(
-			$('<div/>')
-				.addClass( className )
-				.css( 'display', 'none' )
-				.insertAfter( insertPoint ),
+			$('<div/>').addClass(className).css('display', 'none').insertAfter(insertPoint),
 			fade
 		);
 	}
 	else {
-		_fadeOut(
-			$('div.'+className),
-			fade,
-			function () {
-				$(this)
-					.removeClass( className )
-					.remove();
-			}
-		);
+		_fadeOut($('div.' + className), fade, function () {
+			$(this).removeClass(className).remove();
+		});
 	}
 };
 
@@ -16682,49 +17376,52 @@ Buttons.background = function ( show, className, fade, insertPoint ) {
  * @return {array} Buttons instances
  * @static
  */
-Buttons.instanceSelector = function ( group, buttons )
-{
-	if ( group === undefined || group === null ) {
-		return $.map( buttons, function ( v ) {
+Buttons.instanceSelector = function (group, buttons) {
+	if (group === undefined || group === null) {
+		return $.map(buttons, function (v) {
 			return v.inst;
-		} );
+		});
 	}
 
 	var ret = [];
-	var names = $.map( buttons, function ( v ) {
+	var names = $.map(buttons, function (v) {
 		return v.name;
-	} );
+	});
 
 	// Flatten the group selector into an array of single options
-	var process = function ( input ) {
-		if ( Array.isArray( input ) ) {
-			for ( var i=0, ien=input.length ; i<ien ; i++ ) {
-				process( input[i] );
+	var process = function (input) {
+		if (Array.isArray(input)) {
+			for (var i = 0, ien = input.length; i < ien; i++) {
+				process(input[i]);
 			}
 			return;
 		}
 
-		if ( typeof input === 'string' ) {
-			if ( input.indexOf( ',' ) !== -1 ) {
+		if (typeof input === 'string') {
+			if (input.indexOf(',') !== -1) {
 				// String selector, list of names
-				process( input.split(',') );
+				process(input.split(','));
 			}
 			else {
 				// String selector individual name
-				var idx = $.inArray( input.trim(), names );
+				var idx = $.inArray(input.trim(), names);
 
-				if ( idx !== -1 ) {
-					ret.push( buttons[ idx ].inst );
+				if (idx !== -1) {
+					ret.push(buttons[idx].inst);
 				}
 			}
 		}
-		else if ( typeof input === 'number' ) {
+		else if (typeof input === 'number') {
 			// Index selector
-			ret.push( buttons[ input ].inst );
+			ret.push(buttons[input].inst);
+		}
+		else if (typeof input === 'object') {
+			// Actual instance selector
+			ret.push(input);
 		}
 	};
-	
-	process( group );
+
+	process(group);
 
 	return ret;
 };
@@ -16739,127 +17436,127 @@ Buttons.instanceSelector = function ( group, buttons )
  *   the selected buttons so you know which instance each button belongs to.
  * @static
  */
-Buttons.buttonSelector = function ( insts, selector )
-{
+Buttons.buttonSelector = function (insts, selector) {
 	var ret = [];
-	var nodeBuilder = function ( a, buttons, baseIdx ) {
+	var nodeBuilder = function (a, buttons, baseIdx) {
 		var button;
 		var idx;
 
-		for ( var i=0, ien=buttons.length ; i<ien ; i++ ) {
+		for (var i = 0, ien = buttons.length; i < ien; i++) {
 			button = buttons[i];
 
-			if ( button ) {
-				idx = baseIdx !== undefined ?
-					baseIdx+i :
-					i+'';
+			if (button) {
+				idx = baseIdx !== undefined ? baseIdx + i : i + '';
 
-				a.push( {
+				a.push({
 					node: button.node,
 					name: button.conf.name,
-					idx:  idx
-				} );
+					idx: idx
+				});
 
-				if ( button.buttons ) {
-					nodeBuilder( a, button.buttons, idx+'-' );
+				if (button.buttons) {
+					nodeBuilder(a, button.buttons, idx + '-');
 				}
 			}
 		}
 	};
 
-	var run = function ( selector, inst ) {
+	var run = function (selector, inst) {
 		var i, ien;
 		var buttons = [];
-		nodeBuilder( buttons, inst.s.buttons );
+		nodeBuilder(buttons, inst.s.buttons);
 
-		var nodes = $.map( buttons, function (v) {
+		var nodes = $.map(buttons, function (v) {
 			return v.node;
-		} );
+		});
 
-		if ( Array.isArray( selector ) || selector instanceof $ ) {
-			for ( i=0, ien=selector.length ; i<ien ; i++ ) {
-				run( selector[i], inst );
+		if (Array.isArray(selector) || selector instanceof $) {
+			for (i = 0, ien = selector.length; i < ien; i++) {
+				run(selector[i], inst);
 			}
 			return;
 		}
 
-		if ( selector === null || selector === undefined || selector === '*' ) {
+		if (selector === null || selector === undefined || selector === '*') {
 			// Select all
-			for ( i=0, ien=buttons.length ; i<ien ; i++ ) {
-				ret.push( {
+			for (i = 0, ien = buttons.length; i < ien; i++) {
+				ret.push({
 					inst: inst,
 					node: buttons[i].node
-				} );
+				});
 			}
 		}
-		else if ( typeof selector === 'number' ) {
+		else if (typeof selector === 'number') {
 			// Main button index selector
-			ret.push( {
-				inst: inst,
-				node: inst.s.buttons[ selector ].node
-			} );
+			if (inst.s.buttons[selector]) {
+				ret.push({
+					inst: inst,
+					node: inst.s.buttons[selector].node
+				});
+			}
 		}
-		else if ( typeof selector === 'string' ) {
-			if ( selector.indexOf( ',' ) !== -1 ) {
+		else if (typeof selector === 'string') {
+			if (selector.indexOf(',') !== -1) {
 				// Split
 				var a = selector.split(',');
 
-				for ( i=0, ien=a.length ; i<ien ; i++ ) {
-					run( a[i].trim(), inst );
+				for (i = 0, ien = a.length; i < ien; i++) {
+					run(a[i].trim(), inst);
 				}
 			}
-			else if ( selector.match( /^\d+(\-\d+)*$/ ) ) {
+			else if (selector.match(/^\d+(\-\d+)*$/)) {
 				// Sub-button index selector
-				var indexes = $.map( buttons, function (v) {
+				var indexes = $.map(buttons, function (v) {
 					return v.idx;
-				} );
+				});
 
-				ret.push( {
+				ret.push({
 					inst: inst,
-					node: buttons[ $.inArray( selector, indexes ) ].node
-				} );
+					node: buttons[$.inArray(selector, indexes)].node
+				});
 			}
-			else if ( selector.indexOf( ':name' ) !== -1 ) {
+			else if (selector.indexOf(':name') !== -1) {
 				// Button name selector
-				var name = selector.replace( ':name', '' );
+				var name = selector.replace(':name', '');
 
-				for ( i=0, ien=buttons.length ; i<ien ; i++ ) {
-					if ( buttons[i].name === name ) {
-						ret.push( {
+				for (i = 0, ien = buttons.length; i < ien; i++) {
+					if (buttons[i].name === name) {
+						ret.push({
 							inst: inst,
 							node: buttons[i].node
-						} );
+						});
 					}
 				}
 			}
 			else {
 				// jQuery selector on the nodes
-				$( nodes ).filter( selector ).each( function () {
-					ret.push( {
-						inst: inst,
-						node: this
-					} );
-				} );
+				$(nodes)
+					.filter(selector)
+					.each(function () {
+						ret.push({
+							inst: inst,
+							node: this
+						});
+					});
 			}
 		}
-		else if ( typeof selector === 'object' && selector.nodeName ) {
+		else if (typeof selector === 'object' && selector.nodeName) {
 			// Node selector
-			var idx = $.inArray( selector, nodes );
+			var idx = $.inArray(selector, nodes);
 
-			if ( idx !== -1 ) {
-				ret.push( {
+			if (idx !== -1) {
+				ret.push({
 					inst: inst,
-					node: nodes[ idx ]
-				} );
+					node: nodes[idx]
+				});
 			}
 		}
 	};
 
-
-	for ( var i=0, ien=insts.length ; i<ien ; i++ ) {
+	for (var i = 0, ien = insts.length; i < ien; i++) {
 		var inst = insts[i];
 
-		run( selector, inst );
+		run(selector, inst);
 	}
 
 	return ret;
@@ -16869,37 +17566,50 @@ Buttons.buttonSelector = function ( insts, selector )
  * Default function used for formatting output data.
  * @param {*} str Data to strip
  */
-Buttons.stripData = function ( str, config ) {
-	if ( typeof str !== 'string' ) {
+Buttons.stripData = function (str, config) {
+	if (typeof str !== 'string') {
 		return str;
 	}
 
 	// Always remove script tags
-	str = str.replace( /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '' );
+	str = str.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
 
 	// Always remove comments
-	str = str.replace( /<!\-\-.*?\-\->/g, '' );
+	str = str.replace(/<!\-\-.*?\-\->/g, '');
 
-	if ( config.stripHtml ) {
-		str = str.replace( /<[^>]*>/g, '' );
+	if (!config || config.stripHtml) {
+		str = str.replace(/<[^>]*>/g, '');
 	}
 
-	if ( config.trim ) {
-		str = str.replace( /^\s+|\s+$/g, '' );
+	if (!config || config.trim) {
+		str = str.replace(/^\s+|\s+$/g, '');
 	}
 
-	if ( config.stripNewlines ) {
-		str = str.replace( /\n/g, ' ' );
+	if (!config || config.stripNewlines) {
+		str = str.replace(/\n/g, ' ');
 	}
 
-	if ( config.decodeEntities ) {
-		_exportTextarea.innerHTML = str;
-		str = _exportTextarea.value;
+	if (!config || config.decodeEntities) {
+		if (_entityDecoder) {
+			str = _entityDecoder(str);
+		}
+		else {
+			_exportTextarea.innerHTML = str;
+			str = _exportTextarea.value;
+		}
 	}
 
 	return str;
 };
 
+/**
+ * Provide a custom entity decoding function - e.g. a regex one, which can be
+ * much faster than the built in DOM option, but also larger code size.
+ * @param {function} fn
+ */
+Buttons.entityDecoder = function (fn) {
+	_entityDecoder = fn;
+}
 
 /**
  * Buttons defaults. For full documentation, please refer to the docs/option
@@ -16908,7 +17618,7 @@ Buttons.stripData = function ( str, config ) {
  * @static
  */
 Buttons.defaults = {
-	buttons: [ 'copy', 'excel', 'csv', 'pdf', 'print' ],
+	buttons: ['copy', 'excel', 'csv', 'pdf', 'print'],
 	name: 'main',
 	tabIndex: 0,
 	dom: {
@@ -16917,18 +17627,56 @@ Buttons.defaults = {
 			className: 'dt-buttons'
 		},
 		collection: {
-			tag: 'div',
-			className: ''
+			action: {
+				// action button
+				dropHtml: '<span class="dt-button-down-arrow">&#x25BC;</span>'
+			},
+			container: {
+				// The element used for the dropdown
+				className: 'dt-button-collection',
+				content: {
+					className: '',
+					tag: 'div'
+				},
+				tag: 'div'
+			}
+			// optionally
+			// , button: IButton - buttons inside the collection container
+			// , split: ISplit - splits inside the collection container
 		},
 		button: {
 			tag: 'button',
 			className: 'dt-button',
-			active: 'active',
-			disabled: 'disabled'
+			active: 'dt-button-active', // class name
+			disabled: 'disabled', // class name
+			spacer: {
+				className: 'dt-button-spacer',
+				tag: 'span'
+			},
+			liner: {
+				tag: 'span',
+				className: ''
+			}
 		},
-		buttonLiner: {
-			tag: 'span',
-			className: ''
+		split: {
+			action: {
+				// action button
+				className: 'dt-button-split-drop-button dt-button',
+				tag: 'button'
+			},
+			dropdown: {
+				// button to trigger the dropdown
+				align: 'split-right',
+				className: 'dt-button-split-drop',
+				dropHtml: '<span class="dt-button-down-arrow">&#x25BC;</span>',
+				splitAlignClass: 'dt-button-split-left',
+				tag: 'button'
+			},
+			wrapper: {
+				// wrap around both
+				className: 'dt-button-split',
+				tag: 'div'
+			}
 		}
 	}
 };
@@ -16938,71 +17686,96 @@ Buttons.defaults = {
  * @type {string}
  * @static
  */
-Buttons.version = '1.7.0';
+Buttons.version = '2.4.2';
 
-
-$.extend( _dtButtons, {
+$.extend(_dtButtons, {
 	collection: {
-		text: function ( dt ) {
-			return dt.i18n( 'buttons.collection', 'Collection' );
+		text: function (dt) {
+			return dt.i18n('buttons.collection', 'Collection');
 		},
 		className: 'buttons-collection',
-		init: function ( dt, button, config ) {
-			button.attr( 'aria-expanded', false );
+		closeButton: false,
+		init: function (dt, button, config) {
+			button.attr('aria-expanded', false);
 		},
-		action: function ( e, dt, button, config ) {
-			e.stopPropagation();
-
-			if ( config._collection.parents('body').length ) {
+		action: function (e, dt, button, config) {
+			if (config._collection.parents('body').length) {
 				this.popover(false, config);
 			}
 			else {
 				this.popover(config._collection, config);
 			}
+
+			// When activated using a key - auto focus on the
+			// first item in the popover
+			if (e.type === 'keypress') {
+				$('a, button', config._collection).eq(0).focus();
+			}
 		},
 		attr: {
-			'aria-haspopup': true
+			'aria-haspopup': 'dialog'
 		}
 		// Also the popover options, defined in Buttons.popover
 	},
-	copy: function ( dt, conf ) {
-		if ( _dtButtons.copyHtml5 ) {
+	split: {
+		text: function (dt) {
+			return dt.i18n('buttons.split', 'Split');
+		},
+		className: 'buttons-split',
+		closeButton: false,
+		init: function (dt, button, config) {
+			return button.attr('aria-expanded', false);
+		},
+		action: function (e, dt, button, config) {
+			this.popover(config._collection, config);
+		},
+		attr: {
+			'aria-haspopup': 'dialog'
+		}
+		// Also the popover options, defined in Buttons.popover
+	},
+	copy: function (dt, conf) {
+		if (_dtButtons.copyHtml5) {
 			return 'copyHtml5';
 		}
 	},
-	csv: function ( dt, conf ) {
-		if ( _dtButtons.csvHtml5 && _dtButtons.csvHtml5.available( dt, conf ) ) {
+	csv: function (dt, conf) {
+		if (_dtButtons.csvHtml5 && _dtButtons.csvHtml5.available(dt, conf)) {
 			return 'csvHtml5';
 		}
 	},
-	excel: function ( dt, conf ) {
-		if ( _dtButtons.excelHtml5 && _dtButtons.excelHtml5.available( dt, conf ) ) {
+	excel: function (dt, conf) {
+		if (_dtButtons.excelHtml5 && _dtButtons.excelHtml5.available(dt, conf)) {
 			return 'excelHtml5';
 		}
 	},
-	pdf: function ( dt, conf ) {
-		if ( _dtButtons.pdfHtml5 && _dtButtons.pdfHtml5.available( dt, conf ) ) {
+	pdf: function (dt, conf) {
+		if (_dtButtons.pdfHtml5 && _dtButtons.pdfHtml5.available(dt, conf)) {
 			return 'pdfHtml5';
 		}
 	},
-	pageLength: function ( dt ) {
+	pageLength: function (dt) {
 		var lengthMenu = dt.settings()[0].aLengthMenu;
 		var vals = [];
 		var lang = [];
-		var text = function ( dt ) {
-			return dt.i18n( 'buttons.pageLength', {
-				"-1": 'Show all rows',
-				_:    'Show %d rows'
-			}, dt.page.len() );
+		var text = function (dt) {
+			return dt.i18n(
+				'buttons.pageLength',
+				{
+					'-1': 'Show all rows',
+					_: 'Show %d rows'
+				},
+				dt.page.len()
+			);
 		};
 
 		// Support for DataTables 1.x 2D array
-		if (Array.isArray( lengthMenu[0] )) {
+		if (Array.isArray(lengthMenu[0])) {
 			vals = lengthMenu[0];
 			lang = lengthMenu[1];
 		}
 		else {
-			for (var i=0 ; i<lengthMenu.length ; i++) {
+			for (var i = 0; i < lengthMenu.length; i++) {
 				var option = lengthMenu[i];
 
 				// Support for DataTables 2 object in the array
@@ -17022,40 +17795,46 @@ $.extend( _dtButtons, {
 			text: text,
 			className: 'buttons-page-length',
 			autoClose: true,
-			buttons: $.map( vals, function ( val, i ) {
+			buttons: $.map(vals, function (val, i) {
 				return {
 					text: lang[i],
 					className: 'button-page-length',
-					action: function ( e, dt ) {
-						dt.page.len( val ).draw();
+					action: function (e, dt) {
+						dt.page.len(val).draw();
 					},
-					init: function ( dt, node, conf ) {
+					init: function (dt, node, conf) {
 						var that = this;
 						var fn = function () {
-							that.active( dt.page.len() === val );
+							that.active(dt.page.len() === val);
 						};
 
-						dt.on( 'length.dt'+conf.namespace, fn );
+						dt.on('length.dt' + conf.namespace, fn);
 						fn();
 					},
-					destroy: function ( dt, node, conf ) {
-						dt.off( 'length.dt'+conf.namespace );
+					destroy: function (dt, node, conf) {
+						dt.off('length.dt' + conf.namespace);
 					}
 				};
-			} ),
-			init: function ( dt, node, conf ) {
+			}),
+			init: function (dt, node, conf) {
 				var that = this;
-				dt.on( 'length.dt'+conf.namespace, function () {
-					that.text( conf.text );
-				} );
+				dt.on('length.dt' + conf.namespace, function () {
+					that.text(conf.text);
+				});
 			},
-			destroy: function ( dt, node, conf ) {
-				dt.off( 'length.dt'+conf.namespace );
+			destroy: function (dt, node, conf) {
+				dt.off('length.dt' + conf.namespace);
 			}
 		};
+	},
+	spacer: {
+		style: 'empty',
+		spacer: true,
+		text: function (dt) {
+			return dt.i18n('buttons.spacer', '');
+		}
 	}
-} );
-
+});
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * DataTables API
@@ -17065,233 +17844,269 @@ $.extend( _dtButtons, {
  */
 
 // Buttons group and individual button selector
-DataTable.Api.register( 'buttons()', function ( group, selector ) {
+DataTable.Api.register('buttons()', function (group, selector) {
 	// Argument shifting
-	if ( selector === undefined ) {
+	if (selector === undefined) {
 		selector = group;
 		group = undefined;
 	}
 
 	this.selector.buttonGroup = group;
 
-	var res = this.iterator( true, 'table', function ( ctx ) {
-		if ( ctx._buttons ) {
-			return Buttons.buttonSelector(
-				Buttons.instanceSelector( group, ctx._buttons ),
-				selector
-			);
-		}
-	}, true );
+	var res = this.iterator(
+		true,
+		'table',
+		function (ctx) {
+			if (ctx._buttons) {
+				return Buttons.buttonSelector(
+					Buttons.instanceSelector(group, ctx._buttons),
+					selector
+				);
+			}
+		},
+		true
+	);
 
 	res._groupSelector = group;
 	return res;
-} );
+});
 
 // Individual button selector
-DataTable.Api.register( 'button()', function ( group, selector ) {
+DataTable.Api.register('button()', function (group, selector) {
 	// just run buttons() and truncate
-	var buttons = this.buttons( group, selector );
+	var buttons = this.buttons(group, selector);
 
-	if ( buttons.length > 1 ) {
-		buttons.splice( 1, buttons.length );
+	if (buttons.length > 1) {
+		buttons.splice(1, buttons.length);
 	}
 
 	return buttons;
-} );
+});
 
 // Active buttons
-DataTable.Api.registerPlural( 'buttons().active()', 'button().active()', function ( flag ) {
-	if ( flag === undefined ) {
-		return this.map( function ( set ) {
-			return set.inst.active( set.node );
-		} );
+DataTable.Api.registerPlural('buttons().active()', 'button().active()', function (flag) {
+	if (flag === undefined) {
+		return this.map(function (set) {
+			return set.inst.active(set.node);
+		});
 	}
 
-	return this.each( function ( set ) {
-		set.inst.active( set.node, flag );
-	} );
-} );
+	return this.each(function (set) {
+		set.inst.active(set.node, flag);
+	});
+});
 
 // Get / set button action
-DataTable.Api.registerPlural( 'buttons().action()', 'button().action()', function ( action ) {
-	if ( action === undefined ) {
-		return this.map( function ( set ) {
-			return set.inst.action( set.node );
-		} );
+DataTable.Api.registerPlural('buttons().action()', 'button().action()', function (action) {
+	if (action === undefined) {
+		return this.map(function (set) {
+			return set.inst.action(set.node);
+		});
 	}
 
-	return this.each( function ( set ) {
-		set.inst.action( set.node, action );
-	} );
-} );
+	return this.each(function (set) {
+		set.inst.action(set.node, action);
+	});
+});
+
+// Collection control
+DataTable.Api.registerPlural(
+	'buttons().collectionRebuild()',
+	'button().collectionRebuild()',
+	function (buttons) {
+		return this.each(function (set) {
+			for (var i = 0; i < buttons.length; i++) {
+				if (typeof buttons[i] === 'object') {
+					buttons[i].parentConf = set;
+				}
+			}
+			set.inst.collectionRebuild(set.node, buttons);
+		});
+	}
+);
 
 // Enable / disable buttons
-DataTable.Api.register( ['buttons().enable()', 'button().enable()'], function ( flag ) {
-	return this.each( function ( set ) {
-		set.inst.enable( set.node, flag );
-	} );
-} );
+DataTable.Api.register(['buttons().enable()', 'button().enable()'], function (flag) {
+	return this.each(function (set) {
+		set.inst.enable(set.node, flag);
+	});
+});
 
 // Disable buttons
-DataTable.Api.register( ['buttons().disable()', 'button().disable()'], function () {
-	return this.each( function ( set ) {
-		set.inst.disable( set.node );
-	} );
-} );
+DataTable.Api.register(['buttons().disable()', 'button().disable()'], function () {
+	return this.each(function (set) {
+		set.inst.disable(set.node);
+	});
+});
+
+// Button index
+DataTable.Api.register('button().index()', function () {
+	var idx = null;
+
+	this.each(function (set) {
+		var res = set.inst.index(set.node);
+
+		if (res !== null) {
+			idx = res;
+		}
+	});
+
+	return idx;
+});
 
 // Get button nodes
-DataTable.Api.registerPlural( 'buttons().nodes()', 'button().node()', function () {
+DataTable.Api.registerPlural('buttons().nodes()', 'button().node()', function () {
 	var jq = $();
 
 	// jQuery will automatically reduce duplicates to a single entry
-	$( this.each( function ( set ) {
-		jq = jq.add( set.inst.node( set.node ) );
-	} ) );
+	$(
+		this.each(function (set) {
+			jq = jq.add(set.inst.node(set.node));
+		})
+	);
 
 	return jq;
-} );
+});
 
 // Get / set button processing state
-DataTable.Api.registerPlural( 'buttons().processing()', 'button().processing()', function ( flag ) {
-	if ( flag === undefined ) {
-		return this.map( function ( set ) {
-			return set.inst.processing( set.node );
-		} );
+DataTable.Api.registerPlural('buttons().processing()', 'button().processing()', function (flag) {
+	if (flag === undefined) {
+		return this.map(function (set) {
+			return set.inst.processing(set.node);
+		});
 	}
 
-	return this.each( function ( set ) {
-		set.inst.processing( set.node, flag );
-	} );
-} );
+	return this.each(function (set) {
+		set.inst.processing(set.node, flag);
+	});
+});
 
 // Get / set button text (i.e. the button labels)
-DataTable.Api.registerPlural( 'buttons().text()', 'button().text()', function ( label ) {
-	if ( label === undefined ) {
-		return this.map( function ( set ) {
-			return set.inst.text( set.node );
-		} );
+DataTable.Api.registerPlural('buttons().text()', 'button().text()', function (label) {
+	if (label === undefined) {
+		return this.map(function (set) {
+			return set.inst.text(set.node);
+		});
 	}
 
-	return this.each( function ( set ) {
-		set.inst.text( set.node, label );
-	} );
-} );
+	return this.each(function (set) {
+		set.inst.text(set.node, label);
+	});
+});
 
 // Trigger a button's action
-DataTable.Api.registerPlural( 'buttons().trigger()', 'button().trigger()', function () {
-	return this.each( function ( set ) {
-		set.inst.node( set.node ).trigger( 'click' );
-	} );
-} );
+DataTable.Api.registerPlural('buttons().trigger()', 'button().trigger()', function () {
+	return this.each(function (set) {
+		set.inst.node(set.node).trigger('click');
+	});
+});
 
 // Button resolver to the popover
-DataTable.Api.register( 'button().popover()', function (content, options) {
-	return this.map( function ( set ) {
-		return set.inst._popover( content, this.button(this[0].node), options );
-	} );
-} );
+DataTable.Api.register('button().popover()', function (content, options) {
+	return this.map(function (set) {
+		return set.inst._popover(content, this.button(this[0].node), options);
+	});
+});
 
 // Get the container elements
-DataTable.Api.register( 'buttons().containers()', function () {
+DataTable.Api.register('buttons().containers()', function () {
 	var jq = $();
 	var groupSelector = this._groupSelector;
 
 	// We need to use the group selector directly, since if there are no buttons
 	// the result set will be empty
-	this.iterator( true, 'table', function ( ctx ) {
-		if ( ctx._buttons ) {
-			var insts = Buttons.instanceSelector( groupSelector, ctx._buttons );
+	this.iterator(true, 'table', function (ctx) {
+		if (ctx._buttons) {
+			var insts = Buttons.instanceSelector(groupSelector, ctx._buttons);
 
-			for ( var i=0, ien=insts.length ; i<ien ; i++ ) {
-				jq = jq.add( insts[i].container() );
+			for (var i = 0, ien = insts.length; i < ien; i++) {
+				jq = jq.add(insts[i].container());
 			}
 		}
-	} );
+	});
 
 	return jq;
-} );
+});
 
-DataTable.Api.register( 'buttons().container()', function () {
+DataTable.Api.register('buttons().container()', function () {
 	// API level of nesting is `buttons()` so we can zip into the containers method
 	return this.containers().eq(0);
-} );
+});
 
 // Add a new button
-DataTable.Api.register( 'button().add()', function ( idx, conf ) {
+DataTable.Api.register('button().add()', function (idx, conf, draw) {
 	var ctx = this.context;
 
 	// Don't use `this` as it could be empty - select the instances directly
-	if ( ctx.length ) {
-		var inst = Buttons.instanceSelector( this._groupSelector, ctx[0]._buttons );
+	if (ctx.length) {
+		var inst = Buttons.instanceSelector(this._groupSelector, ctx[0]._buttons);
 
-		if ( inst.length ) {
-			inst[0].add( conf, idx );
+		if (inst.length) {
+			inst[0].add(conf, idx, draw);
 		}
 	}
 
-	return this.button( this._groupSelector, idx );
-} );
+	return this.button(this._groupSelector, idx);
+});
 
 // Destroy the button sets selected
-DataTable.Api.register( 'buttons().destroy()', function () {
-	this.pluck( 'inst' ).unique().each( function ( inst ) {
-		inst.destroy();
-	} );
+DataTable.Api.register('buttons().destroy()', function () {
+	this.pluck('inst')
+		.unique()
+		.each(function (inst) {
+			inst.destroy();
+		});
 
 	return this;
-} );
+});
 
 // Remove a button
-DataTable.Api.registerPlural( 'buttons().remove()', 'buttons().remove()', function () {
-	this.each( function ( set ) {
-		set.inst.remove( set.node );
-	} );
+DataTable.Api.registerPlural('buttons().remove()', 'buttons().remove()', function () {
+	this.each(function (set) {
+		set.inst.remove(set.node);
+	});
 
 	return this;
-} );
+});
 
 // Information box that can be used by buttons
 var _infoTimer;
-DataTable.Api.register( 'buttons.info()', function ( title, message, time ) {
+DataTable.Api.register('buttons.info()', function (title, message, time) {
 	var that = this;
 
-	if ( title === false ) {
+	if (title === false) {
 		this.off('destroy.btn-info');
-		_fadeOut(
-			$('#datatables_buttons_info'),
-			400,
-			function () {
-				$(this).remove();
-			}
-		);
-		clearTimeout( _infoTimer );
+		_fadeOut($('#datatables_buttons_info'), 400, function () {
+			$(this).remove();
+		});
+		clearTimeout(_infoTimer);
 		_infoTimer = null;
 
 		return this;
 	}
 
-	if ( _infoTimer ) {
-		clearTimeout( _infoTimer );
+	if (_infoTimer) {
+		clearTimeout(_infoTimer);
 	}
 
-	if ( $('#datatables_buttons_info').length ) {
+	if ($('#datatables_buttons_info').length) {
 		$('#datatables_buttons_info').remove();
 	}
 
-	title = title ? '<h2>'+title+'</h2>' : '';
+	title = title ? '<h2>' + title + '</h2>' : '';
 
 	_fadeIn(
 		$('<div id="datatables_buttons_info" class="dt-button-info"/>')
-			.html( title )
-			.append( $('<div/>')[ typeof message === 'string' ? 'html' : 'append' ]( message ) )
-			.css( 'display', 'none' )
-			.appendTo( 'body' )
+			.html(title)
+			.append($('<div/>')[typeof message === 'string' ? 'html' : 'append'](message))
+			.css('display', 'none')
+			.appendTo('body')
 	);
 
-	if ( time !== undefined && time !== 0 ) {
-		_infoTimer = setTimeout( function () {
-			that.buttons.info( false );
-		}, time );
+	if (time !== undefined && time !== 0) {
+		_infoTimer = setTimeout(function () {
+			that.buttons.info(false);
+		}, time);
 	}
 
 	this.on('destroy.btn-info', function () {
@@ -17299,32 +18114,30 @@ DataTable.Api.register( 'buttons.info()', function ( title, message, time ) {
 	});
 
 	return this;
-} );
+});
 
 // Get data from the table for export - this is common to a number of plug-in
 // buttons so it is included in the Buttons core library
-DataTable.Api.register( 'buttons.exportData()', function ( options ) {
-	if ( this.context.length ) {
-		return _exportData( new DataTable.Api( this.context[0] ), options );
+DataTable.Api.register('buttons.exportData()', function (options) {
+	if (this.context.length) {
+		return _exportData(new DataTable.Api(this.context[0]), options);
 	}
-} );
+});
 
 // Get information about the export that is common to many of the export data
 // types (DRY)
-DataTable.Api.register( 'buttons.exportInfo()', function ( conf ) {
-	if ( ! conf ) {
+DataTable.Api.register('buttons.exportInfo()', function (conf) {
+	if (!conf) {
 		conf = {};
 	}
 
 	return {
-		filename: _filename( conf ),
-		title: _title( conf ),
+		filename: _filename(conf),
+		title: _title(conf),
 		messageTop: _message(this, conf.message || conf.messageTop, 'top'),
 		messageBottom: _message(this, conf.messageBottom, 'bottom')
 	};
-} );
-
-
+});
 
 /**
  * Get the file name for an exported file.
@@ -17332,30 +18145,34 @@ DataTable.Api.register( 'buttons.exportInfo()', function ( conf ) {
  * @param {object}	config Button configuration
  * @param {boolean} incExtension Include the file name extension
  */
-var _filename = function ( config )
-{
+var _filename = function (config) {
 	// Backwards compatibility
-	var filename = config.filename === '*' && config.title !== '*' && config.title !== undefined && config.title !== null && config.title !== '' ?
-		config.title :
-		config.filename;
+	var filename =
+		config.filename === '*' &&
+		config.title !== '*' &&
+		config.title !== undefined &&
+		config.title !== null &&
+		config.title !== ''
+			? config.title
+			: config.filename;
 
-	if ( typeof filename === 'function' ) {
+	if (typeof filename === 'function') {
 		filename = filename();
 	}
 
-	if ( filename === undefined || filename === null ) {
+	if (filename === undefined || filename === null) {
 		return null;
 	}
 
-	if ( filename.indexOf( '*' ) !== -1 ) {
-		filename = filename.replace( '*', $('head > title').text() ).trim();
+	if (filename.indexOf('*') !== -1) {
+		filename = filename.replace('*', $('head > title').text()).trim();
 	}
 
 	// Strip characters which the OS will object to
-	filename = filename.replace(/[^a-zA-Z0-9_\u00A1-\uFFFF\.,\-_ !\(\)]/g, "");
+	filename = filename.replace(/[^a-zA-Z0-9_\u00A1-\uFFFF\.,\-_ !\(\)]/g, '');
 
-	var extension = _stringOrFunction( config.extension );
-	if ( ! extension ) {
+	var extension = _stringOrFunction(config.extension);
+	if (!extension) {
 		extension = '';
 	}
 
@@ -17368,12 +18185,11 @@ var _filename = function ( config )
  * @param {undefined|string|function} option Option
  * @return {null|string} Resolved value
  */
-var _stringOrFunction = function ( option )
-{
-	if ( option === null || option === undefined ) {
+var _stringOrFunction = function (option) {
+	if (option === null || option === undefined) {
 		return null;
 	}
-	else if ( typeof option === 'function' ) {
+	else if (typeof option === 'function') {
 		return option();
 	}
 	return option;
@@ -17384,111 +18200,113 @@ var _stringOrFunction = function ( option )
  *
  * @param {object} config	Button configuration
  */
-var _title = function ( config )
-{
-	var title = _stringOrFunction( config.title );
+var _title = function (config) {
+	var title = _stringOrFunction(config.title);
 
-	return title === null ?
-		null : title.indexOf( '*' ) !== -1 ?
-			title.replace( '*', $('head > title').text() || 'Exported data' ) :
-			title;
+	return title === null
+		? null
+		: title.indexOf('*') !== -1
+		? title.replace('*', $('head > title').text() || 'Exported data')
+		: title;
 };
 
-var _message = function ( dt, option, position )
-{
-	var message = _stringOrFunction( option );
-	if ( message === null ) {
+var _message = function (dt, option, position) {
+	var message = _stringOrFunction(option);
+	if (message === null) {
 		return null;
 	}
 
 	var caption = $('caption', dt.table().container()).eq(0);
-	if ( message === '*' ) {
-		var side = caption.css( 'caption-side' );
-		if ( side !== position ) {
+	if (message === '*') {
+		var side = caption.css('caption-side');
+		if (side !== position) {
 			return null;
 		}
 
-		return caption.length ?
-			caption.text() :
-			'';
+		return caption.length ? caption.text() : '';
 	}
 
 	return message;
 };
 
-
-
-
 var _exportTextarea = $('<textarea/>')[0];
-var _exportData = function ( dt, inOpts )
-{
-	var config = $.extend( true, {}, {
-		rows:           null,
-		columns:        '',
-		modifier:       {
-			search: 'applied',
-			order:  'applied'
-		},
-		orthogonal:     'display',
-		stripHtml:      true,
-		stripNewlines:  true,
-		decodeEntities: true,
-		trim:           true,
-		format:         {
-			header: function ( d ) {
-				return Buttons.stripData( d, config );
+var _exportData = function (dt, inOpts) {
+	var config = $.extend(
+		true,
+		{},
+		{
+			rows: null,
+			columns: '',
+			modifier: {
+				search: 'applied',
+				order: 'applied'
 			},
-			footer: function ( d ) {
-				return Buttons.stripData( d, config );
+			orthogonal: 'display',
+			stripHtml: true,
+			stripNewlines: true,
+			decodeEntities: true,
+			trim: true,
+			format: {
+				header: function (d) {
+					return Buttons.stripData(d, config);
+				},
+				footer: function (d) {
+					return Buttons.stripData(d, config);
+				},
+				body: function (d) {
+					return Buttons.stripData(d, config);
+				}
 			},
-			body: function ( d ) {
-				return Buttons.stripData( d, config );
-			}
+			customizeData: null
 		},
-		customizeData: null
-	}, inOpts );
+		inOpts
+	);
 
-	var header = dt.columns( config.columns ).indexes().map( function (idx) {
-		var el = dt.column( idx ).header();
-		return config.format.header( el.innerHTML, idx, el );
-	} ).toArray();
+	var header = dt
+		.columns(config.columns)
+		.indexes()
+		.map(function (idx) {
+			var el = dt.column(idx).header();
+			return config.format.header(el.innerHTML, idx, el);
+		})
+		.toArray();
 
-	var footer = dt.table().footer() ?
-		dt.columns( config.columns ).indexes().map( function (idx) {
-			var el = dt.column( idx ).footer();
-			return config.format.footer( el ? el.innerHTML : '', idx, el );
-		} ).toArray() :
-		null;
-	
+	var footer = dt.table().footer()
+		? dt
+				.columns(config.columns)
+				.indexes()
+				.map(function (idx) {
+					var el = dt.column(idx).footer();
+					return config.format.footer(el ? el.innerHTML : '', idx, el);
+				})
+				.toArray()
+		: null;
+
 	// If Select is available on this table, and any rows are selected, limit the export
 	// to the selected rows. If no rows are selected, all rows will be exported. Specify
 	// a `selected` modifier to control directly.
-	var modifier = $.extend( {}, config.modifier );
-	if ( dt.select && typeof dt.select.info === 'function' && modifier.selected === undefined ) {
-		if ( dt.rows( config.rows, $.extend( { selected: true }, modifier ) ).any() ) {
-			$.extend( modifier, { selected: true } )
+	var modifier = $.extend({}, config.modifier);
+	if (dt.select && typeof dt.select.info === 'function' && modifier.selected === undefined) {
+		if (dt.rows(config.rows, $.extend({ selected: true }, modifier)).any()) {
+			$.extend(modifier, { selected: true });
 		}
 	}
 
-	var rowIndexes = dt.rows( config.rows, modifier ).indexes().toArray();
-	var selectedCells = dt.cells( rowIndexes, config.columns );
-	var cells = selectedCells
-		.render( config.orthogonal )
-		.toArray();
-	var cellNodes = selectedCells
-		.nodes()
-		.toArray();
+	var rowIndexes = dt.rows(config.rows, modifier).indexes().toArray();
+	var selectedCells = dt.cells(rowIndexes, config.columns);
+	var cells = selectedCells.render(config.orthogonal).toArray();
+	var cellNodes = selectedCells.nodes().toArray();
 
 	var columns = header.length;
 	var rows = columns > 0 ? cells.length / columns : 0;
 	var body = [];
 	var cellCounter = 0;
 
-	for ( var i=0, ien=rows ; i<ien ; i++ ) {
-		var row = [ columns ];
+	for (var i = 0, ien = rows; i < ien; i++) {
+		var row = [columns];
 
-		for ( var j=0 ; j<columns ; j++ ) {
-			row[j] = config.format.body( cells[ cellCounter ], i, j, cellNodes[ cellCounter ] );
+		for (var j = 0; j < columns; j++) {
+			row[j] = config.format.body(cells[cellCounter], i, j, cellNodes[cellCounter]);
 			cellCounter++;
 		}
 
@@ -17498,16 +18316,15 @@ var _exportData = function ( dt, inOpts )
 	var data = {
 		header: header,
 		footer: footer,
-		body:   body
+		body: body
 	};
 
-	if ( config.customizeData ) {
-		config.customizeData( data );
+	if (config.customizeData) {
+		config.customizeData(data);
 	}
 
 	return data;
 };
-
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * DataTables interface
@@ -17517,93 +18334,90 @@ var _exportData = function ( dt, inOpts )
 $.fn.dataTable.Buttons = Buttons;
 $.fn.DataTable.Buttons = Buttons;
 
-
-
 // DataTables creation - check if the buttons have been defined for this table,
 // they will have been if the `B` option was used in `dom`, otherwise we should
 // create the buttons instance here so they can be inserted into the document
 // using the API. Listen for `init` for compatibility with pre 1.10.10, but to
 // be removed in future.
-$(document).on( 'init.dt plugin-init.dt', function (e, settings) {
-	if ( e.namespace !== 'dt' ) {
+$(document).on('init.dt plugin-init.dt', function (e, settings) {
+	if (e.namespace !== 'dt') {
 		return;
 	}
 
 	var opts = settings.oInit.buttons || DataTable.defaults.buttons;
 
-	if ( opts && ! settings._buttons ) {
-		new Buttons( settings, opts ).container();
+	if (opts && !settings._buttons) {
+		new Buttons(settings, opts).container();
 	}
-} );
+});
 
-function _init ( settings, options ) {
-	var api = new DataTable.Api( settings );
-	var opts = options
-		? options
-		: api.init().buttons || DataTable.defaults.buttons;
+function _init(settings, options) {
+	var api = new DataTable.Api(settings);
+	var opts = options ? options : api.init().buttons || DataTable.defaults.buttons;
 
-	return new Buttons( api, opts ).container();
+	return new Buttons(api, opts).container();
 }
 
 // DataTables `dom` feature option
-DataTable.ext.feature.push( {
+DataTable.ext.feature.push({
 	fnInit: _init,
-	cFeature: "B"
-} );
+	cFeature: 'B'
+});
 
 // DataTables 2 layout feature
-if ( DataTable.ext.features ) {
-	DataTable.ext.features.register( 'buttons', _init );
+if (DataTable.ext.features) {
+	DataTable.ext.features.register('buttons', _init);
 }
 
 
-return Buttons;
+return DataTable;
 }));
 
 
-/*! Select for DataTables 1.3.3
- * 2015-2021 SpryMedia Ltd - datatables.net/license/mit
+/*! DataTables styling wrapper for Buttons
+ * © SpryMedia Ltd - datatables.net/license
  */
 
-/**
- * @summary     Select for DataTables
- * @description A collection of API methods, events and buttons for DataTables
- *   that provides selection options of the items in a DataTable
- * @version     1.3.3
- * @file        dataTables.select.js
- * @author      SpryMedia Ltd (www.sprymedia.co.uk)
- * @contact     datatables.net/forums
- * @copyright   Copyright 2015-2021 SpryMedia Ltd.
- *
- * This source file is free software, available under the following license:
- *   MIT license - http://datatables.net/license/mit
- *
- * This source file is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the license files for details.
- *
- * For details please refer to: http://www.datatables.net/extensions/select
- */
 (function( factory ){
 	if ( typeof define === 'function' && define.amd ) {
 		// AMD
-		define( ['jquery', 'datatables.net'], function ( $ ) {
+		define( ['jquery', 'datatables.net-dt', 'datatables.net-buttons'], function ( $ ) {
 			return factory( $, window, document );
 		} );
 	}
 	else if ( typeof exports === 'object' ) {
 		// CommonJS
-		module.exports = function (root, $) {
-			if ( ! root ) {
-				root = window;
+		var jq = require('jquery');
+		var cjsRequires = function (root, $) {
+			if ( ! $.fn.dataTable ) {
+				require('datatables.net-dt')(root, $);
 			}
 
-			if ( ! $ || ! $.fn.dataTable ) {
-				$ = require('datatables.net')(root, $).$;
+			if ( ! $.fn.dataTable.Buttons ) {
+				require('datatables.net-buttons')(root, $);
 			}
-
-			return factory( $, root, root.document );
 		};
+
+		if (typeof window === 'undefined') {
+			module.exports = function (root, $) {
+				if ( ! root ) {
+					// CommonJS environments without a window global must pass a
+					// root. This will give an error otherwise
+					root = window;
+				}
+
+				if ( ! $ ) {
+					$ = jq( root );
+				}
+
+				cjsRequires( root, $ );
+				return factory( $, root, root.document );
+			};
+		}
+		else {
+			cjsRequires( window, jq );
+			module.exports = factory( jq, window, window.document );
+		}
 	}
 	else {
 		// Browser
@@ -17614,18 +18428,126 @@ return Buttons;
 var DataTable = $.fn.dataTable;
 
 
+
+
+return DataTable;
+}));
+
+
+/*! Select for DataTables 1.7.0
+ * © SpryMedia Ltd - datatables.net/license/mit
+ */
+
+(function( factory ){
+	if ( typeof define === 'function' && define.amd ) {
+		// AMD
+		define( ['jquery', 'datatables.net'], function ( $ ) {
+			return factory( $, window, document );
+		} );
+	}
+	else if ( typeof exports === 'object' ) {
+		// CommonJS
+		var jq = require('jquery');
+		var cjsRequires = function (root, $) {
+			if ( ! $.fn.dataTable ) {
+				require('datatables.net')(root, $);
+			}
+		};
+
+		if (typeof window === 'undefined') {
+			module.exports = function (root, $) {
+				if ( ! root ) {
+					// CommonJS environments without a window global must pass a
+					// root. This will give an error otherwise
+					root = window;
+				}
+
+				if ( ! $ ) {
+					$ = jq( root );
+				}
+
+				cjsRequires( root, $ );
+				return factory( $, root, root.document );
+			};
+		}
+		else {
+			cjsRequires( window, jq );
+			module.exports = factory( jq, window, window.document );
+		}
+	}
+	else {
+		// Browser
+		factory( jQuery, window, document );
+	}
+}(function( $, window, document, undefined ) {
+'use strict';
+var DataTable = $.fn.dataTable;
+
+
+
 // Version information for debugger
 DataTable.select = {};
 
-DataTable.select.version = '1.3.3';
+DataTable.select.version = '1.7.0';
 
-DataTable.select.init = function ( dt ) {
+DataTable.select.init = function (dt) {
 	var ctx = dt.settings()[0];
+
+	if (ctx._select) {
+		return;
+	}
+
+	var savedSelected = dt.state.loaded();
+
+	var selectAndSave = function (e, settings, data) {
+		if (data === null || data.select === undefined) {
+			return;
+		}
+
+		// Clear any currently selected rows, before restoring state
+		// None will be selected on first initialisation
+		if (dt.rows({ selected: true }).any()) {
+			dt.rows().deselect();
+		}
+		if (data.select.rows !== undefined) {
+			dt.rows(data.select.rows).select();
+		}
+
+		if (dt.columns({ selected: true }).any()) {
+			dt.columns().deselect();
+		}
+		if (data.select.columns !== undefined) {
+			dt.columns(data.select.columns).select();
+		}
+
+		if (dt.cells({ selected: true }).any()) {
+			dt.cells().deselect();
+		}
+		if (data.select.cells !== undefined) {
+			for (var i = 0; i < data.select.cells.length; i++) {
+				dt.cell(data.select.cells[i].row, data.select.cells[i].column).select();
+			}
+		}
+
+		dt.state.save();
+	};
+
+	dt.on('stateSaveParams', function (e, settings, data) {
+		data.select = {};
+		data.select.rows = dt.rows({ selected: true }).ids(true).toArray();
+		data.select.columns = dt.columns({ selected: true })[0];
+		data.select.cells = dt.cells({ selected: true })[0].map(function (coords) {
+			return { row: dt.row(coords.row).id(true), column: coords.column };
+		});
+	})
+		.on('stateLoadParams', selectAndSave)
+		.one('init', function () {
+			selectAndSave(undefined, undefined, savedSelected);
+		});
+
 	var init = ctx.oInit.select;
 	var defaults = DataTable.defaults.select;
-	var opts = init === undefined ?
-		defaults :
-		init;
+	var opts = init === undefined ? defaults : init;
 
 	// Set defaults
 	var items = 'row';
@@ -17640,32 +18562,32 @@ DataTable.select.init = function ( dt ) {
 	ctx._select = {};
 
 	// Initialisation customisations
-	if ( opts === true ) {
+	if (opts === true) {
 		style = 'os';
 		setStyle = true;
 	}
-	else if ( typeof opts === 'string' ) {
+	else if (typeof opts === 'string') {
 		style = opts;
 		setStyle = true;
 	}
-	else if ( $.isPlainObject( opts ) ) {
-		if ( opts.blurable !== undefined ) {
+	else if ($.isPlainObject(opts)) {
+		if (opts.blurable !== undefined) {
 			blurable = opts.blurable;
 		}
-		
-		if ( opts.toggleable !== undefined ) {
+
+		if (opts.toggleable !== undefined) {
 			toggleable = opts.toggleable;
 		}
 
-		if ( opts.info !== undefined ) {
+		if (opts.info !== undefined) {
 			info = opts.info;
 		}
 
-		if ( opts.items !== undefined ) {
+		if (opts.items !== undefined) {
 			items = opts.items;
 		}
 
-		if ( opts.style !== undefined ) {
+		if (opts.style !== undefined) {
 			style = opts.style;
 			setStyle = true;
 		}
@@ -17674,40 +18596,43 @@ DataTable.select.init = function ( dt ) {
 			setStyle = true;
 		}
 
-		if ( opts.selector !== undefined ) {
+		if (opts.selector !== undefined) {
 			selector = opts.selector;
 		}
 
-		if ( opts.className !== undefined ) {
+		if (opts.className !== undefined) {
 			className = opts.className;
 		}
 	}
 
-	dt.select.selector( selector );
-	dt.select.items( items );
-	dt.select.style( style );
-	dt.select.blurable( blurable );
-	dt.select.toggleable( toggleable );
-	dt.select.info( info );
+	dt.select.selector(selector);
+	dt.select.items(items);
+	dt.select.style(style);
+	dt.select.blurable(blurable);
+	dt.select.toggleable(toggleable);
+	dt.select.info(info);
 	ctx._select.className = className;
 
-
 	// Sort table based on selected rows. Requires Select Datatables extension
-	$.fn.dataTable.ext.order['select-checkbox'] = function ( settings, col ) {
-		return this.api().column( col, {order: 'index'} ).nodes().map( function ( td ) {
-			if ( settings._select.items === 'row' ) {
-				return $( td ).parent().hasClass( settings._select.className );
-			} else if ( settings._select.items === 'cell' ) {
-				return $( td ).hasClass( settings._select.className );
-			}
-			return false;
-		});
+	$.fn.dataTable.ext.order['select-checkbox'] = function (settings, col) {
+		return this.api()
+			.column(col, { order: 'index' })
+			.nodes()
+			.map(function (td) {
+				if (settings._select.items === 'row') {
+					return $(td).parent().hasClass(settings._select.className);
+				}
+				else if (settings._select.items === 'cell') {
+					return $(td).hasClass(settings._select.className);
+				}
+				return false;
+			});
 	};
 
 	// If the init options haven't enabled select, but there is a selectable
 	// class name, then enable
-	if ( ! setStyle && $( dt.table().node() ).hasClass( 'selectable' ) ) {
-		dt.select.style( 'os' );
+	if (!setStyle && $(dt.table().node()).hasClass('selectable')) {
+		dt.select.style('os');
 	}
 };
 
@@ -17775,7 +18700,6 @@ handler that will select the items using the API methods.
 
  */
 
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Local functions
  */
@@ -17788,84 +18712,87 @@ handler that will select the items using the API methods.
  * in the visible grid rather than by index in sequence. For example, if you
  * click first in cell 1-1 and then shift click in 2-2 - cells 1-2 and 2-1
  * should also be selected (and not 1-3, 1-4. etc)
- * 
+ *
  * @param  {DataTable.Api} dt   DataTable
  * @param  {object}        idx  Cell index to select to
  * @param  {object}        last Cell index to select from
  * @private
  */
-function cellRange( dt, idx, last )
-{
+function cellRange(dt, idx, last) {
 	var indexes;
 	var columnIndexes;
 	var rowIndexes;
-	var selectColumns = function ( start, end ) {
-		if ( start > end ) {
+	var selectColumns = function (start, end) {
+		if (start > end) {
 			var tmp = end;
 			end = start;
 			start = tmp;
 		}
-		
-		var record = false;
-		return dt.columns( ':visible' ).indexes().filter( function (i) {
-			if ( i === start ) {
-				record = true;
-			}
-			
-			if ( i === end ) { // not else if, as start might === end
-				record = false;
-				return true;
-			}
 
-			return record;
-		} );
+		var record = false;
+		return dt
+			.columns(':visible')
+			.indexes()
+			.filter(function (i) {
+				if (i === start) {
+					record = true;
+				}
+
+				if (i === end) {
+					// not else if, as start might === end
+					record = false;
+					return true;
+				}
+
+				return record;
+			});
 	};
 
-	var selectRows = function ( start, end ) {
-		var indexes = dt.rows( { search: 'applied' } ).indexes();
+	var selectRows = function (start, end) {
+		var indexes = dt.rows({ search: 'applied' }).indexes();
 
 		// Which comes first - might need to swap
-		if ( indexes.indexOf( start ) > indexes.indexOf( end ) ) {
+		if (indexes.indexOf(start) > indexes.indexOf(end)) {
 			var tmp = end;
 			end = start;
 			start = tmp;
 		}
 
 		var record = false;
-		return indexes.filter( function (i) {
-			if ( i === start ) {
+		return indexes.filter(function (i) {
+			if (i === start) {
 				record = true;
 			}
-			
-			if ( i === end ) {
+
+			if (i === end) {
 				record = false;
 				return true;
 			}
 
 			return record;
-		} );
+		});
 	};
 
-	if ( ! dt.cells( { selected: true } ).any() && ! last ) {
+	if (!dt.cells({ selected: true }).any() && !last) {
 		// select from the top left cell to this one
-		columnIndexes = selectColumns( 0, idx.column );
-		rowIndexes = selectRows( 0 , idx.row );
+		columnIndexes = selectColumns(0, idx.column);
+		rowIndexes = selectRows(0, idx.row);
 	}
 	else {
 		// Get column indexes between old and new
-		columnIndexes = selectColumns( last.column, idx.column );
-		rowIndexes = selectRows( last.row , idx.row );
+		columnIndexes = selectColumns(last.column, idx.column);
+		rowIndexes = selectRows(last.row, idx.row);
 	}
 
-	indexes = dt.cells( rowIndexes, columnIndexes ).flatten();
+	indexes = dt.cells(rowIndexes, columnIndexes).flatten();
 
-	if ( ! dt.cells( idx, { selected: true } ).any() ) {
+	if (!dt.cells(idx, { selected: true }).any()) {
 		// Select range
-		dt.cells( indexes ).select();
+		dt.cells(indexes).select();
 	}
 	else {
 		// Deselect range
-		dt.cells( indexes ).deselect();
+		dt.cells(indexes).deselect();
 	}
 }
 
@@ -17875,17 +18802,16 @@ function cellRange( dt, idx, last )
  * @param {DataTable.Api} dt DataTable to remove events from
  * @private
  */
-function disableMouseSelection( dt )
-{
+function disableMouseSelection(dt) {
 	var ctx = dt.settings()[0];
 	var selector = ctx._select.selector;
 
-	$( dt.table().container() )
-		.off( 'mousedown.dtSelect', selector )
-		.off( 'mouseup.dtSelect', selector )
-		.off( 'click.dtSelect', selector );
+	$(dt.table().container())
+		.off('mousedown.dtSelect', selector)
+		.off('mouseup.dtSelect', selector)
+		.off('click.dtSelect', selector);
 
-	$('body').off( 'click.dtSelect' + _safeId(dt.table().node()) );
+	$('body').off('click.dtSelect' + _safeId(dt.table().node()));
 }
 
 /**
@@ -17894,47 +18820,49 @@ function disableMouseSelection( dt )
  * @param {DataTable.Api} dt DataTable to remove events from
  * @private
  */
-function enableMouseSelection ( dt )
-{
-	var container = $( dt.table().container() );
+function enableMouseSelection(dt) {
+	var container = $(dt.table().container());
 	var ctx = dt.settings()[0];
 	var selector = ctx._select.selector;
 	var matchSelection;
 
 	container
-		.on( 'mousedown.dtSelect', selector, function(e) {
+		.on('mousedown.dtSelect', selector, function (e) {
 			// Disallow text selection for shift clicking on the table so multi
 			// element selection doesn't look terrible!
-			if ( e.shiftKey || e.metaKey || e.ctrlKey ) {
+			if (e.shiftKey || e.metaKey || e.ctrlKey) {
 				container
-					.css( '-moz-user-select', 'none' )
+					.css('-moz-user-select', 'none')
 					.one('selectstart.dtSelect', selector, function () {
 						return false;
-					} );
+					});
 			}
 
-			if ( window.getSelection ) {
+			if (window.getSelection) {
 				matchSelection = window.getSelection();
 			}
-		} )
-		.on( 'mouseup.dtSelect', selector, function() {
+		})
+		.on('mouseup.dtSelect', selector, function () {
 			// Allow text selection to occur again, Mozilla style (tested in FF
 			// 35.0.1 - still required)
-			container.css( '-moz-user-select', '' );
-		} )
-		.on( 'click.dtSelect', selector, function ( e ) {
+			container.css('-moz-user-select', '');
+		})
+		.on('click.dtSelect', selector, function (e) {
 			var items = dt.select.items();
 			var idx;
 
 			// If text was selected (click and drag), then we shouldn't change
 			// the row's selected state
-			if ( matchSelection ) {
+			if (matchSelection) {
 				var selection = window.getSelection();
 
 				// If the element that contains the selection is not in the table, we can ignore it
 				// This can happen if the developer selects text from the click event
-				if ( ! selection.anchorNode || $(selection.anchorNode).closest('table')[0] === dt.table().node() ) {
-					if ( selection !== matchSelection ) {
+				if (
+					!selection.anchorNode ||
+					$(selection.anchorNode).closest('table')[0] === dt.table().node()
+				) {
+					if (selection !== matchSelection) {
 						return;
 					}
 				}
@@ -17944,64 +18872,71 @@ function enableMouseSelection ( dt )
 			var wrapperClass = dt.settings()[0].oClasses.sWrapper.trim().replace(/ +/g, '.');
 
 			// Ignore clicks inside a sub-table
-			if ( $(e.target).closest('div.'+wrapperClass)[0] != dt.table().container() ) {
+			if ($(e.target).closest('div.' + wrapperClass)[0] != dt.table().container()) {
 				return;
 			}
 
-			var cell = dt.cell( $(e.target).closest('td, th') );
+			var cell = dt.cell($(e.target).closest('td, th'));
 
 			// Check the cell actually belongs to the host DataTable (so child
 			// rows, etc, are ignored)
-			if ( ! cell.any() ) {
+			if (!cell.any()) {
 				return;
 			}
 
 			var event = $.Event('user-select.dt');
-			eventTrigger( dt, event, [ items, cell, e ] );
+			eventTrigger(dt, event, [items, cell, e]);
 
-			if ( event.isDefaultPrevented() ) {
+			if (event.isDefaultPrevented()) {
 				return;
 			}
 
 			var cellIndex = cell.index();
-			if ( items === 'row' ) {
+			if (items === 'row') {
 				idx = cellIndex.row;
-				typeSelect( e, dt, ctx, 'row', idx );
+				typeSelect(e, dt, ctx, 'row', idx);
 			}
-			else if ( items === 'column' ) {
+			else if (items === 'column') {
 				idx = cell.index().column;
-				typeSelect( e, dt, ctx, 'column', idx );
+				typeSelect(e, dt, ctx, 'column', idx);
 			}
-			else if ( items === 'cell' ) {
+			else if (items === 'cell') {
 				idx = cell.index();
-				typeSelect( e, dt, ctx, 'cell', idx );
+				typeSelect(e, dt, ctx, 'cell', idx);
 			}
 
 			ctx._select_lastCell = cellIndex;
-		} );
+		});
 
 	// Blurable
-	$('body').on( 'click.dtSelect' + _safeId(dt.table().node()), function ( e ) {
-		if ( ctx._select.blurable ) {
+	$('body').on('click.dtSelect' + _safeId(dt.table().node()), function (e) {
+		if (ctx._select.blurable) {
 			// If the click was inside the DataTables container, don't blur
-			if ( $(e.target).parents().filter( dt.table().container() ).length ) {
+			if ($(e.target).parents().filter(dt.table().container()).length) {
 				return;
 			}
 
 			// Ignore elements which have been removed from the DOM (i.e. paging
 			// buttons)
-			if ( $(e.target).parents('html').length === 0 ) {
-			 	return;
-			}
-
-			// Don't blur in Editor form
-			if ( $(e.target).parents('div.DTE').length ) {
+			if ($(e.target).parents('html').length === 0) {
 				return;
 			}
 
-			clear( ctx, true );
+			// Don't blur in Editor form
+			if ($(e.target).parents('div.DTE').length) {
+				return;
+			}
+
+			var event = $.Event('select-blur.dt');
+			eventTrigger(dt, event, [e.target, e]);
+
+			if (event.isDefaultPrevented()) {
+				return;
+			}
+
+			clear(ctx, true);
 		}
-	} );
+	});
 }
 
 /**
@@ -18014,70 +18949,72 @@ function enableMouseSelection ( dt )
  *     triggering
  * @private
  */
-function eventTrigger ( api, type, args, any )
-{
-	if ( any && ! api.flatten().length ) {
+function eventTrigger(api, type, args, any) {
+	if (any && !api.flatten().length) {
 		return;
 	}
 
-	if ( typeof type === 'string' ) {
-		type = type +'.dt';
+	if (typeof type === 'string') {
+		type = type + '.dt';
 	}
 
-	args.unshift( api );
+	args.unshift(api);
 
-	$(api.table().node()).trigger( type, args );
+	$(api.table().node()).trigger(type, args);
 }
 
 /**
  * Update the information element of the DataTable showing information about the
  * items selected. This is done by adding tags to the existing text
- * 
+ *
  * @param {DataTable.Api} api DataTable to update
  * @private
  */
-function info ( api )
-{
+function info(api) {
 	var ctx = api.settings()[0];
 
-	if ( ! ctx._select.info || ! ctx.aanFeatures.i ) {
+	if (!ctx._select.info || !ctx.aanFeatures.i) {
 		return;
 	}
 
-	if ( api.select.style() === 'api' ) {
+	if (api.select.style() === 'api') {
 		return;
 	}
 
-	var rows    = api.rows( { selected: true } ).flatten().length;
-	var columns = api.columns( { selected: true } ).flatten().length;
-	var cells   = api.cells( { selected: true } ).flatten().length;
+	var rows = api.rows({ selected: true }).flatten().length;
+	var columns = api.columns({ selected: true }).flatten().length;
+	var cells = api.cells({ selected: true }).flatten().length;
 
-	var add = function ( el, name, num ) {
-		el.append( $('<span class="select-item"/>').append( api.i18n(
-			'select.'+name+'s',
-			{ _: '%d '+name+'s selected', 0: '', 1: '1 '+name+' selected' },
-			num
-		) ) );
+	var add = function (el, name, num) {
+		el.append(
+			$('<span class="select-item"/>').append(
+				api.i18n(
+					'select.' + name + 's',
+					{ _: '%d ' + name + 's selected', 0: '', 1: '1 ' + name + ' selected' },
+					num
+				)
+			)
+		);
 	};
 
 	// Internal knowledge of DataTables to loop over all information elements
-	$.each( ctx.aanFeatures.i, function ( i, el ) {
+	$.each(ctx.aanFeatures.i, function (i, el) {
 		el = $(el);
 
-		var output  = $('<span class="select-info"/>');
-		add( output, 'row', rows );
-		add( output, 'column', columns );
-		add( output, 'cell', cells  );
+		var output = $('<span class="select-info"/>');
+		add(output, 'row', rows);
+		add(output, 'column', columns);
+		add(output, 'cell', cells);
 
 		var exisiting = el.children('span.select-info');
-		if ( exisiting.length ) {
+		if (exisiting.length) {
 			exisiting.remove();
 		}
 
-		if ( output.text() !== '' ) {
-			el.append( output );
+		if (output.text() !== '') {
+			el.append(output);
 		}
-	} );
+	});
 }
 
 /**
@@ -18090,40 +19027,44 @@ function info ( api )
  * @param  {DataTable.settings} ctx Settings object to operate on
  * @private
  */
-function init ( ctx ) {
-	var api = new DataTable.Api( ctx );
+function init(ctx) {
+	var api = new DataTable.Api(ctx);
+	ctx._select_init = true;
 
 	// Row callback so that classes can be added to rows and cells if the item
 	// was selected before the element was created. This will happen with the
 	// `deferRender` option enabled.
-	// 
+	//
 	// This method of attaching to `aoRowCreatedCallback` is a hack until
 	// DataTables has proper events for row manipulation If you are reviewing
 	// this code to create your own plug-ins, please do not do this!
-	ctx.aoRowCreatedCallback.push( {
-		fn: function ( row, data, index ) {
+	ctx.aoRowCreatedCallback.push({
+		fn: function (row, data, index) {
 			var i, ien;
-			var d = ctx.aoData[ index ];
+			var d = ctx.aoData[index];
 
 			// Row
-			if ( d._select_selected ) {
-				$( row ).addClass( ctx._select.className );
+			if (d._select_selected) {
+				$(row).addClass(ctx._select.className);
 			}
 
 			// Cells and columns - if separated out, we would need to do two
 			// loops, so it makes sense to combine them into a single one
-			for ( i=0, ien=ctx.aoColumns.length ; i<ien ; i++ ) {
-				if ( ctx.aoColumns[i]._select_selected || (d._selected_cells && d._selected_cells[i]) ) {
-					$(d.anCells[i]).addClass( ctx._select.className );
+			for (i = 0, ien = ctx.aoColumns.length; i < ien; i++) {
+				if (
+					ctx.aoColumns[i]._select_selected ||
+					(d._selected_cells && d._selected_cells[i])
+				) {
+					$(d.anCells[i]).addClass(ctx._select.className);
 				}
 			}
 		},
 		sName: 'select-deferRender'
-	} );
+	});
 
 	// On Ajax reload we want to reselect all rows which are currently selected,
 	// if there is an rowId (i.e. a unique value to identify each row with)
-	api.on( 'preXhr.dt.dtSelect', function (e, settings) {
+	api.on('preXhr.dt.dtSelect', function (e, settings) {
 		if (settings !== api.settings()[0]) {
 			// Not triggered by our DataTable!
 			return;
@@ -18131,44 +19072,52 @@ function init ( ctx ) {
 
 		// note that column selection doesn't need to be cached and then
 		// reselected, as they are already selected
-		var rows = api.rows( { selected: true } ).ids( true ).filter( function ( d ) {
-			return d !== undefined;
-		} );
+		var rows = api
+			.rows({ selected: true })
+			.ids(true)
+			.filter(function (d) {
+				return d !== undefined;
+			});
 
-		var cells = api.cells( { selected: true } ).eq(0).map( function ( cellIdx ) {
-			var id = api.row( cellIdx.row ).id( true );
-			return id ?
-				{ row: id, column: cellIdx.column } :
-				undefined;
-		} ).filter( function ( d ) {
-			return d !== undefined;
-		} );
+		var cells = api
+			.cells({ selected: true })
+			.eq(0)
+			.map(function (cellIdx) {
+				var id = api.row(cellIdx.row).id(true);
+				return id ? { row: id, column: cellIdx.column } : undefined;
+			})
+			.filter(function (d) {
+				return d !== undefined;
+			});
 
 		// On the next draw, reselect the currently selected items
-		api.one( 'draw.dt.dtSelect', function () {
-			api.rows( rows ).select();
+		api.one('draw.dt.dtSelect', function () {
+			api.rows(rows).select();
 
 			// `cells` is not a cell index selector, so it needs a loop
-			if ( cells.any() ) {
-				cells.each( function ( id ) {
-					api.cells( id.row, id.column ).select();
-				} );
+			if (cells.any()) {
+				cells.each(function (id) {
+					api.cells(id.row, id.column).select();
+				});
 			}
-		} );
-	} );
+		});
+	});
 
 	// Update the table information element with selected item summary
-	api.on( 'draw.dtSelect.dt select.dtSelect.dt deselect.dtSelect.dt info.dt', function () {
-		info( api );
-	} );
+	api.on('draw.dtSelect.dt select.dtSelect.dt deselect.dtSelect.dt info.dt', function () {
+		info(api);
+		api.state.save();
+	});
 
 	// Clean up and release
-	api.on( 'destroy.dtSelect', function () {
-		api.rows({selected: true}).deselect();
+	api.on('destroy.dtSelect', function () {
+		// Remove class directly rather than calling deselect - which would trigger events
+		$(api.rows({ selected: true }).nodes()).removeClass(api.settings()[0]._select.className);
 
-		disableMouseSelection( api );
-		api.off( '.dtSelect' );
-	} );
+		disableMouseSelection(api);
+		api.off('.dtSelect');
+		$('body').off('.dtSelect' + _safeId(api.table().node()));
+	});
 }
 
 /**
@@ -18181,38 +19130,37 @@ function init ( ctx ) {
  * @param  {object}        last Item index to select from
  * @private
  */
-function rowColumnRange( dt, type, idx, last )
-{
+function rowColumnRange(dt, type, idx, last) {
 	// Add a range of rows from the last selected row to this one
-	var indexes = dt[type+'s']( { search: 'applied' } ).indexes();
-	var idx1 = $.inArray( last, indexes );
-	var idx2 = $.inArray( idx, indexes );
+	var indexes = dt[type + 's']({ search: 'applied' }).indexes();
+	var idx1 = $.inArray(last, indexes);
+	var idx2 = $.inArray(idx, indexes);
 
-	if ( ! dt[type+'s']( { selected: true } ).any() && idx1 === -1 ) {
+	if (!dt[type + 's']({ selected: true }).any() && idx1 === -1) {
 		// select from top to here - slightly odd, but both Windows and Mac OS
 		// do this
-		indexes.splice( $.inArray( idx, indexes )+1, indexes.length );
+		indexes.splice($.inArray(idx, indexes) + 1, indexes.length);
 	}
 	else {
 		// reverse so we can shift click 'up' as well as down
-		if ( idx1 > idx2 ) {
+		if (idx1 > idx2) {
 			var tmp = idx2;
 			idx2 = idx1;
 			idx1 = tmp;
 		}
 
-		indexes.splice( idx2+1, indexes.length );
-		indexes.splice( 0, idx1 );
+		indexes.splice(idx2 + 1, indexes.length);
+		indexes.splice(0, idx1);
 	}
 
-	if ( ! dt[type]( idx, { selected: true } ).any() ) {
+	if (!dt[type](idx, { selected: true }).any()) {
 		// Select range
-		dt[type+'s']( indexes ).select();
+		dt[type + 's'](indexes).select();
 	}
 	else {
 		// Deselect range - need to keep the clicked on row selected
-		indexes.splice( $.inArray( idx, indexes ), 1 );
-		dt[type+'s']( indexes ).deselect();
+		indexes.splice($.inArray(idx, indexes), 1);
+		dt[type + 's'](indexes).deselect();
 	}
 }
 
@@ -18224,14 +19172,13 @@ function rowColumnRange( dt, type, idx, last )
  *     of selection style
  * @private
  */
-function clear( ctx, force )
-{
-	if ( force || ctx._select.style === 'single' ) {
-		var api = new DataTable.Api( ctx );
-		
-		api.rows( { selected: true } ).deselect();
-		api.columns( { selected: true } ).deselect();
-		api.cells( { selected: true } ).deselect();
+function clear(ctx, force) {
+	if (force || ctx._select.style === 'single') {
+		var api = new DataTable.Api(ctx);
+
+		api.rows({ selected: true }).deselect();
+		api.columns({ selected: true }).deselect();
+		api.cells({ selected: true }).deselect();
 	}
 }
 
@@ -18245,71 +19192,73 @@ function clear( ctx, force )
  * @param  {int|object}         idx  Index of the item to select
  * @private
  */
-function typeSelect ( e, dt, ctx, type, idx )
-{
+function typeSelect(e, dt, ctx, type, idx) {
 	var style = dt.select.style();
 	var toggleable = dt.select.toggleable();
-	var isSelected = dt[type]( idx, { selected: true } ).any();
-	
-	if ( isSelected && ! toggleable ) {
+	var isSelected = dt[type](idx, { selected: true }).any();
+
+	if (isSelected && !toggleable) {
 		return;
 	}
 
-	if ( style === 'os' ) {
-		if ( e.ctrlKey || e.metaKey ) {
+	if (style === 'os') {
+		if (e.ctrlKey || e.metaKey) {
 			// Add or remove from the selection
-			dt[type]( idx ).select( ! isSelected );
+			dt[type](idx).select(!isSelected);
 		}
-		else if ( e.shiftKey ) {
-			if ( type === 'cell' ) {
-				cellRange( dt, idx, ctx._select_lastCell || null );
+		else if (e.shiftKey) {
+			if (type === 'cell') {
+				cellRange(dt, idx, ctx._select_lastCell || null);
 			}
 			else {
-				rowColumnRange( dt, type, idx, ctx._select_lastCell ?
-					ctx._select_lastCell[type] :
-					null
+				rowColumnRange(
+					dt,
+					type,
+					idx,
+					ctx._select_lastCell ? ctx._select_lastCell[type] : null
 				);
 			}
 		}
 		else {
 			// No cmd or shift click - deselect if selected, or select
 			// this row only
-			var selected = dt[type+'s']( { selected: true } );
+			var selected = dt[type + 's']({ selected: true });
 
-			if ( isSelected && selected.flatten().length === 1 ) {
-				dt[type]( idx ).deselect();
+			if (isSelected && selected.flatten().length === 1) {
+				dt[type](idx).deselect();
 			}
 			else {
 				selected.deselect();
-				dt[type]( idx ).select();
+				dt[type](idx).select();
 			}
 		}
-	} else if ( style == 'multi+shift' ) {
-		if ( e.shiftKey ) {
-			if ( type === 'cell' ) {
-				cellRange( dt, idx, ctx._select_lastCell || null );
+	}
+	else if (style == 'multi+shift') {
+		if (e.shiftKey) {
+			if (type === 'cell') {
+				cellRange(dt, idx, ctx._select_lastCell || null);
 			}
 			else {
-				rowColumnRange( dt, type, idx, ctx._select_lastCell ?
-					ctx._select_lastCell[type] :
-					null
+				rowColumnRange(
+					dt,
+					type,
+					idx,
+					ctx._select_lastCell ? ctx._select_lastCell[type] : null
 				);
 			}
 		}
 		else {
-			dt[ type ]( idx ).select( ! isSelected );
+			dt[type](idx).select(!isSelected);
 		}
 	}
 	else {
-		dt[ type ]( idx ).select( ! isSelected );
+		dt[type](idx).select(!isSelected);
 	}
 }
 
-function _safeId( node ) {
+function _safeId(node) {
 	return node.id.replace(/[^a-zA-Z0-9\-\_]/g, '-');
 }
-
-
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * DataTables selectors
@@ -18318,56 +19267,62 @@ function _safeId( node ) {
 // row and column are basically identical just assigned to different properties
 // and checking a different array, so we can dynamically create the functions to
 // reduce the code size
-$.each( [
-	{ type: 'row', prop: 'aoData' },
-	{ type: 'column', prop: 'aoColumns' }
-], function ( i, o ) {
-	DataTable.ext.selector[ o.type ].push( function ( settings, opts, indexes ) {
-		var selected = opts.selected;
-		var data;
-		var out = [];
+$.each(
+	[
+		{ type: 'row', prop: 'aoData' },
+		{ type: 'column', prop: 'aoColumns' }
+	],
+	function (i, o) {
+		DataTable.ext.selector[o.type].push(function (settings, opts, indexes) {
+			var selected = opts.selected;
+			var data;
+			var out = [];
 
-		if ( selected !== true && selected !== false ) {
-			return indexes;
-		}
-
-		for ( var i=0, ien=indexes.length ; i<ien ; i++ ) {
-			data = settings[ o.prop ][ indexes[i] ];
-
-			if ( (selected === true && data._select_selected === true) ||
-			     (selected === false && ! data._select_selected )
-			) {
-				out.push( indexes[i] );
+			if (selected !== true && selected !== false) {
+				return indexes;
 			}
-		}
 
-		return out;
-	} );
-} );
+			for (var i = 0, ien = indexes.length; i < ien; i++) {
+				data = settings[o.prop][indexes[i]];
 
-DataTable.ext.selector.cell.push( function ( settings, opts, cells ) {
+				if (
+					(selected === true && data._select_selected === true) ||
+					(selected === false && !data._select_selected)
+				) {
+					out.push(indexes[i]);
+				}
+			}
+
+			return out;
+		});
+	}
+);
+
+DataTable.ext.selector.cell.push(function (settings, opts, cells) {
 	var selected = opts.selected;
 	var rowData;
 	var out = [];
 
-	if ( selected === undefined ) {
+	if (selected === undefined) {
 		return cells;
 	}
 
-	for ( var i=0, ien=cells.length ; i<ien ; i++ ) {
-		rowData = settings.aoData[ cells[i].row ];
+	for (var i = 0, ien = cells.length; i < ien; i++) {
+		rowData = settings.aoData[cells[i].row];
 
-		if ( (selected === true && rowData._selected_cells && rowData._selected_cells[ cells[i].column ] === true) ||
-		     (selected === false && ( ! rowData._selected_cells || ! rowData._selected_cells[ cells[i].column ] ) )
+		if (
+			(selected === true &&
+				rowData._selected_cells &&
+				rowData._selected_cells[cells[i].column] === true) ||
+			(selected === false &&
+				(!rowData._selected_cells || !rowData._selected_cells[cells[i].column]))
 		) {
-			out.push( cells[i] );
+			out.push(cells[i]);
 		}
 	}
 
 	return out;
-} );
-
-
+});
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * DataTables API
@@ -18380,277 +19335,314 @@ DataTable.ext.selector.cell.push( function ( settings, opts, cells ) {
 var apiRegister = DataTable.Api.register;
 var apiRegisterPlural = DataTable.Api.registerPlural;
 
-apiRegister( 'select()', function () {
-	return this.iterator( 'table', function ( ctx ) {
-		DataTable.select.init( new DataTable.Api( ctx ) );
-	} );
-} );
+apiRegister('select()', function () {
+	return this.iterator('table', function (ctx) {
+		DataTable.select.init(new DataTable.Api(ctx));
+	});
+});
 
-apiRegister( 'select.blurable()', function ( flag ) {
-	if ( flag === undefined ) {
+apiRegister('select.blurable()', function (flag) {
+	if (flag === undefined) {
 		return this.context[0]._select.blurable;
 	}
 
-	return this.iterator( 'table', function ( ctx ) {
+	return this.iterator('table', function (ctx) {
 		ctx._select.blurable = flag;
-	} );
-} );
+	});
+});
 
-apiRegister( 'select.toggleable()', function ( flag ) {
-	if ( flag === undefined ) {
+apiRegister('select.toggleable()', function (flag) {
+	if (flag === undefined) {
 		return this.context[0]._select.toggleable;
 	}
 
-	return this.iterator( 'table', function ( ctx ) {
+	return this.iterator('table', function (ctx) {
 		ctx._select.toggleable = flag;
-	} );
-} );
+	});
+});
 
-apiRegister( 'select.info()', function ( flag ) {
-	if ( flag === undefined ) {
+apiRegister('select.info()', function (flag) {
+	if (flag === undefined) {
 		return this.context[0]._select.info;
 	}
 
-	return this.iterator( 'table', function ( ctx ) {
+	return this.iterator('table', function (ctx) {
 		ctx._select.info = flag;
-	} );
-} );
+	});
+});
 
-apiRegister( 'select.items()', function ( items ) {
-	if ( items === undefined ) {
+apiRegister('select.items()', function (items) {
+	if (items === undefined) {
 		return this.context[0]._select.items;
 	}
 
-	return this.iterator( 'table', function ( ctx ) {
+	return this.iterator('table', function (ctx) {
 		ctx._select.items = items;
 
-		eventTrigger( new DataTable.Api( ctx ), 'selectItems', [ items ] );
-	} );
-} );
+		eventTrigger(new DataTable.Api(ctx), 'selectItems', [items]);
+	});
+});
 
 // Takes effect from the _next_ selection. None disables future selection, but
 // does not clear the current selection. Use the `deselect` methods for that
-apiRegister( 'select.style()', function ( style ) {
-	if ( style === undefined ) {
+apiRegister('select.style()', function (style) {
+	if (style === undefined) {
 		return this.context[0]._select.style;
 	}
 
-	return this.iterator( 'table', function ( ctx ) {
-		ctx._select.style = style;
-
-		if ( ! ctx._select_init ) {
-			init( ctx );
+	return this.iterator('table', function (ctx) {
+		if (!ctx._select) {
+			DataTable.select.init(new DataTable.Api(ctx));
 		}
+
+		if (!ctx._select_init) {
+			init(ctx);
+		}
+
+		ctx._select.style = style;
 
 		// Add / remove mouse event handlers. They aren't required when only
 		// API selection is available
-		var dt = new DataTable.Api( ctx );
-		disableMouseSelection( dt );
-		
-		if ( style !== 'api' ) {
-			enableMouseSelection( dt );
+		var dt = new DataTable.Api(ctx);
+		disableMouseSelection(dt);
+
+		if (style !== 'api') {
+			enableMouseSelection(dt);
 		}
 
-		eventTrigger( new DataTable.Api( ctx ), 'selectStyle', [ style ] );
-	} );
-} );
+		eventTrigger(new DataTable.Api(ctx), 'selectStyle', [style]);
+	});
+});
 
-apiRegister( 'select.selector()', function ( selector ) {
-	if ( selector === undefined ) {
+apiRegister('select.selector()', function (selector) {
+	if (selector === undefined) {
 		return this.context[0]._select.selector;
 	}
 
-	return this.iterator( 'table', function ( ctx ) {
-		disableMouseSelection( new DataTable.Api( ctx ) );
+	return this.iterator('table', function (ctx) {
+		disableMouseSelection(new DataTable.Api(ctx));
 
 		ctx._select.selector = selector;
 
-		if ( ctx._select.style !== 'api' ) {
-			enableMouseSelection( new DataTable.Api( ctx ) );
+		if (ctx._select.style !== 'api') {
+			enableMouseSelection(new DataTable.Api(ctx));
 		}
-	} );
-} );
+	});
+});
 
-
-
-apiRegisterPlural( 'rows().select()', 'row().select()', function ( select ) {
+apiRegisterPlural('rows().select()', 'row().select()', function (select) {
 	var api = this;
 
-	if ( select === false ) {
+	if (select === false) {
 		return this.deselect();
 	}
 
-	this.iterator( 'row', function ( ctx, idx ) {
-		clear( ctx );
+	this.iterator('row', function (ctx, idx) {
+		clear(ctx);
 
-		ctx.aoData[ idx ]._select_selected = true;
-		$( ctx.aoData[ idx ].nTr ).addClass( ctx._select.className );
-	} );
+		ctx.aoData[idx]._select_selected = true;
+		$(ctx.aoData[idx].nTr).addClass(ctx._select.className);
+	});
 
-	this.iterator( 'table', function ( ctx, i ) {
-		eventTrigger( api, 'select', [ 'row', api[i] ], true );
-	} );
+	this.iterator('table', function (ctx, i) {
+		eventTrigger(api, 'select', ['row', api[i]], true);
+	});
 
 	return this;
-} );
+});
 
-apiRegisterPlural( 'columns().select()', 'column().select()', function ( select ) {
+apiRegister('row().selected()', function () {
+	var ctx = this.context[0];
+
+	if (ctx && this.length && ctx.aoData[this[0]] && ctx.aoData[this[0]]._select_selected) {
+		return true;
+	}
+
+	return false;
+});
+
+apiRegisterPlural('columns().select()', 'column().select()', function (select) {
 	var api = this;
 
-	if ( select === false ) {
+	if (select === false) {
 		return this.deselect();
 	}
 
-	this.iterator( 'column', function ( ctx, idx ) {
-		clear( ctx );
+	this.iterator('column', function (ctx, idx) {
+		clear(ctx);
 
-		ctx.aoColumns[ idx ]._select_selected = true;
+		ctx.aoColumns[idx]._select_selected = true;
 
-		var column = new DataTable.Api( ctx ).column( idx );
+		var column = new DataTable.Api(ctx).column(idx);
 
-		$( column.header() ).addClass( ctx._select.className );
-		$( column.footer() ).addClass( ctx._select.className );
+		$(column.header()).addClass(ctx._select.className);
+		$(column.footer()).addClass(ctx._select.className);
 
-		column.nodes().to$().addClass( ctx._select.className );
-	} );
+		column.nodes().to$().addClass(ctx._select.className);
+	});
 
-	this.iterator( 'table', function ( ctx, i ) {
-		eventTrigger( api, 'select', [ 'column', api[i] ], true );
-	} );
+	this.iterator('table', function (ctx, i) {
+		eventTrigger(api, 'select', ['column', api[i]], true);
+	});
 
 	return this;
-} );
+});
 
-apiRegisterPlural( 'cells().select()', 'cell().select()', function ( select ) {
+apiRegister('column().selected()', function () {
+	var ctx = this.context[0];
+
+	if (ctx && this.length && ctx.aoColumns[this[0]] && ctx.aoColumns[this[0]]._select_selected) {
+		return true;
+	}
+
+	return false;
+});
+
+apiRegisterPlural('cells().select()', 'cell().select()', function (select) {
 	var api = this;
 
-	if ( select === false ) {
+	if (select === false) {
 		return this.deselect();
 	}
 
-	this.iterator( 'cell', function ( ctx, rowIdx, colIdx ) {
-		clear( ctx );
+	this.iterator('cell', function (ctx, rowIdx, colIdx) {
+		clear(ctx);
 
-		var data = ctx.aoData[ rowIdx ];
+		var data = ctx.aoData[rowIdx];
 
-		if ( data._selected_cells === undefined ) {
+		if (data._selected_cells === undefined) {
 			data._selected_cells = [];
 		}
 
-		data._selected_cells[ colIdx ] = true;
+		data._selected_cells[colIdx] = true;
 
-		if ( data.anCells ) {
-			$( data.anCells[ colIdx ] ).addClass( ctx._select.className );
+		if (data.anCells) {
+			$(data.anCells[colIdx]).addClass(ctx._select.className);
 		}
-	} );
+	});
 
-	this.iterator( 'table', function ( ctx, i ) {
-		eventTrigger( api, 'select', [ 'cell', api.cells(api[i]).indexes().toArray() ], true );
-	} );
+	this.iterator('table', function (ctx, i) {
+		eventTrigger(api, 'select', ['cell', api.cells(api[i]).indexes().toArray()], true);
+	});
 
 	return this;
-} );
+});
 
+apiRegister('cell().selected()', function () {
+	var ctx = this.context[0];
 
-apiRegisterPlural( 'rows().deselect()', 'row().deselect()', function () {
+	if (ctx && this.length) {
+		var row = ctx.aoData[this[0][0].row];
+
+		if (row && row._selected_cells && row._selected_cells[this[0][0].column]) {
+			return true;
+		}
+	}
+
+	return false;
+});
+
+apiRegisterPlural('rows().deselect()', 'row().deselect()', function () {
 	var api = this;
 
-	this.iterator( 'row', function ( ctx, idx ) {
-		ctx.aoData[ idx ]._select_selected = false;
+	this.iterator('row', function (ctx, idx) {
+		ctx.aoData[idx]._select_selected = false;
 		ctx._select_lastCell = null;
-		$( ctx.aoData[ idx ].nTr ).removeClass( ctx._select.className );
-	} );
+		$(ctx.aoData[idx].nTr).removeClass(ctx._select.className);
+	});
 
-	this.iterator( 'table', function ( ctx, i ) {
-		eventTrigger( api, 'deselect', [ 'row', api[i] ], true );
-	} );
+	this.iterator('table', function (ctx, i) {
+		eventTrigger(api, 'deselect', ['row', api[i]], true);
+	});
 
 	return this;
-} );
+});
 
-apiRegisterPlural( 'columns().deselect()', 'column().deselect()', function () {
+apiRegisterPlural('columns().deselect()', 'column().deselect()', function () {
 	var api = this;
 
-	this.iterator( 'column', function ( ctx, idx ) {
-		ctx.aoColumns[ idx ]._select_selected = false;
+	this.iterator('column', function (ctx, idx) {
+		ctx.aoColumns[idx]._select_selected = false;
 
-		var api = new DataTable.Api( ctx );
-		var column = api.column( idx );
+		var api = new DataTable.Api(ctx);
+		var column = api.column(idx);
 
-		$( column.header() ).removeClass( ctx._select.className );
-		$( column.footer() ).removeClass( ctx._select.className );
+		$(column.header()).removeClass(ctx._select.className);
+		$(column.footer()).removeClass(ctx._select.className);
 
 		// Need to loop over each cell, rather than just using
 		// `column().nodes()` as cells which are individually selected should
 		// not have the `selected` class removed from them
-		api.cells( null, idx ).indexes().each( function (cellIdx) {
-			var data = ctx.aoData[ cellIdx.row ];
-			var cellSelected = data._selected_cells;
+		api.cells(null, idx)
+			.indexes()
+			.each(function (cellIdx) {
+				var data = ctx.aoData[cellIdx.row];
+				var cellSelected = data._selected_cells;
 
-			if ( data.anCells && (! cellSelected || ! cellSelected[ cellIdx.column ]) ) {
-				$( data.anCells[ cellIdx.column  ] ).removeClass( ctx._select.className );
-			}
-		} );
-	} );
+				if (data.anCells && (!cellSelected || !cellSelected[cellIdx.column])) {
+					$(data.anCells[cellIdx.column]).removeClass(ctx._select.className);
+				}
+			});
+	});
 
-	this.iterator( 'table', function ( ctx, i ) {
-		eventTrigger( api, 'deselect', [ 'column', api[i] ], true );
-	} );
+	this.iterator('table', function (ctx, i) {
+		eventTrigger(api, 'deselect', ['column', api[i]], true);
+	});
 
 	return this;
-} );
+});
 
-apiRegisterPlural( 'cells().deselect()', 'cell().deselect()', function () {
+apiRegisterPlural('cells().deselect()', 'cell().deselect()', function () {
 	var api = this;
 
-	this.iterator( 'cell', function ( ctx, rowIdx, colIdx ) {
-		var data = ctx.aoData[ rowIdx ];
+	this.iterator('cell', function (ctx, rowIdx, colIdx) {
+		var data = ctx.aoData[rowIdx];
 
-		data._selected_cells[ colIdx ] = false;
+		if (data._selected_cells !== undefined) {
+			data._selected_cells[colIdx] = false;
+		}
 
 		// Remove class only if the cells exist, and the cell is not column
 		// selected, in which case the class should remain (since it is selected
 		// in the column)
-		if ( data.anCells && ! ctx.aoColumns[ colIdx ]._select_selected ) {
-			$( data.anCells[ colIdx ] ).removeClass( ctx._select.className );
+		if (data.anCells && !ctx.aoColumns[colIdx]._select_selected) {
+			$(data.anCells[colIdx]).removeClass(ctx._select.className);
 		}
-	} );
+	});
 
-	this.iterator( 'table', function ( ctx, i ) {
-		eventTrigger( api, 'deselect', [ 'cell', api[i] ], true );
-	} );
+	this.iterator('table', function (ctx, i) {
+		eventTrigger(api, 'deselect', ['cell', api[i]], true);
+	});
 
 	return this;
-} );
-
-
+});
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Buttons
  */
-function i18n( label, def ) {
+function i18n(label, def) {
 	return function (dt) {
-		return dt.i18n( 'buttons.'+label, def );
+		return dt.i18n('buttons.' + label, def);
 	};
 }
 
 // Common events with suitable namespaces
-function namespacedEvents ( config ) {
+function namespacedEvents(config) {
 	var unique = config._eventNamespace;
 
-	return 'draw.dt.DT'+unique+' select.dt.DT'+unique+' deselect.dt.DT'+unique;
+	return 'draw.dt.DT' + unique + ' select.dt.DT' + unique + ' deselect.dt.DT' + unique;
 }
 
-function enabled ( dt, config ) {
-	if ( $.inArray( 'rows', config.limitTo ) !== -1 && dt.rows( { selected: true } ).any() ) {
+function enabled(dt, config) {
+	if ($.inArray('rows', config.limitTo) !== -1 && dt.rows({ selected: true }).any()) {
 		return true;
 	}
 
-	if ( $.inArray( 'columns', config.limitTo ) !== -1 && dt.columns( { selected: true } ).any() ) {
+	if ($.inArray('columns', config.limitTo) !== -1 && dt.columns({ selected: true }).any()) {
 		return true;
 	}
 
-	if ( $.inArray( 'cells', config.limitTo ) !== -1 && dt.cells( { selected: true } ).any() ) {
+	if ($.inArray('cells', config.limitTo) !== -1 && dt.cells({ selected: true }).any()) {
 		return true;
 	}
 
@@ -18659,102 +19651,154 @@ function enabled ( dt, config ) {
 
 var _buttonNamespace = 0;
 
-$.extend( DataTable.ext.buttons, {
+$.extend(DataTable.ext.buttons, {
 	selected: {
-		text: i18n( 'selected', 'Selected' ),
+		text: i18n('selected', 'Selected'),
 		className: 'buttons-selected',
-		limitTo: [ 'rows', 'columns', 'cells' ],
-		init: function ( dt, node, config ) {
+		limitTo: ['rows', 'columns', 'cells'],
+		init: function (dt, node, config) {
 			var that = this;
-			config._eventNamespace = '.select'+(_buttonNamespace++);
+			config._eventNamespace = '.select' + _buttonNamespace++;
 
 			// .DT namespace listeners are removed by DataTables automatically
 			// on table destroy
-			dt.on( namespacedEvents(config), function () {
-				that.enable( enabled(dt, config) );
-			} );
+			dt.on(namespacedEvents(config), function () {
+				that.enable(enabled(dt, config));
+			});
 
 			this.disable();
 		},
-		destroy: function ( dt, node, config ) {
-			dt.off( config._eventNamespace );
+		destroy: function (dt, node, config) {
+			dt.off(config._eventNamespace);
 		}
 	},
 	selectedSingle: {
-		text: i18n( 'selectedSingle', 'Selected single' ),
+		text: i18n('selectedSingle', 'Selected single'),
 		className: 'buttons-selected-single',
-		init: function ( dt, node, config ) {
+		init: function (dt, node, config) {
 			var that = this;
-			config._eventNamespace = '.select'+(_buttonNamespace++);
+			config._eventNamespace = '.select' + _buttonNamespace++;
 
-			dt.on( namespacedEvents(config), function () {
-				var count = dt.rows( { selected: true } ).flatten().length +
-				            dt.columns( { selected: true } ).flatten().length +
-				            dt.cells( { selected: true } ).flatten().length;
+			dt.on(namespacedEvents(config), function () {
+				var count =
+					dt.rows({ selected: true }).flatten().length +
+					dt.columns({ selected: true }).flatten().length +
+					dt.cells({ selected: true }).flatten().length;
 
-				that.enable( count === 1 );
-			} );
+				that.enable(count === 1);
+			});
 
 			this.disable();
 		},
-		destroy: function ( dt, node, config ) {
-			dt.off( config._eventNamespace );
+		destroy: function (dt, node, config) {
+			dt.off(config._eventNamespace);
 		}
 	},
 	selectAll: {
-		text: i18n( 'selectAll', 'Select all' ),
+		text: i18n('selectAll', 'Select all'),
 		className: 'buttons-select-all',
-		action: function () {
+		action: function (e, dt, node, config) {
 			var items = this.select.items();
-			this[ items+'s' ]().select();
+			var mod = config.selectorModifier;
+			
+			if (mod) {
+				if (typeof mod === 'function') {
+					mod = mod.call(dt, e, dt, node, config);
+				}
+
+				this[items + 's'](mod).select();
+			}
+			else {
+				this[items + 's']().select();
+			}
 		}
+		// selectorModifier can be specified
 	},
 	selectNone: {
-		text: i18n( 'selectNone', 'Deselect all' ),
+		text: i18n('selectNone', 'Deselect all'),
 		className: 'buttons-select-none',
 		action: function () {
-			clear( this.settings()[0], true );
+			clear(this.settings()[0], true);
 		},
-		init: function ( dt, node, config ) {
+		init: function (dt, node, config) {
 			var that = this;
-			config._eventNamespace = '.select'+(_buttonNamespace++);
+			config._eventNamespace = '.select' + _buttonNamespace++;
 
-			dt.on( namespacedEvents(config), function () {
-				var count = dt.rows( { selected: true } ).flatten().length +
-				            dt.columns( { selected: true } ).flatten().length +
-				            dt.cells( { selected: true } ).flatten().length;
+			dt.on(namespacedEvents(config), function () {
+				var count =
+					dt.rows({ selected: true }).flatten().length +
+					dt.columns({ selected: true }).flatten().length +
+					dt.cells({ selected: true }).flatten().length;
 
-				that.enable( count > 0 );
-			} );
+				that.enable(count > 0);
+			});
 
 			this.disable();
 		},
-		destroy: function ( dt, node, config ) {
-			dt.off( config._eventNamespace );
+		destroy: function (dt, node, config) {
+			dt.off(config._eventNamespace);
+		}
+	},
+	showSelected: {
+		text: i18n('showSelected', 'Show only selected'),
+		className: 'buttons-show-selected',
+		action: function (e, dt, node, conf) {
+			// Works by having a filtering function which will reduce to the selected
+			// items only. So we can re-reference the function it gets stored in the
+			// `conf` object
+			if (conf._filter) {
+				var idx = DataTable.ext.search.indexOf(conf._filter);
+
+				if (idx !== -1) {
+					DataTable.ext.search.splice(idx, 1);
+					conf._filter = null;
+				}
+
+				this.active(false);
+			}
+			else {
+				var fn = function (s, data, idx) {
+					// Need to be sure we are operating on our table!
+					if (s !== dt.settings()[0]) {
+						return true;
+					}
+
+					let row = s.aoData[idx];
+
+					return row._select_selected;
+				};
+
+				conf._filter = fn;
+				DataTable.ext.search.push(fn);
+
+				this.active(true);
+			}
+
+			dt.draw();
 		}
 	}
-} );
+});
 
-$.each( [ 'Row', 'Column', 'Cell' ], function ( i, item ) {
+$.each(['Row', 'Column', 'Cell'], function (i, item) {
 	var lc = item.toLowerCase();
 
-	DataTable.ext.buttons[ 'select'+item+'s' ] = {
-		text: i18n( 'select'+item+'s', 'Select '+lc+'s' ),
-		className: 'buttons-select-'+lc+'s',
+	DataTable.ext.buttons['select' + item + 's'] = {
+		text: i18n('select' + item + 's', 'Select ' + lc + 's'),
+		className: 'buttons-select-' + lc + 's',
 		action: function () {
-			this.select.items( lc );
+			this.select.items(lc);
 		},
-		init: function ( dt ) {
+		init: function (dt) {
 			var that = this;
 
-			dt.on( 'selectItems.dt.DT', function ( e, ctx, items ) {
-				that.active( items === lc );
-			} );
+			dt.on('selectItems.dt.DT', function (e, ctx, items) {
+				that.active(items === lc);
+			});
 		}
 	};
-} );
+});
 
-
+$.fn.DataTable.select = DataTable.select;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Initialisation
@@ -18764,16 +19808,16 @@ $.each( [ 'Row', 'Column', 'Cell' ], function ( i, item ) {
 // this required that the table be in the document! If it isn't then something
 // needs to trigger this method unfortunately. The next major release of
 // DataTables will rework the events and address this.
-$(document).on( 'preInit.dt.dtSelect', function (e, ctx) {
-	if ( e.namespace !== 'dt' ) {
+$(document).on('preInit.dt.dtSelect', function (e, ctx) {
+	if (e.namespace !== 'dt') {
 		return;
 	}
 
-	DataTable.select.init( new DataTable.Api( ctx ) );
-} );
+	DataTable.select.init(new DataTable.Api(ctx));
+});
 
 
-return DataTable.select;
+return DataTable;
 }));
 
 
